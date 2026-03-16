@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                         String   @id @default(uuid()) @db.Uuid
+  name                       String   @map("name")
+  slug                       String   @unique @map("slug")
+  whatsappPhoneNumberId      String?  @map("whatsapp_phone_number_id")
+  whatsappBusinessAccountId  String?  @map("whatsapp_business_account_id")
+  defaultLanguage            String   @default("en") @map("default_language")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  customers     Customer[]
+  conversations Conversation[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                         String   @id @default(uuid()) @db.Uuid
+  tenantId                   String   @map("tenant_id") @db.Uuid
+  email                      String   @map("email")
+  passwordHash               String   @map("password_hash")
+  fullName                   String   @map("full_name")
+  role                       String   @default("agent") @map("role")
+  preferredLanguage          String   @default("en") @map("preferred_language")
+  isOnline                   Boolean  @default(false) @map("is_online")
+  isActive                   Boolean  @default(true) @map("is_active")
+  maxConcurrentConversations Int      @default(5) @map("max_concurrent_conversations")
+  createdAt                  DateTime @default(now()) @map("created_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  conversations Conversation[] @relation("AssignedAgent")
+  suggestions   AISuggestion[]
+
+  @@unique([tenantId, email], map: "ix_users_tenant_email")
+  @@index([tenantId], map: "ix_users_tenant")
+  @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  phone     String   @map("phone")
+  name      String?  @map("name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  conversations Conversation[]
+
+  @@unique([tenantId, phone], map: "ix_customers_tenant_phone")
+  @@map("customers")
+}
+
+model Conversation {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  customerId       String   @map("customer_id") @db.Uuid
+  assignedAgentId  String?  @map("assigned_agent_id") @db.Uuid
+  channel          String   @default("whatsapp") @map("channel")
+  status           String   @default("queued") @map("status")
+  detectedLanguage String?  @map("detected_language")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  assignedAgent User?     @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  messages      Message[]
+
+  @@index([tenantId, status], map: "ix_conversations_tenant_status")
+  @@map("conversations")
+}
+
+model Message {
+  id               String   @id @default(uuid()) @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
+  senderType       String   @map("sender_type")
+  senderId         String?  @map("sender_id") @db.Uuid
+  originalText     String   @map("original_text")
+  detectedLanguage String?  @map("detected_language")
+  externalId       String?  @map("external_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  conversation Conversation       @relation(fields: [conversationId], references: [id])
+  translations MessageTranslation[]
+  suggestion   AISuggestion?
+
+  @@index([conversationId], map: "ix_messages_conversation")
+  @@map("messages")
+}
+
+model MessageTranslation {
+  id             String   @id @default(uuid()) @db.Uuid
+  messageId      String   @map("message_id") @db.Uuid
+  sourceLanguage String   @map("source_language")
+  targetLanguage String   @map("target_language")
+  translatedText String   @map("translated_text")
+  provider       String   @map("provider")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id])
+
+  @@unique([messageId, targetLanguage], map: "ix_translations_message_target")
+  @@map("message_translations")
+}
+
+model AISuggestion {
+  id                 String   @id @default(uuid()) @db.Uuid
+  messageId          String   @unique @map("message_id") @db.Uuid
+  agentId            String   @map("agent_id") @db.Uuid
+  suggestionText     String   @map("suggestion_text")
+  suggestionLanguage String   @map("suggestion_language")
+  wasUsed            Boolean  @default(false) @map("was_used")
+  finalText          String?  @map("final_text")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id])
+  agent   User    @relation(fields: [agentId], references: [id])
+
+  @@map("ai_suggestions")
+}
+
+model AIUsageLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  service      String   @map("service")
+  model        String?  @map("model")
+  inputTokens  Int      @default(0) @map("input_tokens")
+  outputTokens Int      @default(0) @map("output_tokens")
+  estimatedCost Float   @default(0) @map("estimated_cost")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId], map: "ix_usage_log_tenant")
+  @@map("ai_usage_logs")
+}
