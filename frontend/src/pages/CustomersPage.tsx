@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
-import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag } from "lucide-react";
 import "./CustomersPage.css";
 
 type CustomerItem = {
   id: string;
   name: string | null;
   phone: string;
+  email: string | null;
+  social_media: string | null;
+  tag: string | null;
   created_at: string;
   conversation_count: number;
   active_conversations: number;
@@ -77,13 +80,24 @@ export function CustomersPage() {
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  useEffect(() => {
+  const fetchCustomers = useCallback(() => {
     setIsLoading(true);
     ApiService.get<CustomerItem[]>("/customers")
       .then(setCustomers)
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  // Refresh list when a new customer is created from the sidebar modal
+  useEffect(() => {
+    const handler = () => fetchCustomers();
+    window.addEventListener("customer-created", handler);
+    return () => window.removeEventListener("customer-created", handler);
+  }, [fetchCustomers]);
 
   const handleExpand = async (customerId: string) => {
     if (expandedId === customerId) {
@@ -170,7 +184,7 @@ export function CustomersPage() {
                   <div className="customer-avatar">
                     {customer.name ? customer.name.charAt(0).toUpperCase() : <User size={20} />}
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div className="customer-name">
                       {customer.name || customer.phone}
                     </div>
@@ -181,13 +195,36 @@ export function CustomersPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-2)" }}>
+                <div className="customer-card-actions">
                   <span className={`customer-channel-icon ${customer.last_channel || ""}`}>
                     {channelIcon(customer.last_channel)}
                   </span>
                   {expandedId === customer.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </div>
               </div>
+
+              {(customer.email || customer.social_media || customer.tag) && (
+                <div className="customer-meta-row">
+                  {customer.tag && (
+                    <span className="customer-tag">
+                      <Tag size={12} />
+                      {customer.tag}
+                    </span>
+                  )}
+                  {customer.email && (
+                    <span className="customer-meta-item">
+                      <Mail size={12} />
+                      {customer.email}
+                    </span>
+                  )}
+                  {customer.social_media && (
+                    <span className="customer-meta-item">
+                      <AtSign size={12} />
+                      {customer.social_media}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="customer-card-footer">
                 <span className={`status-badge ${customer.status}`}>

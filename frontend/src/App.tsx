@@ -9,6 +9,8 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { InboxPage } from "./pages/InboxPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { SupportPage } from "./pages/SupportPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -49,7 +51,9 @@ function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/inbox" element={<InboxPage />} />
                   <Route path="/customers" element={<CustomersPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/support" element={<SupportPage />} />
                 </Route>
               </Route>
 

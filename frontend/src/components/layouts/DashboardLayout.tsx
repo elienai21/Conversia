@@ -1,15 +1,53 @@
 // src/components/layouts/DashboardLayout.tsx
+import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useSocket } from "@/contexts/SocketContext";
 import { useTranslation } from "react-i18next";
+import { ApiService } from "@/services/api";
+import { NewCustomerModal } from "@/components/NewCustomerModal";
 import "./DashboardLayout.css";
+
+type ConversationSummary = {
+  id: string;
+  status: string;
+};
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { socket } = useSocket();
   const { t } = useTranslation();
+  const [openCount, setOpenCount] = useState(0);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+
+  const fetchOpenCount = useCallback(async () => {
+    try {
+      const conversations = await ApiService.get<ConversationSummary[]>("/conversations");
+      const open = conversations.filter((c) => c.status !== "closed").length;
+      setOpenCount(open);
+    } catch {
+      // silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOpenCount();
+  }, [fetchOpenCount]);
+
+  // Refresh count on real-time events
+  useEffect(() => {
+    if (!socket) return;
+    const refresh = () => fetchOpenCount();
+    socket.on("conversation.new", refresh);
+    socket.on("conversation.updated", refresh);
+    return () => {
+      socket.off("conversation.new", refresh);
+      socket.off("conversation.updated", refresh);
+    };
+  }, [socket, fetchOpenCount]);
 
   return (
     <div className="dashboard-container">
@@ -42,22 +80,45 @@ export function DashboardLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-            <LayoutDashboard size={20} />
-            <span>{t("Dashboard")}</span>
-          </NavLink>
-          <NavLink to="/inbox" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-            <MessageSquare size={20} />
-            <span>{t("Inbox")}</span>
-          </NavLink>
-          <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-            <Users size={20} />
-            <span>{t("Customers")}</span>
-          </NavLink>
-          <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-            <Settings size={20} />
-            <span>{t("Settings")}</span>
-          </NavLink>
+          <div className="nav-section">
+            <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <LayoutDashboard size={20} />
+              <span>{t("Dashboard")}</span>
+            </NavLink>
+            <NavLink to="/inbox" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <MessageSquare size={20} />
+              <span>{t("Messages")}</span>
+              {openCount > 0 && <span className="nav-badge">{openCount > 99 ? "99+" : openCount}</span>}
+            </NavLink>
+            <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <Users size={20} />
+              <span>{t("Customers")}</span>
+            </NavLink>
+            <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <BarChart3 size={20} />
+              <span>{t("Analytics")}</span>
+            </NavLink>
+          </div>
+
+          <div className="nav-section-divider">
+            <span className="nav-section-label">SYSTEM</span>
+          </div>
+
+          <div className="nav-section">
+            <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <Settings size={20} />
+              <span>{t("Settings")}</span>
+            </NavLink>
+            <NavLink to="/support" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <HelpCircle size={20} />
+              <span>{t("Support")}</span>
+            </NavLink>
+          </div>
+
+          <button className="new-customer-btn" onClick={() => setShowNewCustomer(true)}>
+            <UserPlus size={18} />
+            <span>New Customer</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -66,7 +127,7 @@ export function DashboardLayout() {
             <p className="widget-desc">{user?.tenantId ? "Premium features unlocked." : "You have 14 days left on your trial."}</p>
             {!user?.tenantId && <button className="widget-btn">Upgrade Now</button>}
           </div>
-          
+
           <div className="user-profile-bar">
             <div className="user-profile">
               <div className="avatar">{user?.name?.charAt(0) || "A"}</div>
@@ -91,6 +152,15 @@ export function DashboardLayout() {
       <main className="dashboard-main">
         <Outlet />
       </main>
+
+      <NewCustomerModal
+        open={showNewCustomer}
+        onClose={() => setShowNewCustomer(false)}
+        onCreated={() => {
+          // Force a page reload if on the customers page so the list refreshes
+          window.dispatchEvent(new CustomEvent("customer-created"));
+        }}
+      />
     </div>
   );
 }

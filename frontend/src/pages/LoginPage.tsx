@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiService } from "@/services/api";
-import { Lock, Mail, Loader2 } from "lucide-react";
+import { Lock, Mail, Loader2, Eye, EyeOff, MessageSquare } from "lucide-react";
+import "./LoginPage.css";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -43,9 +45,9 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await ApiService.post<{ 
-        access_token: string, 
-        user: { id: string, name: string, email: string, role: string, tenantId: string } 
+      const response = await ApiService.post<{
+        access_token: string;
+        user: { id: string; name: string; email: string; role: string; tenantId: string };
       }>("/auth/login", {
         email,
         password,
@@ -53,7 +55,7 @@ export function LoginPage() {
 
       login(response.access_token, {
         ...response.user,
-        isOnline: true // optimistic
+        isOnline: true,
       });
       navigate("/inbox");
     } catch (err: any) {
@@ -64,131 +66,114 @@ export function LoginPage() {
   };
 
   return (
-    <div className="page-container flex-center" style={{ 
-      background: "radial-gradient(circle at top right, var(--bg-tertiary), var(--bg-primary))" 
-    }}>
-      <div className="glass-panel animate-fade-in" style={{
-        padding: "var(--spacing-10)",
-        width: "100%",
-        maxWidth: "420px",
-      }}>
-        <div style={{ textAlign: "center", marginBottom: "var(--spacing-8)" }}>
-          <h1 style={{ fontSize: "2rem", marginBottom: "var(--spacing-2)" }}>Conversia</h1>
-          <p style={{ color: "var(--text-secondary)" }}>Sign in to your team workspace</p>
+    <div className="login-container animate-fade-in">
+      {/* Left Branded Panel */}
+      <div className="login-brand-panel">
+        <div className="brand-badge">
+          <span className="brand-badge-dot" />
+          Conversia &bull; AI Assistant
         </div>
 
-        {error && (
-          <div style={{ 
-            background: "var(--accent-error)", 
-            color: "white", 
-            padding: "var(--spacing-3)", 
-            borderRadius: "var(--radius-md)",
-            marginBottom: "var(--spacing-4)",
-            fontSize: "0.875rem",
-            textAlign: "center"
-          }}>
-            {error}
-          </div>
-        )}
+        <h2 className="brand-headline">
+          Acesse seu <span className="highlight">Painel de Atendimento</span>
+        </h2>
 
-        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "var(--spacing-1)" }}>
-              Email Address
-            </label>
-            <div style={{ position: "relative" }}>
-              <Mail style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} size={18} />
+        <p className="brand-description">
+          Gerencie conversas, acompanhe clientes e deixe a IA trabalhar por
+          você &ndash; tudo em um s&oacute; lugar.
+        </p>
+
+        <div className="brand-features">
+          <div className="brand-feature-item">
+            <span className="feature-dot" />
+            <span>Atendimento multicanal com intelig&ecirc;ncia artificial</span>
+          </div>
+          <div className="brand-feature-item">
+            <span className="feature-dot" />
+            <span>Acesso exclusivo para agentes e administradores</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Form Panel */}
+      <div className="login-form-panel">
+        <div className="login-form-header">
+          <h1>Fazer login</h1>
+          <p>Use o e-mail e senha configurados para acessar o Conversia.</p>
+        </div>
+
+        {error && <div className="login-error">{error}</div>}
+
+        <form onSubmit={handleLogin} className="login-form">
+          <div className="login-field">
+            <label htmlFor="login-email">E-mail</label>
+            <div className="login-input-wrapper">
+              <span className="input-icon"><Mail size={18} /></span>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem 0.75rem 2.75rem",
-                  background: "rgba(0,0,0,0.2)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "var(--radius-md)",
-                  color: "var(--text-primary)",
-                  outline: "none",
-                  transition: "border-color var(--transition-fast)"
-                }}
-                onFocus={(e) => e.target.style.borderColor = "var(--brand-primary)"}
-                onBlur={(e) => e.target.style.borderColor = "var(--border-color)"}
-                placeholder="agent@hotel.com"
+                placeholder="voce@empresa.com"
               />
             </div>
           </div>
 
-          <div>
-            <label style={{ display: "block", fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "var(--spacing-1)" }}>
-              Password
-            </label>
-            <div style={{ position: "relative" }}>
-              <Lock style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} size={18} />
+          <div className="login-field">
+            <label htmlFor="login-password">Senha</label>
+            <div className="login-input-wrapper">
+              <span className="input-icon"><Lock size={18} /></span>
               <input
-                type="password"
+                id="login-password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem 0.75rem 2.75rem",
-                  background: "rgba(0,0,0,0.2)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "var(--radius-md)",
-                  color: "var(--text-primary)",
-                  outline: "none",
-                  transition: "border-color var(--transition-fast)"
-                }}
-                onFocus={(e) => e.target.style.borderColor = "var(--brand-primary)"}
-                onBlur={(e) => e.target.style.borderColor = "var(--border-color)"}
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                className="toggle-password-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              marginTop: "var(--spacing-2)",
-              width: "100%",
-              padding: "0.875rem",
-              background: "var(--brand-primary)",
-              color: "white",
-              fontWeight: 600,
-              borderRadius: "var(--radius-md)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "0.5rem",
-              transition: "background var(--transition-fast)",
-              opacity: loading ? 0.7 : 1
-            }}
-            onMouseOver={(e) => !loading && (e.currentTarget.style.background = "var(--brand-primary-hover)")}
-            onMouseOut={(e) => e.currentTarget.style.background = "var(--brand-primary)"}
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : "Sign In"}
+          <div className="login-password-row">
+            <span className="login-restricted-text">Ambiente restrito a usu&aacute;rios autorizados.</span>
+            <button type="button" className="login-forgot-link">
+              Esqueceu a senha?
+            </button>
+          </div>
+
+          <button type="submit" disabled={loading} className="login-submit-btn">
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                <MessageSquare size={18} />
+                Entrar no Conversia
+              </>
+            )}
           </button>
         </form>
 
         {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
           <>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--spacing-3)",
-              margin: "var(--spacing-6) 0",
-            }}>
-              <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
-              <span style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>or</span>
-              <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
+            <div className="login-divider">
+              <div className="login-divider-line" />
+              <span className="login-divider-text">ou continue com</span>
+              <div className="login-divider-line" />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center" }}>
+            <div className="login-google-wrapper">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setError("Google Sign-In failed")}
@@ -201,6 +186,11 @@ export function LoginPage() {
             </div>
           </>
         )}
+
+        <p className="login-legal">
+          Ao acessar, voc&ecirc; concorda com os termos de uso e pol&iacute;tica de
+          privacidade definidos para a sua conta Conversia.
+        </p>
       </div>
     </div>
   );

@@ -53,6 +53,9 @@ model Customer {
   tenantId      String         @map("tenant_id") @db.Uuid
   phone         String         @map("phone")
   name          String?        @map("name")
+  email         String?        @map("email")
+  socialMedia   String?        @map("social_media")
+  tag           String?        @map("tag")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   conversations Conversation[]
