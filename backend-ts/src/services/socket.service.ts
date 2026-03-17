@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import type { Server as HttpServer } from "http";
+import { allowedOrigins } from "../config.js";
 
 export class SocketService {
   private static io: Server | null = null;
@@ -7,7 +8,7 @@ export class SocketService {
   static initialize(server: HttpServer) {
     this.io = new Server(server, {
       cors: {
-        origin: "*",
+        origin: allowedOrigins,
         methods: ["GET", "POST"]
       }
     });

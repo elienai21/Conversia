@@ -1,6 +1,9 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { config } from "./config.js";
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
+import fastifyMultipart from "@fastify/multipart";
+import { config, allowedOrigins } from "./config.js";
 import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -22,21 +25,50 @@ import { SocketService } from "./services/socket.service.js";
 
 const app = Fastify({ logger: config.DEBUG });
 
-// Plugins
-await app.register(cors, {
-  origin: true,
-  credentials: true,
+// Security headers
+await app.register(helmet, { contentSecurityPolicy: false });
+
+// Rate limiting
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: "1 minute",
 });
 
-import fastifyMultipart from "@fastify/multipart";
+// CORS
+await app.register(cors, {
+  origin: allowedOrigins,
+  credentials: true,
+});
 
 // Error handler
 app.setErrorHandler(errorHandler);
 
-// Health check
-app.get("/health", async () => ({ status: "ok" }));
+// Health check with dependency verification
+app.get("/health", async () => {
+  const health: { status: string; db: string; redis: string } = {
+    status: "ok",
+    db: "ok",
+    redis: "ok",
+  };
 
-// Plugins
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    health.status = "degraded";
+    health.db = "error";
+  }
+
+  try {
+    await redis.ping();
+  } catch {
+    health.status = "degraded";
+    health.redis = "error";
+  }
+
+  return health;
+});
+
+// Multipart uploads
 await app.register(fastifyMultipart, {
   limits: {
     fileSize: 20 * 1024 * 1024, // 20 MB max file size for OpenAI audio

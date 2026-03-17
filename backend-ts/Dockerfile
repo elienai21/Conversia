@@ -35,5 +35,9 @@ COPY --from=builder /app/dist ./dist
 # Expose port (Railway sets PORT env var)
 EXPOSE 8000
 
-# Start the server (migrations are run manually or via CI)
-CMD ["node", "dist/server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
+
+# Run migrations then start the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
