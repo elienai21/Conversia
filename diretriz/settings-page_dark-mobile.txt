@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversia Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6317cf",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#181121",
+                        "surface-dark": "#241a31",
+                        "border-dark": "#322544",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #322544;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen w-full max-w-md mx-auto flex-col bg-background-light dark:bg-background-dark overflow-x-hidden border-x border-slate-200 dark:border-border-dark">
+<!-- Header -->
+<div class="sticky top-0 z-10 flex items-center bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md p-4 pb-2 justify-between border-b border-slate-200 dark:border-border-dark">
+<div class="text-slate-900 dark:text-slate-100 flex size-10 shrink-0 items-center justify-center cursor-pointer rounded-full hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Settings &amp; Integrations</h2>
+<div class="flex w-10 items-center justify-end">
+<button class="flex cursor-pointer items-center justify-center rounded-full size-10 bg-primary/10 text-primary transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</div>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto custom-scrollbar pb-24">
+<!-- AI Engine Section -->
+<div class="px-4 pt-6 pb-2">
+<h3 class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider opacity-60">AI Engine</h3>
+</div>
+<div class="mx-4 mb-4 overflow-hidden rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark/40">
+<div class="flex items-center gap-4 px-4 py-4 justify-between border-b border-slate-200 dark:border-border-dark">
+<div class="flex items-center gap-4">
+<div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal">OpenAI</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal">GPT-4o model active</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+<span class="text-[10px] font-bold text-emerald-500 uppercase">Live</span>
+</div>
+</div>
+<!-- Toggle Switch -->
+<div class="flex items-center justify-between px-4 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">assistant</span>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-medium">Copilot Assistance</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Translation Section -->
+<div class="px-4 pt-4 pb-2">
+<h3 class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider opacity-60">Translation</h3>
+</div>
+<div class="mx-4 mb-4 overflow-hidden rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark/40">
+<div class="flex items-center gap-4 px-4 py-4 justify-between border-b border-slate-200 dark:border-border-dark">
+<div class="flex items-center gap-4">
+<div class="text-primary flex items-center justify-center rounded-lg bg-primary/10 shrink-0 size-12">
+<span class="material-symbols-outlined">translate</span>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal">DeepL Pro</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal">28 languages supported</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-slate-400">chevron_right</span>
+</div>
+<div class="flex items-center justify-between px-4 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400">auto_fix_high</span>
+<p class="text-slate-900 dark:text-slate-100 text-sm font-medium">Auto-translation</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Active Channels Section -->
+<div class="px-4 pt-4 pb-2">
+<h3 class="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wider opacity-60">Active Channels</h3>
+</div>
+<div class="mx-4 mb-4 flex flex-col gap-3">
+<div class="flex items-center gap-4 px-4 py-4 justify-between rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark/40">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0 size-12">
+<span class="material-symbols-outlined">chat</span>
+</div>
+<div class="flex flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal">WhatsApp Cloud API</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal">Connected to +1 (555) 000-1234</p>
+</div>
+</div>
+<div class="bg-primary/20 text-primary text-[10px] font-bold px-2 py-1 rounded-full uppercase">Primary</div>
+</div>
+<div class="flex items-center gap-4 px-4 py-4 justify-between rounded-xl border border-dashed border-slate-300 dark:border-border-dark bg-transparent cursor-pointer hover:bg-primary/5 transition-colors">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center rounded-lg border border-dashed border-slate-400 text-slate-400 shrink-0 size-12">
+<span class="material-symbols-outlined">add</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Add new channel (Slack, Discord...)</p>
+</div>
+</div>
+</div>
+<!-- Danger Zone or Logout -->
+<div class="px-4 pt-8">
+<button class="w-full flex items-center justify-center gap-2 py-4 rounded-xl text-red-500 font-semibold border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-colors">
+<span class="material-symbols-outlined">logout</span>
+                    Sign Out
+                </button>
+</div>
+</div>
+<!-- Bottom Navigation Bar -->
+<div class="fixed bottom-0 left-0 right-0 z-20 mx-auto max-w-md border-t border-slate-200 dark:border-border-dark bg-white dark:bg-background-dark/95 backdrop-blur-md px-4 pb-6 pt-2">
+<div class="flex gap-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">chat_bubble</span>
+</div>
+<p class="text-xs font-medium leading-normal">Chats</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">hub</span>
+</div>
+<p class="text-xs font-medium leading-normal">Channels</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">settings</span>
+</div>
+<p class="text-xs font-medium leading-normal">Settings</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400 dark:text-slate-500" href="#">
+<div class="flex h-8 items-center justify-center">
+<span class="material-symbols-outlined">bar_chart</span>
+</div>
+<p class="text-xs font-medium leading-normal">Stats</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

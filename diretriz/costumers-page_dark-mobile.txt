@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#6317cf",
+                "background-light": "#f7f6f8",
+                "background-dark": "#181121",
+              },
+              fontFamily: {
+                "display": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-background-light dark:bg-background-dark overflow-x-hidden">
+<!-- Header -->
+<header class="flex items-center p-4 justify-between sticky top-0 z-20 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+<div class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+<span class="material-symbols-outlined">menu</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Conversia</h1>
+<div class="flex size-10 items-center justify-center rounded-full bg-primary overflow-hidden">
+<div class="w-full h-full bg-gradient-to-tr from-primary to-purple-400 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-sm">person</span>
+</div>
+</div>
+</header>
+<!-- Search Bar -->
+<div class="px-4 py-4">
+<div class="relative flex items-center">
+<div class="absolute left-4 text-slate-400">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="w-full h-12 pl-12 pr-4 rounded-xl border-none bg-slate-200/50 dark:bg-primary/10 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all" placeholder="Search customers..." type="text"/>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="flex gap-3 px-4 pb-4 overflow-x-auto hide-scrollbar">
+<button class="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-white px-5 text-sm font-semibold">
+                All
+            </button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-200/50 dark:bg-primary/10 text-slate-700 dark:text-slate-300 px-5 text-sm font-medium">
+                Active
+                <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-200/50 dark:bg-primary/10 text-slate-700 dark:text-slate-300 px-5 text-sm font-medium">
+                Resolved
+                <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-slate-200/50 dark:bg-primary/10 text-slate-700 dark:text-slate-300 px-5 text-sm font-medium">
+                Premium
+                <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+<!-- Customer List -->
+<div class="flex-1 flex flex-col gap-3 px-4 pb-24">
+<!-- Customer Card 1 -->
+<div class="group flex flex-col p-4 rounded-xl bg-white dark:bg-primary/5 border border-slate-200 dark:border-primary/10 hover:border-primary/30 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-slate-300 dark:bg-primary/20 overflow-hidden" data-alt="Professional portrait of Carlos Ruiz" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBOUzX7MNQB3vjTWY87uB-Pc_VmQ3ElwlMRw7MYqdmQHEXi9U0a9mB-BgbAW1IPd6XY1Vqt5nqKZFlmbowK7td7w4nhRip6BZRxCtKqQROJPFVSCB8uyBv7iOIC7rUpM98K-iADqZZATl0ru3hcloCCC4hTQNwsEwCCFvjSSP7FG2wELqzNfqCnGcbSuFQA1TAz6UmuXqD8_YXO2Bq2aIvRqFx509bQIBJqbXen65npUL9pzCxtCMbxEvhIS0HK7IJ4DOWvQyOmpAAp')"></div>
+<div class="absolute -bottom-1 -right-1 size-5 rounded-full bg-white dark:bg-background-dark p-0.5">
+<img class="w-full h-full object-cover rounded-full" data-alt="Spain flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuALrRIU4wbu2tMmUEoN-qyXf7n9V6PcaeVvEFUkvDHjtqJglXGtpyd1vLjz_LJReRbxrTl_mVzpxfDsNvX74y7CKjF6hQ-O893fe7lSgXDIiF__31_Gfgdfn29AlIdvd5Tbp83ySBNQ_sR0yLESMb64r14v3lmBKH3Fd852O-yxaPv6UE8sWMDvBttvbxcGhwWxEwEKwY7FpbqQzQPU1iWlTenHsDgTx9H_AYxnDtXLj8BWofTa0BB7jxc7VDfGG22Hn35JHylU2kSq"/>
+</div>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">Carlos Ruiz</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Spanish • Customer ID: #8821</p>
+</div>
+</div>
+<div class="text-[#25D366]">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">chat</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Active</span>
+<p class="text-xs text-slate-400 italic">Last contact 12m ago</p>
+</div>
+</div>
+<!-- Customer Card 2 -->
+<div class="group flex flex-col p-4 rounded-xl bg-white dark:bg-primary/5 border border-slate-200 dark:border-primary/10 hover:border-primary/30 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-slate-300 dark:bg-primary/20 overflow-hidden" data-alt="Professional portrait of Sarah Jenkins" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCie3VnTNPLqfPwW5RloPhx0tGcz7ZMol0w1PtRF-_G-za3ikYCRgYaJ8fP-LvEqjxwQ0q5KqaS9GbLOryGFY9cDMrjTnDYiejQJOkouWShquEnnQm94g8nzb63AmcRUCL8CxDeMZoGTYZaz5CBSu02HnwFDlbDHUUSlmW329MOOiD_g48cVrlazqmb3cFkjsIuvaaJyVDGjAnk71FN3rSlmG8pZT3UdDIPwZfXw-ePPm6cwaDYz0C-EksBmq8XG4tNmS5xWOU86y9y')"></div>
+<div class="absolute -bottom-1 -right-1 size-5 rounded-full bg-white dark:bg-background-dark p-0.5">
+<img class="w-full h-full object-cover rounded-full" data-alt="USA flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqGK7jh-f092Bh4zIj0ujf7OQHUb6zKf0nmLJd_FRPXWmz1DU-Z8-3JGdrkTPvyVn1pEFLCmfO3tP5gJ3BEZiZ25mZDmKVNagkkSQQ2SIkEf12-KRVfyReJAoQUjDZZG0Np41rYYyi4If78EdmmvxsT8zxCe_J42h7jZ41t9DGulQ8AaaQgfu39QW9iZU9c807VcVraVrtSlLzZxAVkS-0l_77gCDwhH9Ioa_yVxmfxrnawT3khiAHAciY9u07CxqYC2PUBaH2vSIT"/>
+</div>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">Sarah Jenkins</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">English • Customer ID: #4492</p>
+</div>
+</div>
+<div class="text-[#25D366]">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">chat</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-primary/20 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">Resolved</span>
+<p class="text-xs text-slate-400 italic">Last contact 2h ago</p>
+</div>
+</div>
+<!-- Customer Card 3 -->
+<div class="group flex flex-col p-4 rounded-xl bg-white dark:bg-primary/5 border border-slate-200 dark:border-primary/10 hover:border-primary/30 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-slate-300 dark:bg-primary/20 overflow-hidden" data-alt="Professional portrait of Julien Blanc" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBik46ZV-yaDAMhHUGgEmb5C_x_x3GxAMGi6hthiJnKzgFusSSMgiCM6SOfhGtx48747bQmoT3bCAYbYC_f66i355BvEMwHs1yNGXAp5k7W4w0ljUYr_mGIwMAEf5Y4JkyHr-fsJx8d1T1njFl4sUJvqIJbUUQVok7fiE0WhNGk_ZYXxhrb1sNUnWajcx5QqrxcuHBVVK5FW9tUcebD46N_j9nbOY_yoG5YQpYaMwqs8KM09YpOZp5E2e0rohDAPcq_X7m5WmMSWZf7')"></div>
+<div class="absolute -bottom-1 -right-1 size-5 rounded-full bg-white dark:bg-background-dark p-0.5">
+<img class="w-full h-full object-cover rounded-full" data-alt="France flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2EkS2OW_D_4m2LjTNV_fxt1hwkgLPmoY_TY44BXON1xcm9pCst_SuimJ_gWk1k2QOmNx7OmS6vYpRGofwMxDXJ8l2JS3eFb6BiXvEUtZkzh41cVFzficO-TDVi1kOynABX_luUYBKYoUlaGQ0A7yNA1_Y2uvZUHGQ3wLjQBM6vQO78NRRaQVKTkx19bKtzSzXkLQ4hLKReEczltOouHII8fxbpVHvPTP0kvfbMVj_6kj1A6wt1fW8-E8gSBPlCUoR_AmG_bS5jR8g"/>
+</div>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">Julien Blanc</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">French • Customer ID: #1029</p>
+</div>
+</div>
+<div class="text-[#25D366]">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">chat</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Active</span>
+<p class="text-xs text-slate-400 italic">Last contact 5m ago</p>
+</div>
+</div>
+<!-- Customer Card 4 -->
+<div class="group flex flex-col p-4 rounded-xl bg-white dark:bg-primary/5 border border-slate-200 dark:border-primary/10 hover:border-primary/30 transition-colors">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="size-12 rounded-full bg-slate-300 dark:bg-primary/20 overflow-hidden" data-alt="Professional portrait of Elena Rossi" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAbPaWz8s3CI8v6zeNc8RXs9_97ciXWyutzjbhQEtaGV-cIwpqbdiTNdZYsUJoJN6Sn1vHix32ZEEcblZbpDkCiIC7H_XnXDzCeUqbCsQ2gs18s2apLbc1xFGySeZx6Tylimywylbjk-XFW1ET5H9d_vyH1nw9ypWPrhAYI-UQGGHk1Y3tYq3A_OhJdXrGWbl1cG9FZt9qlB9m7Ihh0zQL1mmtkwKj_xoA_KNzYm5ICdhyQqFwJt-ILHu4bep1CbLrylL7RhIpmfNQF')"></div>
+<div class="absolute -bottom-1 -right-1 size-5 rounded-full bg-white dark:bg-background-dark p-0.5">
+<img class="w-full h-full object-cover rounded-full" data-alt="Spain flag icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSyZkVqY4dSZ2eti9LBczvi_pCtofMI02FlFyBCOMe9pUl9AZlJBK0-rubrNy4HtPqjLf7alEEgBF70ur1ff8uGWpu_LmwL922MG14x--Oy5a_Ux6lQVwnIbBkM2Ves-lzVPxCR1RiBoRi-Lx3J4MZXb0Ndub3oeB2g1aZc25ATRWaO8wMk515tIXvnX2-O10onk7n1xp46S9t_veUfIrbOJvaVJGMJBH0so0MxzW2V65P-aZQcfc6megsjwBKgAeF87krpOsUeKAS"/>
+</div>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">Elena Rossi</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">Spanish • Customer ID: #5512</p>
+</div>
+</div>
+<div class="text-[#25D366]">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">chat</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Active</span>
+<p class="text-xs text-slate-400 italic">Last contact 1d ago</p>
+</div>
+</div>
+</div>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-primary/10 px-6 py-2 flex items-center justify-between z-30">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<span class="text-[10px] font-bold">Customers</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="text-[10px] font-medium">Chats</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] font-medium">Stats</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</a>
+</nav>
+</div>
+</body></html>

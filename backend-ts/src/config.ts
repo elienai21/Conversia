@@ -16,6 +16,7 @@ const envSchema = z.object({
   WHATSAPP_API_URL: z.string().default("https://graph.facebook.com/v21.0"),
   WHATSAPP_PHONE_NUMBER_ID: z.string().default(""),
   INSTAGRAM_VERIFY_TOKEN: z.string().default("conversia-ig-webhook-verify"),
+  GOOGLE_CLIENT_ID: z.string().default(""),
 });
 
 export const config = envSchema.parse(process.env);

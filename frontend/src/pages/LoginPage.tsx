@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiService } from "@/services/api";
 import { Lock, Mail, Loader2 } from "lucide-react";
@@ -11,6 +12,30 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    if (!response.credential) {
+      setError("Google Sign-In failed: no credential received");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await ApiService.post<{
+        access_token: string;
+        user: { id: string; name: string; email: string; role: string; tenantId: string };
+      }>("/auth/google", { credential: response.credential });
+
+      login(result.access_token, { ...result.user, isOnline: true });
+      navigate("/inbox");
+    } catch (err: any) {
+      setError(err.message || "Google authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +174,33 @@ export function LoginPage() {
             {loading ? <Loader2 className="animate-spin" size={20} /> : "Sign In"}
           </button>
         </form>
+
+        {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+          <>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--spacing-3)",
+              margin: "var(--spacing-6) 0",
+            }}>
+              <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
+              <span style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>or</span>
+              <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google Sign-In failed")}
+                theme="filled_black"
+                size="large"
+                width={350}
+                text="signin_with"
+                shape="rectangular"
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

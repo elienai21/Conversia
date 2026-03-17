@@ -24,4 +24,6 @@ export const updateAISettingsSchema = z.object({
   ai_temperature: z.number().min(0).max(2).optional(),
   ai_system_prompt: z.string().max(4000).optional(),
   ai_max_tokens: z.number().int().min(50).max(2000).optional(),
+  enable_auto_response: z.boolean().optional(),
+  auto_response_intents: z.array(z.string()).optional(),
 });

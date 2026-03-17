@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)"
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:wzpcxTaaPHvbOpyXluMhVPUmveuhQbRV@hopper.proxy.rlwy.net:43563/railway\" npx prisma migrate deploy:*)"
     ]
   }
 }

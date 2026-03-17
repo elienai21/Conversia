@@ -154,6 +154,10 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       ai_temperature: settings?.aiTemperature ?? 0.7,
       ai_system_prompt: settings?.aiSystemPrompt || "",
       ai_max_tokens: settings?.aiMaxTokens || 200,
+      enable_auto_response: settings?.enableAutoResponse ?? false,
+      auto_response_intents: settings?.autoResponseIntents
+        ? JSON.parse(settings.autoResponseIntents)
+        : [],
     };
   });
 
@@ -169,6 +173,8 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.ai_temperature !== undefined) data.aiTemperature = parsed.data.ai_temperature;
     if (parsed.data.ai_system_prompt !== undefined) data.aiSystemPrompt = parsed.data.ai_system_prompt;
     if (parsed.data.ai_max_tokens !== undefined) data.aiMaxTokens = parsed.data.ai_max_tokens;
+    if (parsed.data.enable_auto_response !== undefined) data.enableAutoResponse = parsed.data.enable_auto_response;
+    if (parsed.data.auto_response_intents !== undefined) data.autoResponseIntents = JSON.stringify(parsed.data.auto_response_intents);
 
     const settings = await prisma.tenantSettings.upsert({
       where: { tenantId: request.user.tenantId },
@@ -181,6 +187,10 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       ai_temperature: settings.aiTemperature,
       ai_system_prompt: settings.aiSystemPrompt || "",
       ai_max_tokens: settings.aiMaxTokens,
+      enable_auto_response: settings.enableAutoResponse,
+      auto_response_intents: settings.autoResponseIntents
+        ? JSON.parse(settings.autoResponseIntents)
+        : [],
     };
   });
 

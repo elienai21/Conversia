@@ -1,49 +1,54 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, Users, Zap, ArrowUpRight, Target, Clock, ArrowRight } from "lucide-react";
+import { MessageSquare, Users, Zap, Target, Clock, ArrowRight } from "lucide-react";
 import { ApiService } from "@/services/api";
 import { Link } from "react-router-dom";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from "@/contexts/ThemeContext";
 import "./DashboardPage.css";
 
-// Mock data types
-type DashboardMetrics = {
-  totalConversations: number;
-  activeAgents: number;
-  avgResolutionTime: string;
-  automationRate: string;
+type OverviewMetrics = {
+  total_conversations: number;
+  active_conversations: number;
+  active_agents: number;
+  total_agents: number;
+  total_customers: number;
+  avg_resolution_time_seconds: number;
+  automation_rate: number;
 };
 
-const mockChartData = [
-  { name: 'Mon', total: 120, aiHandled: 90 },
-  { name: 'Tue', total: 150, aiHandled: 121 },
-  { name: 'Wed', total: 180, aiHandled: 160 },
-  { name: 'Thu', total: 130, aiHandled: 105 },
-  { name: 'Fri', total: 210, aiHandled: 180 },
-  { name: 'Sat', total: 250, aiHandled: 230 },
-  { name: 'Sun', total: 220, aiHandled: 195 },
-];
+type ChartDataPoint = {
+  name: string;
+  total: number;
+  aiHandled: number;
+};
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
 
 export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const { theme } = useTheme();
 
   useEffect(() => {
-    // Simulando chamada à API de métricas
     const fetchMetrics = async () => {
       setIsLoading(true);
       try {
-        // Na prática seria: const res = await ApiService.get("/analytics/overview");
-        await new Promise(r => setTimeout(r, 600)); 
-        setMetrics({
-          totalConversations: 1284,
-          activeAgents: 3,
-          avgResolutionTime: "4m 12s",
-          automationRate: "85%"
-        });
+        const [overview, volume] = await Promise.all([
+          ApiService.get<OverviewMetrics>("/analytics/overview"),
+          ApiService.get<ChartDataPoint[]>("/analytics/volume?days=7"),
+        ]);
+        setMetrics(overview);
+        setChartData(volume);
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load dashboard metrics:", error);
       } finally {
         setIsLoading(false);
       }
@@ -63,7 +68,7 @@ export function DashboardPage() {
   }
 
   const chartColors = {
-    total: theme === 'dark' ? '#6366f1' : '#4f46e5',
+    total: theme === 'dark' ? '#0ea5e9' : '#0284c7',
     ai: theme === 'dark' ? '#10b981' : '#059669',
     text: theme === 'dark' ? '#a1a1aa' : '#71717a',
     grid: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
@@ -86,10 +91,9 @@ export function DashboardPage() {
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <div className="metric-icon bg-brand/10 text-brand"><MessageSquare size={20} /></div>
-            <span className="metric-trend positive"><ArrowUpRight size={14} /> +12%</span>
           </div>
           <div className="metric-body">
-            <h3>{metrics?.totalConversations.toLocaleString()}</h3>
+            <h3>{metrics?.total_conversations.toLocaleString() ?? 0}</h3>
             <p>Total Conversations</p>
           </div>
         </div>
@@ -97,10 +101,9 @@ export function DashboardPage() {
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <div className="metric-icon bg-emerald/10 text-emerald"><Zap size={20} /></div>
-            <span className="metric-trend positive"><ArrowUpRight size={14} /> +5%</span>
           </div>
           <div className="metric-body">
-            <h3>{metrics?.automationRate}</h3>
+            <h3>{metrics?.automation_rate ?? 0}%</h3>
             <p>AI Automation Rate</p>
           </div>
         </div>
@@ -108,10 +111,9 @@ export function DashboardPage() {
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <div className="metric-icon bg-amber/10 text-amber"><Clock size={20} /></div>
-            <span className="metric-trend neutral">-</span>
           </div>
           <div className="metric-body">
-            <h3>{metrics?.avgResolutionTime}</h3>
+            <h3>{formatDuration(metrics?.avg_resolution_time_seconds ?? 0)}</h3>
             <p>Avg Resolution Time</p>
           </div>
         </div>
@@ -121,13 +123,13 @@ export function DashboardPage() {
             <div className="metric-icon bg-purple/10 text-purple"><Users size={20} /></div>
           </div>
           <div className="metric-body">
-            <h3>{metrics?.activeAgents}</h3>
+            <h3>{metrics?.active_agents ?? 0} / {metrics?.total_agents ?? 0}</h3>
             <p>Active Agents</p>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions & Recent Activity Area */}
+      {/* Chart + Onboarding */}
       <div className="dashboard-content-grid mt-8">
         <div className="main-panel glass-panel">
           <div className="panel-header border-b border-border/10 pb-4 mb-4">
@@ -137,7 +139,7 @@ export function DashboardPage() {
           </div>
           <div className="chart-container" style={{ width: '100%', height: 300, marginTop: '1rem' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={chartColors.total} stopOpacity={0.3}/>
@@ -151,7 +153,7 @@ export function DashboardPage() {
                 <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   itemStyle={{ color: 'var(--text-primary)' }}
                 />
@@ -168,11 +170,11 @@ export function DashboardPage() {
           </div>
           <div className="onboarding-steps">
             <div className="step-item completed">
-              <div className="step-check">✓</div>
+              <div className="step-check">&#10003;</div>
               <span>Connect WhatsApp</span>
             </div>
             <div className="step-item completed">
-              <div className="step-check">✓</div>
+              <div className="step-check">&#10003;</div>
               <span>Configure OpenAI API</span>
             </div>
             <Link to="/settings" className="step-item active">

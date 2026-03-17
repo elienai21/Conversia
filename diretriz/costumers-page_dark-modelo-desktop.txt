@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversia | Customer Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6317cf",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#181121",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #6317cf44;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 flex-shrink-0 border-r border-primary/10 bg-white dark:bg-background-dark/50 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">bubble_chart</span>
+</div>
+<div>
+<h1 class="text-lg font-bold tracking-tight">Conversia</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400">Customer CRM</p>
+</div>
+</div>
+<nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto custom-scrollbar">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px] fill-1">group</span>
+<span class="text-sm font-medium">Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">chat_bubble</span>
+<span class="text-sm font-medium">Messages</span>
+<span class="ml-auto bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full">12</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<span class="text-sm font-medium">Analytics</span>
+</a>
+<div class="pt-6 pb-2 px-3">
+<p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">System</p>
+</div>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">help</span>
+<span class="text-sm font-medium">Support</span>
+</a>
+</nav>
+<div class="p-4 border-t border-primary/10">
+<button class="w-full py-2.5 px-4 bg-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-sm">add</span>
+                    New Customer
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-background-dark/30 border-b border-primary/10">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full bg-slate-100 dark:bg-primary/5 border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400" placeholder="Search by name, ID, or language..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-primary/10 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<div class="h-8 w-px bg-primary/10 mx-2"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-semibold leading-none">Alex Rivera</p>
+<p class="text-[10px] text-slate-500 dark:text-slate-400">Admin Account</p>
+</div>
+<img alt="Admin Profile" class="size-9 rounded-full ring-2 ring-primary/20" data-alt="Professional profile portrait of male administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmOsFuPwtJS9VL-tJbooNS3go-umr2CYm-cltnqfdikzX83_-8gD8XyuNPk94K6diWcJgHhMmbOwxlyxetQjJlQlrJlzJNuXMTpp79hH9FS2S0sHyKL7f_gpuSqu1DtuA_C_IbVXhldQeIM8vsSWuAZwojIu3-y5dUBTkjXg8i3iSoB9RILxHCfg5sbXhNsZ0eXl5M7XLPTMNV9T8nrFMMDT6CI6167wiz_eNd7XUZLKj-lXzpaGA_V8mILPGvcGUoB2ubX-ggfz11"/>
+</div>
+</div>
+</header>
+<!-- Table Content -->
+<div class="flex-1 overflow-auto p-8 custom-scrollbar">
+<div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Customer Directory</h2>
+<p class="text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all your customer interactions in one place.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-white dark:bg-primary/10 border border-primary/20 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">download</span>
+                            Export Data
+                        </button>
+<button class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                            Filters
+                        </button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-primary/10 mb-6 overflow-x-auto whitespace-nowrap">
+<button class="px-6 py-3 border-b-2 border-primary text-primary text-sm font-bold">All Customers</button>
+<button class="px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm font-medium transition-colors">Active</button>
+<button class="px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm font-medium transition-colors">Resolved</button>
+<button class="px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-sm font-medium transition-colors">Archived</button>
+</div>
+<!-- Table Container -->
+<div class="bg-white dark:bg-background-dark/40 rounded-xl border border-primary/10 shadow-xl shadow-primary/5 overflow-hidden">
+<div class="overflow-x-auto overflow-y-hidden">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-slate-50 dark:bg-primary/5 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+<th class="px-6 py-4">Name</th>
+<th class="px-6 py-4">Language</th>
+<th class="px-6 py-4">Customer ID</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4">Last Contact</th>
+<th class="px-6 py-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-primary/5">
+<!-- Row 1 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">JD</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-white">John Doe</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">john.doe@example.com</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-primary/10 w-fit">
+<span class="text-lg">🇺🇸</span>
+<span class="text-xs font-medium">English (US)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-xs text-primary font-semibold">CNV-8821</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Active
+                                        </span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">2 mins ago</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">MS</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-white">Marie Schmidt</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">m.schmidt@web.de</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-primary/10 w-fit">
+<span class="text-lg">🇩🇪</span>
+<span class="text-xs font-medium">German (DE)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-xs text-primary font-semibold">CNV-7432</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+                                            Resolved
+                                        </span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">1 hour ago</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">SN</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-white">Satoshi Nakamoto</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">satoshi@p2pfoundation.org</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-primary/10 w-fit">
+<span class="text-lg">🇯🇵</span>
+<span class="text-xs font-medium">Japanese (JP)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-xs text-primary font-semibold">CNV-9901</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Active
+                                        </span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">5 hours ago</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">ER</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-white">Elena Rossi</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">elena.rossi@cloud.it</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-primary/10 w-fit">
+<span class="text-lg">🇮🇹</span>
+<span class="text-xs font-medium">Italian (IT)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-xs text-primary font-semibold">CNV-2155</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-500"></span>
+                                            Active
+                                        </span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">Yesterday</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">LL</div>
+<div>
+<p class="text-sm font-semibold text-slate-900 dark:text-white">Lucia Lopez</p>
+<p class="text-xs text-slate-500 dark:text-slate-400">lucia.l@correo.es</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-primary/10 w-fit">
+<span class="text-lg">🇪🇸</span>
+<span class="text-xs font-medium">Spanish (ES)</span>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-xs text-primary font-semibold">CNV-1029</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+                                            Resolved
+                                        </span>
+</td>
+<td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">2 days ago</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 bg-slate-50 dark:bg-primary/5 flex items-center justify-between border-t border-primary/5">
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            Showing 1 to 5 of 124 results
+                        </p>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-white dark:bg-background-dark border border-primary/10 rounded text-xs font-bold text-slate-400 cursor-not-allowed">Previous</button>
+<button class="px-3 py-1 bg-primary text-white rounded text-xs font-bold">1</button>
+<button class="px-3 py-1 bg-white dark:bg-background-dark border border-primary/10 rounded text-xs font-bold hover:bg-slate-50 dark:hover:bg-primary/10 transition-colors">2</button>
+<button class="px-3 py-1 bg-white dark:bg-background-dark border border-primary/10 rounded text-xs font-bold hover:bg-slate-50 dark:hover:bg-primary/10 transition-colors">3</button>
+<button class="px-3 py-1 bg-white dark:bg-background-dark border border-primary/10 rounded text-xs font-bold hover:bg-slate-50 dark:hover:bg-primary/10 transition-colors">Next</button>
+</div>
+</div>
+</div>
+<!-- Stats Footer Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+<div class="p-4 bg-white dark:bg-background-dark/30 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Active Conversations</span>
+<span class="material-symbols-outlined text-green-500 text-lg">trending_up</span>
+</div>
+<p class="text-2xl font-black">42</p>
+<p class="text-[10px] text-green-500 mt-1 font-bold">+12% from yesterday</p>
+</div>
+<div class="p-4 bg-white dark:bg-background-dark/30 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Avg Response Time</span>
+<span class="material-symbols-outlined text-primary text-lg">schedule</span>
+</div>
+<p class="text-2xl font-black">1.2m</p>
+<p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-bold">Target: &lt; 2.0m</p>
+</div>
+<div class="p-4 bg-white dark:bg-background-dark/30 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Satisfaction Score</span>
+<span class="material-symbols-outlined text-yellow-500 text-lg">star</span>
+</div>
+<p class="text-2xl font-black">4.9</p>
+<p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-bold">Based on 840 reviews</p>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

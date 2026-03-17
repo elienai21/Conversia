@@ -1,11 +1,11 @@
 /* src/pages/settings/IntegrationsTab.css */
 .integrations-tab .integration-card {
   padding: var(--spacing-6);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
 }
 

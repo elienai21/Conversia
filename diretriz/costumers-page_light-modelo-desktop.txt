@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Conversia - Desktop Inbox</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6317cf",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#181121",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-nav {
+            background-color: rgba(99, 23, 207, 0.1);
+            color: #6317cf;
+        }
+    </style>
+</head>
+<body class="bg-background-light text-slate-900 font-display">
+<div class="flex h-screen flex-col overflow-hidden">
+<header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shrink-0">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight">Conversia</h2>
+</div>
+<div class="relative w-96">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+<span class="material-symbols-outlined text-sm">search</span>
+</div>
+<input class="block w-full rounded-lg border-none bg-slate-100 py-2 pl-10 pr-3 text-sm placeholder-slate-500 focus:ring-2 focus:ring-primary/20" placeholder="Search conversations, files, or people..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-px bg-slate-200 mx-2"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-semibold">Alex Rivera</p>
+<p class="text-xs text-slate-500">Admin Account</p>
+</div>
+<div class="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center border-2 border-white shadow-sm" data-alt="User profile picture of Alex Rivera" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB12kiaGONW9yKFpoDTI0GN53sin6PX7_AOMQP-2pQgq7EKdldEW8fI7A2-t54Ce9PmMhYBTRn2C5FGFSJzHB8Spii6P7PSDwRt6eSqcY182aW3tSRyX7w1-gYiTQJl-UpIlEsU7o-4RTfDzwX-vcbganhQINolum6k2w4reodDNV0GOUEVRgwG77950JuzCgiwGawR5TbBbgZknVdFXYzlOVejRcOiR64pQ7vMO4aYK5ZxS7bGJQrFBH_8FBxr8_FbXLK_pQGrx-u6')"></div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<aside class="w-64 border-r border-slate-200 bg-white flex flex-col p-4 shrink-0">
+<button class="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined">edit</span>
+                    Compose
+                </button>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium active-nav" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span>Inbox</span>
+<span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">24</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="material-symbols-outlined">star</span>
+<span>Starred</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="material-symbols-outlined">send</span>
+<span>Sent</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="material-symbols-outlined">draft</span>
+<span>Drafts</span>
+<span class="ml-auto text-xs text-slate-400">2</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="material-symbols-outlined">report</span>
+<span>Spam</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="material-symbols-outlined">delete</span>
+<span>Trash</span>
+</a>
+</nav>
+<div class="mt-8">
+<h3 class="px-3 text-xs font-bold uppercase tracking-wider text-slate-400">Labels</h3>
+<div class="mt-4 space-y-1">
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="h-2 w-2 rounded-full bg-blue-500"></span>
+<span>Work</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+<span>Personal</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" href="#">
+<span class="h-2 w-2 rounded-full bg-amber-500"></span>
+<span>Promotions</span>
+</a>
+</div>
+</div>
+<div class="mt-auto rounded-xl bg-primary/5 p-4">
+<p class="text-xs font-bold text-primary uppercase mb-2">Storage Usage</p>
+<div class="h-1.5 w-full rounded-full bg-primary/20">
+<div class="h-1.5 w-[65%] rounded-full bg-primary"></div>
+</div>
+<p class="mt-2 text-[10px] text-slate-500">9.75 GB of 15 GB used (65%)</p>
+</div>
+</aside>
+<section class="flex w-[400px] flex-col border-r border-slate-200 bg-white shrink-0 overflow-hidden">
+<div class="border-b border-slate-200 px-4 py-3">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-bold">Inbox</h2>
+<button class="text-slate-400 hover:text-slate-600">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<div class="flex gap-2">
+<button class="rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-white">All</button>
+<button class="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200">Unread</button>
+<button class="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200">Archived</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto">
+<div class="cursor-pointer border-b border-slate-100 bg-primary/[0.03] p-4 hover:bg-slate-50 relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Avatar of Alex Johnson" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBE3gi0zyQ4RCxqZjRIRdXMz7a1GCKS8Y_V2wNFEZQLd-G3PJY80nohi1gevMsRe4M-_wVtuou6qCji71cfb9TWqyuLf8NcxaVlml-kWUc4Da-hbnqfnuyR2VNto8HOkr74zc4Nhcc-atj_-mu-o8jqtMfu8Mn2y6eIZ8qtZloJGPfySmmekmiOZ9pD5Vqa76LnjT0ExByDcz8yOMPtWxZqQwv-M6xqSQy9gzC8A-LAD0vGou5zC5qTvQdJgssQyCm65UbhDc__UIt3')"></div>
+<span class="font-bold text-sm">Alex Johnson</span>
+</div>
+<span class="text-[10px] font-semibold text-primary uppercase">10:24 AM</span>
+</div>
+<h4 class="text-sm font-bold text-slate-900 truncate">Project Update: Final Design Review</h4>
+<p class="mt-1 text-xs text-slate-500 line-clamp-2">Hi Team, I've reviewed the latest prototypes for the Conversia dashboard. Everything looks great, but we might want to adjust the...</p>
+<div class="mt-2 flex gap-2">
+<span class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-600">Design</span>
+</div>
+</div>
+<div class="cursor-pointer border-b border-slate-100 p-4 hover:bg-slate-50">
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Avatar of Sarah Miller" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6fJlwAW9mUYGUV2p5-IclBNpTSvinQZMfnks9mrlfmaXJDkINbqUeCxAf0YBd1q3jw72zSyO_r0DFYiWdh3Vvw4klairIebgpv1c-lKNGdTvQDQOg7p30tFK7qR6cjhfZ8Ls0q6uIECH54rvn7P4qCKHChJ0EbJHCLNwVeasAl-TLKwcoVkOBE1vRz7x3U7VVApUVgqOms7r7min7AzTgbP9Wi8pCQ_gaSHi9ul96z9ZQrqru266hYUgqVpk6T8_RBNQW4AxuHy72')"></div>
+<span class="font-medium text-sm text-slate-700">Sarah Miller</span>
+</div>
+<span class="text-[10px] text-slate-400 uppercase">9:15 AM</span>
+</div>
+<h4 class="text-sm font-semibold text-slate-800 truncate">New Subscription Inquiry</h4>
+<p class="mt-1 text-xs text-slate-500 line-clamp-2">Regarding the enterprise plan, could you provide more details about the security audits your platform goes through...</p>
+</div>
+<div class="cursor-pointer border-b border-slate-100 p-4 hover:bg-slate-50">
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Logo of Slack Technologies" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD9azmuqabRWPZu_pmGcNnSJp81guMCF2YJ8D1GKMU4YwSl7YjyCd8Ql48PTB6mblaMHcHfkhliEzyKOkj-7Z-qrYKx0DwQmsmVKYn4ZW1IKku_jCtGcjIs-z_ubdUKR1LncbyQeRP6nUHgpsKD9VVvyYo3Yf_LOMsfHS5L_m_J-W6Uucy1uJx2uPZAEGJrznOqvn5-Tt30y13uU6BovXzkQZJbaGlsIwMi6aQCIcVLEl0NdZ2nyUPRtH05iYRKo6zrz8Y4rxeHh7Ok')"></div>
+<span class="font-medium text-sm text-slate-700">Slack Notifications</span>
+</div>
+<span class="text-[10px] text-slate-400 uppercase">Yesterday</span>
+</div>
+<h4 class="text-sm font-semibold text-slate-800 truncate">You were mentioned in #marketing</h4>
+<p class="mt-1 text-xs text-slate-500 line-clamp-2">"Hey @Alex, what do you think about the Q3 targets we discussed in the meeting earlier today?"</p>
+</div>
+<div class="cursor-pointer border-b border-slate-100 p-4 hover:bg-slate-50">
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Avatar of David Chen" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDY4zaWyIZVWFTJxfLzJMeJyE4Ne5yYjgy1ZHMCA0h3sI0Z1PwVLxuvoEH7K8S-9kiBJDbRwxVpaCsvr5etnDvXHuhzzd2TJGNEsHcITpyxxhZyZM82p7e1htbO-1azWmz7E9YqEQX0YBoqzqLjbJi6fxYPHPtPLNlMbbL5b_jtknhdshib3tIqjuy5WtnGdK-e5HGE7_fS_imzG_8Y33HXZ1sKv-Zwynu64ynyNr680WhQEYp-MKt-WuArTaatRJkyPihy_LzfJ5id')"></div>
+<span class="font-medium text-sm text-slate-700">David Chen</span>
+</div>
+<span class="text-[10px] text-slate-400 uppercase">May 24</span>
+</div>
+<h4 class="text-sm font-semibold text-slate-800 truncate">Weekly Status Report</h4>
+<p class="mt-1 text-xs text-slate-500 line-clamp-2">Attached is the status report for week 21. Summary: All milestones achieved, dev velocity remains stable...</p>
+<div class="mt-2 flex items-center gap-1 text-[10px] text-slate-400">
+<span class="material-symbols-outlined text-xs">attach_file</span>
+<span>status_report_v2.pdf</span>
+</div>
+</div>
+<div class="cursor-pointer border-b border-slate-100 p-4 hover:bg-slate-50">
+<div class="flex justify-between items-start mb-1">
+<div class="flex items-center gap-2">
+<div class="h-8 w-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Avatar of Maria Garcia" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuClSlUvYdJXQYe8WhSdLhSlKfDbNbGHoMpz46m2dwzpMoVlaMfdpiSE4QQbFRQttcdMTBgbWehsLL9hx5MvpH_xcH7kLdiKQ0ZAJqhTlTMex94x2Lo6ELh2DuE6xdKj11dIttcO18hnpzJ2pn4WHJ-5JtY_5PuJnHXKvzyJXIA_4sk4PKG_mHjpGRIlMldYdbDPdIWQQnr4o6xoiabCcTsbOfsuXqkHK-2ScrKj_AZWR-MKhR0LBtlEXsp8vlLBQj2KgeeD8grExy6S')"></div>
+<span class="font-medium text-sm text-slate-700">Maria Garcia</span>
+</div>
+<span class="text-[10px] text-slate-400 uppercase">May 23</span>
+</div>
+<h4 class="text-sm font-semibold text-slate-800 truncate">Vacation Request Approval</h4>
+<p class="mt-1 text-xs text-slate-500 line-clamp-2">Hi Alex, your vacation request for July 12-19 has been approved by HR. Enjoy your time off!</p>
+</div>
+</div>
+</section>
+<section class="flex flex-1 flex-col bg-slate-50 overflow-hidden">
+<div class="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
+<div class="flex gap-4">
+<button class="text-slate-500 hover:text-primary"><span class="material-symbols-outlined">archive</span></button>
+<button class="text-slate-500 hover:text-red-500"><span class="material-symbols-outlined">delete</span></button>
+<button class="text-slate-500 hover:text-primary"><span class="material-symbols-outlined">mark_email_unread</span></button>
+<button class="text-slate-500 hover:text-primary"><span class="material-symbols-outlined">label</span></button>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-400">1 of 1,248</span>
+<div class="flex">
+<button class="rounded-l-lg border border-slate-200 p-1 text-slate-400 hover:bg-slate-50"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<button class="rounded-r-lg border border-l-0 border-slate-200 p-1 text-slate-400 hover:bg-slate-50"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-8">
+<div class="mx-auto max-w-3xl space-y-6">
+<div class="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+<div class="flex items-start justify-between">
+<h1 class="text-2xl font-bold text-slate-900">Project Update: Final Design Review</h1>
+<button class="text-slate-400 hover:text-amber-500"><span class="material-symbols-outlined">star</span></button>
+</div>
+<div class="mt-6 flex items-center justify-between border-b border-slate-100 pb-6">
+<div class="flex items-center gap-4">
+<div class="h-12 w-12 rounded-full bg-slate-200 bg-cover bg-center" data-alt="Avatar of Alex Johnson" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDpw7aGdhAFiJcdwF3XOk-63D5FKY64V5PiY5HmhMo-e7titY7gO7kVYR3zmr92Ot7SGBTOdXb2cy_TtldHFjFHXR3cRjc308_HPclhQ93QB3DBGb-i9LTQxJXcagd21VYMbpcNideSrhOrgad6drVSdEhNklq44x5aXxjmn8NOcRJnxOCHyJ30O7yd2zk05SATh9Kseq-n_1rtOEXbPmtlnD1ZFhzCh1Rwwp6WnBIsEmgB-k3gvNENx-RCmXt5ExkcxntBscrDIV9M')"></div>
+<div>
+<p class="font-bold text-slate-900">Alex Johnson <span class="ml-2 font-normal text-slate-400 text-sm">&lt;alex.j@company.com&gt;</span></p>
+<p class="text-xs text-slate-500">To: Alex Rivera &lt;arivera@company.com&gt;</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-xs text-slate-400">Today, 10:24 AM</p>
+<button class="mt-1 text-xs font-bold text-primary">Reply</button>
+</div>
+</div>
+<div class="mt-8 space-y-4 text-slate-700 leading-relaxed">
+<p>Hi Alex,</p>
+<p>I've reviewed the latest prototypes for the Conversia dashboard. Everything looks great, but we might want to adjust the spacing in the inbox view to improve readability on smaller desktop screens.</p>
+<p>I've attached the revised specs for the 3-column layout we discussed. Let me know if these changes make sense to you before I hand them off to the engineering team.</p>
+<p>Looking forward to your thoughts.</p>
+<p>Best regards,<br/>Alex Johnson</p>
+</div>
+<div class="mt-10 border-t border-slate-100 pt-8">
+<h4 class="text-sm font-bold text-slate-900 mb-4">Attachments (2)</h4>
+<div class="flex gap-4">
+<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 w-64 hover:border-primary/40 cursor-pointer transition-all">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">design_specs_v4.pdf</p>
+<p class="text-[10px] text-slate-500">2.4 MB</p>
+</div>
+</div>
+<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 w-64 hover:border-primary/40 cursor-pointer transition-all">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+<span class="material-symbols-outlined">image</span>
+</div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold truncate">dashboard_mockup.png</p>
+<p class="text-[10px] text-slate-500">4.1 MB</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+<div class="flex items-center gap-4">
+<div class="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center" data-alt="User current avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDiFCFOrepx8pnHF39IcOn29Mr-FWfB1eCKijcpvKIhaQ62T8XJ5JenHJyhtDYxih41wdf-4cTl6Tjl0grvjeIINUdwuAvTf445WujOmgMp_az-G3p_6WcieR3TpBB86cfWUvrRhaCK4SOJzJJdqsVCsHJCogg37dcvVDiKdOvaSWR2IxmE_0TI4KUCW815zrjMb53vRz0iIrIoixKwwMjVUJSBTjkT7dWbA-20Q7DSyYBIBx1XWrdR_H8F18lybGhAwpCqdOZG74O0')"></div>
+<div class="flex-1 rounded-xl bg-slate-100 px-4 py-2 text-slate-500 text-sm">
+                                    Click here to <span class="text-primary font-bold cursor-pointer">Reply</span> or <span class="text-primary font-bold cursor-pointer">Forward</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

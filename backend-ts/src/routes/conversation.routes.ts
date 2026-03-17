@@ -12,6 +12,7 @@ import {
 import {
   assignConversationToAgent,
 } from "../services/assignment.service.js";
+import { SocketService } from "../services/socket.service.js";
 
 export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -119,6 +120,12 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
       await assignConversationToAgent(conversationId, parsed.data.agent_id);
 
+      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "assigned",
+        conversationId: conversationId,
+        agentId: parsed.data.agent_id,
+      });
+
       const updated = await prisma.conversation.findUnique({
         where: { id: conversationId },
       });
@@ -150,6 +157,12 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
           detail: result.error.message,
         });
       }
+
+      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "status_changed",
+        conversationId: conversationId,
+        status: parsed.data.status,
+      });
 
       return reply.send(result.value);
     },

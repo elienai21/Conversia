@@ -5,6 +5,10 @@ export const loginRequestSchema = z.object({
   password: z.string().min(1),
 });
 
+export const googleLoginRequestSchema = z.object({
+  credential: z.string().min(1),
+});
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;

@@ -38,9 +38,9 @@ export async function findOrCreateConversation(
   tenantId: string,
   customerId: string,
   channel: string,
-) {
+): Promise<{ conversation: Conversation; isNew: boolean }> {
   // Look for an open conversation
-  let conversation = await prisma.conversation.findFirst({
+  const existing = await prisma.conversation.findFirst({
     where: {
       tenantId,
       customerId,
@@ -49,18 +49,20 @@ export async function findOrCreateConversation(
     },
   });
 
-  if (!conversation) {
-    conversation = await prisma.conversation.create({
-      data: {
-        tenantId,
-        customerId,
-        channel,
-        status: "queued",
-      },
-    });
+  if (existing) {
+    return { conversation: existing, isNew: false };
   }
 
-  return conversation;
+  const conversation = await prisma.conversation.create({
+    data: {
+      tenantId,
+      customerId,
+      channel,
+      status: "queued",
+    },
+  });
+
+  return { conversation, isNew: true };
 }
 
 export async function updateConversationStatus(

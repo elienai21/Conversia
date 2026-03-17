@@ -24,6 +24,8 @@ import {
   assignConversationToAgent,
 } from "../services/assignment.service.js";
 import { prisma } from "../lib/prisma.js";
+import { SocketService } from "../services/socket.service.js";
+import { tryAutoResponse } from "../services/auto-response.service.js";
 
 // Shared pipeline (steps 5-11) used by both WhatsApp and Instagram
 async function processIncomingMessage(params: {
@@ -31,8 +33,9 @@ async function processIncomingMessage(params: {
   conversation: Conversation;
   text: string;
   externalMessageId: string;
+  isNewConversation: boolean;
 }): Promise<void> {
-  const { tenant, conversation, text, externalMessageId } = params;
+  const { tenant, conversation, text, externalMessageId, isNewConversation } = params;
 
   // Step 5: Detect language
   const detectedLang = detectLanguage(text);
@@ -53,6 +56,24 @@ async function processIncomingMessage(params: {
     detectedLanguage: detectedLang,
     externalId: externalMessageId,
   });
+
+  // Emit real-time event for the new message
+  SocketService.emitToConversation(conversation.id, "message.new", {
+    id: message.id,
+    conversation_id: message.conversationId,
+    sender_type: message.senderType,
+    original_text: message.originalText,
+    detected_language: message.detectedLanguage,
+    created_at: message.createdAt,
+  });
+
+  // If new conversation, notify the tenant room so sidebar updates
+  if (isNewConversation) {
+    SocketService.emitToTenant(tenant.id, "conversation.updated", {
+      type: "new",
+      conversationId: conversation.id,
+    });
+  }
 
   // Step 8: Detect intent
   const intent = await detectIntent(tenant.id, text);
@@ -77,16 +98,41 @@ async function processIncomingMessage(params: {
     });
   }
 
+  // Step 9.5: Try FAQ auto-response before assigning an agent
+  try {
+    const autoHandled = await tryAutoResponse({
+      tenantId: tenant.id,
+      conversationId: conversation.id,
+      intent,
+      detectedLang,
+    });
+    if (autoHandled) {
+      console.log(`[Webhook] Auto-response handled conversation ${conversation.id}`);
+      return;
+    }
+  } catch (err) {
+    console.warn("[Webhook] Auto-response failed, falling through to agent:", err);
+  }
+
   // Step 10: Try to assign an agent
   if (!conversation.assignedAgentId) {
     const agentId = await findAvailableAgent(tenant.id);
     if (agentId) {
       await assignConversationToAgent(conversation.id, agentId);
       console.log(`[Webhook] Assigned agent ${agentId}`);
+      SocketService.emitToTenant(tenant.id, "conversation.updated", {
+        type: "assigned",
+        conversationId: conversation.id,
+        agentId,
+      });
     } else {
       // Step 11: Enqueue if no agent available
       await enqueueConversation(tenant.id, conversation.id);
       console.log(`[Webhook] Enqueued conversation ${conversation.id}`);
+      SocketService.emitToTenant(tenant.id, "conversation.updated", {
+        type: "queued",
+        conversationId: conversation.id,
+      });
     }
   }
 }
@@ -133,7 +179,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     );
 
     // Step 4: Find or create conversation
-    const conversation = await findOrCreateConversation(
+    const { conversation, isNew } = await findOrCreateConversation(
       tenant.id,
       customer.id,
       "whatsapp",
@@ -145,6 +191,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       conversation,
       text: incoming.text,
       externalMessageId: incoming.messageId,
+      isNewConversation: isNew,
     });
 
     return reply.send({ status: "processed" });
@@ -196,7 +243,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     );
 
     // Step 4: Find or create conversation
-    const conversation = await findOrCreateConversation(
+    const { conversation, isNew } = await findOrCreateConversation(
       tenant.id,
       customer.id,
       "instagram",
@@ -208,6 +255,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       conversation,
       text: incoming.text,
       externalMessageId: incoming.messageId,
+      isNewConversation: isNew,
     });
 
     return reply.send({ status: "processed" });

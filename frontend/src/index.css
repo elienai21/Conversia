@@ -2,18 +2,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette - Premium Dark Mode Defaults (Modern SaaS 2024) */
-  --bg-primary: #0f172a; /* Slate 900 - Deep bluish-slate */
-  --bg-secondary: #1e293b; /* Slate 800 - Slightly elevated background */
-  --bg-tertiary: #334155; /* Slate 700 - Cards and elevated elements */
+  /* Color Palette - Momentum Premium Green Theme */
+  --bg-primary: #0B1320; /* Deep bluish-dark core background */
+  --bg-secondary: #0F172A; /* Slightly elevated background */
+  --bg-tertiary: #1E293B; /* Cards and elevated elements */
   
   --text-primary: #FAFAFA; /* Crisp white for headings */
-  --text-secondary: #A1A1AA; /* Soft gray for body */
-  --text-muted: #71717A; /* Muted gray for secondary details */
+  --text-secondary: #D1D5DB; /* Soft gray for body */
+  --text-muted: #9CA3AF; /* Muted gray for secondary details */
   
-  --brand-primary: #6366F1; /* Indigo 500 (Modern vibrant core) */
-  --brand-primary-hover: #4F46E5; /* Indigo 600 */
-  --brand-primary-light: rgba(99, 102, 241, 0.15);
+  --brand-primary: #10B981; /* Vibrant Emerald Green */
+  --brand-primary-hover: #059669; /* Emerald 600 */
+  --brand-primary-light: rgba(16, 185, 129, 0.15);
   
   --accent-success: #10B981; /* Emerald 500 */
   --accent-warning: #F59E0B; /* Amber 500 */
@@ -57,9 +57,9 @@
 
 /* Light Mode Overrides */
 [data-theme="light"] {
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F8F9FA;
-  --bg-tertiary: #F1F3F5;
+  --bg-primary: #F9FAFB;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F3F4F6;
   
   --text-primary: #18181B;
   --text-secondary: #3F3F46;

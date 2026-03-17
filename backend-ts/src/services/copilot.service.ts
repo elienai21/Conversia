@@ -73,11 +73,51 @@ export async function generateSuggestionWorker(
       content: m.originalText,
     }));
 
+  // 6b. Get past conversations for this customer (returning customer context)
+  let pastConversationsContext = "";
+  try {
+    const currentConversation = await prisma.conversation.findUnique({
+      where: { id: message.conversationId },
+      select: { customerId: true },
+    });
+    if (currentConversation?.customerId) {
+      const pastConversations = await prisma.conversation.findMany({
+        where: {
+          customerId: currentConversation.customerId,
+          tenantId,
+          status: "closed",
+          id: { not: message.conversationId },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 3,
+        include: {
+          messages: {
+            select: { senderType: true, originalText: true },
+            orderBy: { createdAt: "desc" },
+            take: 3,
+          },
+        },
+      });
+      if (pastConversations.length > 0) {
+        const summaries = pastConversations.map((pc) => {
+          const snippets = pc.messages
+            .reverse()
+            .map((m) => `${m.senderType}: ${m.originalText.slice(0, 100)}`)
+            .join(" | ");
+          return `- ${pc.channel} conversation (${pc.updatedAt.toISOString().slice(0, 10)}): ${snippets}`;
+        });
+        pastConversationsContext = `\n\nPrevious interactions with this customer (${pastConversations.length} past conversations):\n${summaries.join("\n")}`;
+      }
+    }
+  } catch {
+    // Non-critical — continue without past context
+  }
+
   // 7. Build system prompt
   const systemPrompt = customSystemPrompt
-    ? `${customSystemPrompt}${knowledgeContext}\n\nReply in ${agentLanguage}.`
+    ? `${customSystemPrompt}${knowledgeContext}${pastConversationsContext}\n\nReply in ${agentLanguage}.`
     : `You are a helpful hotel customer service agent assistant.
-Based on the conversation history and the hotel knowledge base below, suggest a professional and helpful response.${knowledgeContext}
+Based on the conversation history and the hotel knowledge base below, suggest a professional and helpful response.${knowledgeContext}${pastConversationsContext}
 Reply in ${agentLanguage}. Keep it concise and natural.`;
 
   const response = await openai.chat.completions.create({

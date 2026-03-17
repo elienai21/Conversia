@@ -142,9 +142,31 @@ export function InboxPage() {
       );
     };
 
+    const handleMessageNew = (data: RawMessage & { conversation_id: string }) => {
+      console.log("[Socket] message.new received:", data);
+      setMessages((prev) => {
+        // If message already exists, don't duplicate
+        if (prev.some((m) => m.id === data.id)) return prev;
+        return [...prev, mapMessage(data)];
+      });
+    };
+
+    const handleConversationUpdated = (data: { type: string; conversationId: string; agentId?: string }) => {
+      console.log("[Socket] conversation.updated received:", data);
+      // Re-fetch conversations to update the list in the sidebar based on new status/previews
+      ApiService.get<RawConversation[]>("/conversations")
+        .then((raw) => setConversations(raw.map(mapConversation)))
+        .catch(console.error);
+    };
+
     socket.on("suggestion.ready", handleSuggestionReady);
+    socket.on("message.new", handleMessageNew);
+    socket.on("conversation.updated", handleConversationUpdated);
+
     return () => {
       socket.off("suggestion.ready", handleSuggestionReady);
+      socket.off("message.new", handleMessageNew);
+      socket.off("conversation.updated", handleConversationUpdated);
     };
   }, [socket]);
 

@@ -30,10 +30,15 @@ export function DashboardLayout() {
       </div>
 
       {/* Sidebar (desktop) / Bottom Tab Bar (mobile) */}
-      <aside className="dashboard-sidebar glass-panel">
+      <aside className="dashboard-sidebar">
         <div className="sidebar-header">
-          <h2 className="brand-logo">Conversia</h2>
-          <div className="tenant-badge">{user?.tenantId ? "Premium" : "Free"}</div>
+          <div className="sidebar-logo-box">
+            <MessageSquare size={24} color="#fff" strokeWidth={2.5} />
+          </div>
+          <div className="sidebar-brand-info">
+            <h2 className="brand-logo">Conversia</h2>
+            <p className="brand-subtitle">AI Assistant</p>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -56,20 +61,28 @@ export function DashboardLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="avatar">{user?.name?.charAt(0) || "A"}</div>
-            <div className="user-info">
-              <span className="user-name">{user?.name || "Agent"}</span>
-              <span className="user-role">{user?.role || "Staff"}</span>
-            </div>
+          <div className="pro-plan-widget">
+            <p className="widget-title">Pro Plan</p>
+            <p className="widget-desc">{user?.tenantId ? "Premium features unlocked." : "You have 14 days left on your trial."}</p>
+            {!user?.tenantId && <button className="widget-btn">Upgrade Now</button>}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="theme-toggle-btn btn-icon" onClick={toggleTheme} title="Toggle Theme">
-              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button className="logout-btn btn-icon" onClick={logout} title="Sign Out">
-              <LogOut size={20} />
-            </button>
+          
+          <div className="user-profile-bar">
+            <div className="user-profile">
+              <div className="avatar">{user?.name?.charAt(0) || "A"}</div>
+              <div className="user-info">
+                <span className="user-name">{user?.name || "Agent"}</span>
+                <span className="user-role">{user?.role || "Staff"}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <button className="theme-toggle-btn btn-icon" onClick={toggleTheme} title="Toggle Theme">
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              <button className="logout-btn btn-icon" onClick={logout} title="Sign Out">
+                <LogOut size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </aside>

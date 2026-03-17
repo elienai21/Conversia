@@ -15,6 +15,7 @@ import { translateText } from "../services/translation.service.js";
 import { sendWhatsappMessage } from "../services/whatsapp.service.js";
 import { sendInstagramMessage } from "../services/instagram.service.js";
 import { decrypt } from "../lib/encryption.js";
+import { SocketService } from "../services/socket.service.js";
 
 export async function messageRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -89,6 +90,22 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         senderId: user.id,
         text: parsed.data.text,
         detectedLanguage: user.preferredLanguage,
+      });
+
+      // Emit new message event to the conversation room
+      SocketService.emitToConversation(conversation.id, "message.new", {
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_type: message.senderType,
+        original_text: message.originalText,
+        detected_language: message.detectedLanguage,
+        created_at: message.createdAt,
+      });
+
+      // Emit conversation updated event to the tenant room so the sidebar updates
+      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "replied",
+        conversationId: conversation.id,
       });
 
       // 2. Translate to customer language if different
