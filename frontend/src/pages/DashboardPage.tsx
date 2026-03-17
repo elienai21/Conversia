@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { MessageSquare, Users, Zap, ArrowUpRight, Target, Clock, ArrowRight } from "lucide-react";
 import { ApiService } from "@/services/api";
 import { Link } from "react-router-dom";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from "@/contexts/ThemeContext";
 import "./DashboardPage.css";
 
 // Mock data types
@@ -12,9 +14,20 @@ type DashboardMetrics = {
   automationRate: string;
 };
 
+const mockChartData = [
+  { name: 'Mon', total: 120, aiHandled: 90 },
+  { name: 'Tue', total: 150, aiHandled: 121 },
+  { name: 'Wed', total: 180, aiHandled: 160 },
+  { name: 'Thu', total: 130, aiHandled: 105 },
+  { name: 'Fri', total: 210, aiHandled: 180 },
+  { name: 'Sat', total: 250, aiHandled: 230 },
+  { name: 'Sun', total: 220, aiHandled: 195 },
+];
+
 export function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Simulando chamada à API de métricas
@@ -48,6 +61,13 @@ export function DashboardPage() {
       </div>
     );
   }
+
+  const chartColors = {
+    total: theme === 'dark' ? '#6366f1' : '#4f46e5',
+    ai: theme === 'dark' ? '#10b981' : '#059669',
+    text: theme === 'dark' ? '#a1a1aa' : '#71717a',
+    grid: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+  };
 
   return (
     <div className="dashboard-page animate-fade-in scrollable-content">
@@ -110,26 +130,35 @@ export function DashboardPage() {
       {/* Quick Actions & Recent Activity Area */}
       <div className="dashboard-content-grid mt-8">
         <div className="main-panel glass-panel">
-          <div className="panel-header border-b border-white/10 pb-4 mb-4">
+          <div className="panel-header border-b border-border/10 pb-4 mb-4">
             <h2 className="text-lg font-medium flex items-center gap-2">
-              <Target size={18} className="text-brand-primary" /> Copilot Insights
+              <Target size={18} className="text-brand-primary" /> Conversation Volume
             </h2>
           </div>
-          <div className="insight-card">
-            <h4>Highest AI Resolution Topics</h4>
-            <div className="progress-bar-container mt-4">
-              <div className="flex-between text-sm mb-1"><span>Breakfast Inquiries</span> <span className="font-medium text-brand">92% AI Handled</span></div>
-              <div className="progress-track"><div className="progress-fill" style={{ width: '92%' }}></div></div>
-              
-              <div className="flex-between text-sm mb-1 mt-4"><span>Check-in Instructions</span> <span className="font-medium text-brand">88% AI Handled</span></div>
-              <div className="progress-track"><div className="progress-fill emerald" style={{ width: '88%' }}></div></div>
-              
-              <div className="flex-between text-sm mb-1 mt-4"><span>Room Upgrades (Human Handover)</span> <span className="font-medium text-amber">15% AI Handled</span></div>
-              <div className="progress-track"><div className="progress-fill amber" style={{ width: '15%' }}></div></div>
-            </div>
-            <p className="insight-hint mt-6 text-sm text-muted">
-              💡 Tip: Add more knowledge base entries about Room Upgrades to improve AI automation rate.
-            </p>
+          <div className="chart-container" style={{ width: '100%', height: 300, marginTop: '1rem' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.total} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={chartColors.total} stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorAi" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={chartColors.ai} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={chartColors.ai} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke={chartColors.text} fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--glass-bg)', borderColor: 'var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                />
+                <Area type="monotone" dataKey="total" name="Total Conversations" stroke={chartColors.total} fillOpacity={1} fill="url(#colorTotal)" strokeWidth={2} />
+                <Area type="monotone" dataKey="aiHandled" name="AI Handled" stroke={chartColors.ai} fillOpacity={1} fill="url(#colorAi)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

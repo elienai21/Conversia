@@ -3,9 +3,9 @@
 
 :root {
   /* Color Palette - Premium Dark Mode Defaults (Modern SaaS 2024) */
-  --bg-primary: #0A0A0A; /* Deep absolute black-ish for true dark mode */
-  --bg-secondary: #121212; /* Slightly elevated background */
-  --bg-tertiary: #1A1A1A; /* Cards and elevated elements */
+  --bg-primary: #0f172a; /* Slate 900 - Deep bluish-slate */
+  --bg-secondary: #1e293b; /* Slate 800 - Slightly elevated background */
+  --bg-tertiary: #334155; /* Slate 700 - Cards and elevated elements */
   
   --text-primary: #FAFAFA; /* Crisp white for headings */
   --text-secondary: #A1A1AA; /* Soft gray for body */
@@ -57,20 +57,20 @@
 
 /* Light Mode Overrides */
 [data-theme="light"] {
-  --bg-primary: #FAFAFA;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F4F4F5;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #F1F3F5;
   
-  --text-primary: #09090B;
-  --text-secondary: #52525B;
-  --text-muted: #A1A1AA;
+  --text-primary: #18181B;
+  --text-secondary: #3F3F46;
+  --text-muted: #71717A;
   
   --border-color: rgba(0, 0, 0, 0.08);
   --border-color-strong: rgba(0, 0, 0, 0.15);
   
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.05);
 }
 
 /* Base Reset */

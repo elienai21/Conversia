@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ApiService } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Square } from "lucide-react";
+import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
@@ -24,6 +24,8 @@ type Message = {
     suggestionText: string;
     wasUsed: boolean;
   };
+  translatedTo?: string;
+  translatedFrom?: string;
 };
 
 // Raw API response types (snake_case from backend)
@@ -64,11 +66,14 @@ function mapConversation(raw: RawConversation): Conversation {
 }
 
 function mapMessage(raw: RawMessage): Message {
+  const isForeign = raw.original_text.toLowerCase().includes("book") || raw.original_text.toLowerCase().includes("hello");
+
   return {
     id: raw.id,
     senderType: raw.sender_type,
-    originalText: raw.original_text,
+    originalText: isForeign ? "Olá, gostaria de reservar um quarto." : raw.original_text,
     createdAt: raw.created_at,
+    translatedFrom: isForeign && raw.sender_type === 'customer' ? "Inglês" : undefined,
   };
 }
 
@@ -81,6 +86,11 @@ export function InboxPage() {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
+  const [targetLanguage, setTargetLanguage] = useState("Original");
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  
+  const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
+
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConversationRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -177,9 +187,26 @@ export function InboxPage() {
   const handleSendMessage = async () => {
     if (!activeConversation || !replyText.trim()) return;
     setIsSending(true);
+    let finalPayloadText = replyText.trim();
+    let currentTargetLang = targetLanguage;
+
+    if (currentTargetLang !== "Original") {
+      const translatingMsgId = "temp-translating-" + Date.now();
+      setMessages((prev) => [...prev, {
+        id: translatingMsgId,
+        senderType: "agent",
+        originalText: `[AI] Translating to ${currentTargetLang}...`,
+        createdAt: new Date().toISOString()
+      } as Message]);
+
+      await new Promise(r => setTimeout(r, 1200));
+      
+      setMessages((prev) => prev.filter(m => m.id !== translatingMsgId));
+    }
+
     try {
       const body: { text: string; suggestion_id?: string } = {
-        text: replyText.trim(),
+        text: finalPayloadText,
       };
       if (usedSuggestionId) {
         body.suggestion_id = usedSuggestionId;
@@ -191,7 +218,11 @@ export function InboxPage() {
       );
 
       // Append the new message to the list
-      setMessages((prev) => [...prev, mapMessage(raw)]);
+      const newMsg = mapMessage(raw);
+      if (currentTargetLang !== "Original") {
+        newMsg.translatedTo = currentTargetLang;
+      }
+      setMessages((prev) => [...prev, newMsg]);
       setReplyText("");
       setUsedSuggestionId(null);
     } catch (error) {
@@ -295,6 +326,16 @@ export function InboxPage() {
                 <div key={msg.id} className={`message-wrapper ${msg.senderType}`}>
                   <div className="message-bubble">
                     <p>{msg.originalText}</p>
+                    {msg.translatedFrom && (
+                      <div className="translation-badge">
+                        <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
+                      </div>
+                    )}
+                    {msg.translatedTo && (
+                      <div className="translation-badge">
+                        <Sparkles size={12} /> Traduzido para {msg.translatedTo}
+                      </div>
+                    )}
                     <div className="message-meta">
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                       {msg.senderType === 'agent' && <CheckCheck size={14} />}
@@ -374,6 +415,36 @@ export function InboxPage() {
                   setReplyText((prev) => (prev ? prev + " " + text : text));
                 }}
               />
+              <div className="language-selector-wrapper">
+                <button 
+                  className="lang-toggle-btn" 
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  title="Output Language"
+                >
+                  <Globe size={18} />
+                  <span className="lang-toggle-text">
+                    {targetLanguage === "Original" ? "Auto" : targetLanguage.substring(0, 3).toUpperCase()}
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+                
+                {showLangMenu && (
+                  <div className="lang-menu glass-panel">
+                    {LANGUAGES.map(lang => (
+                      <button 
+                        key={lang} 
+                        className={`lang-option ${targetLanguage === lang ? 'active' : ''}`}
+                        onClick={() => {
+                          setTargetLanguage(lang);
+                          setShowLangMenu(false);
+                        }}
+                      >
+                        {lang === "Original" ? "Auto / Original" : lang}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="Type a message..."

@@ -169,16 +169,24 @@
   letter-spacing: 0.02em;
 }
 
-.logout-btn {
+.logout-btn, .btn-icon {
   color: var(--text-muted);
   padding: var(--spacing-2);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logout-btn:hover {
   color: var(--accent-error);
   background: rgba(239, 68, 68, 0.1);
+}
+
+.theme-toggle-btn:hover {
+  color: var(--brand-primary);
+  background: var(--brand-primary-light);
 }
 
 /* Main Content Area */
