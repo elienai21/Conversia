@@ -5,6 +5,9 @@
   width: 100vw;
   overflow: hidden;
   background-color: var(--bg-primary);
+  /* Optional subtle background glow */
+  background-image: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.03), transparent 25%),
+                    radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.04), transparent 25%);
 }
 
 /* Sidebar Styling */
@@ -16,6 +19,13 @@
   flex-direction: column;
   padding: var(--spacing-6) 0;
   z-index: 10;
+  /* Override glass panel somewhat to make it fit as a strong sidebar */
+  background: rgba(18, 18, 18, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-color);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+  border-radius: var(--radius-2xl);
 }
 
 .sidebar-header {
@@ -31,17 +41,22 @@
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.025em;
+  background: linear-gradient(to right, #fff, #a5b4fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .tenant-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 700;
   background: var(--brand-primary-light);
   color: var(--brand-primary);
   padding: 4px 8px;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .sidebar-nav {
@@ -58,32 +73,35 @@
   gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-4);
   color: var(--text-secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-weight: 500;
+  font-size: 0.9rem;
   transition: all var(--transition-fast);
   position: relative;
+  overflow: hidden;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: var(--brand-primary-light);
+  background: linear-gradient(90deg, rgba(99,102,241,0.15) 0%, transparent 100%);
   color: var(--brand-primary);
+  font-weight: 600;
 }
 
 .nav-item.active::before {
   content: '';
   position: absolute;
-  left: -16px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 60%;
-  width: 4px;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 3px;
   background: var(--brand-primary);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  box-shadow: 0 0 12px var(--brand-primary);
 }
 
 .nav-badge {
@@ -98,6 +116,7 @@
   min-width: 20px;
   height: 20px;
   border-radius: var(--radius-full);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 
 .sidebar-footer {
@@ -106,6 +125,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--spacing-4);
 }
 
 .user-profile {
@@ -115,17 +136,18 @@
 }
 
 .avatar {
-  height: 40px;
-  width: 40px;
+  height: 36px;
+  width: 36px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--brand-primary), var(--accent-success));
+  background: linear-gradient(135deg, var(--brand-primary), #a855f7); /* Indigo to Purple */
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 1.2rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
+  border: 1px solid rgba(255,255,255,0.1);
 }
 
 .user-info {
@@ -134,15 +156,17 @@
 }
 
 .user-name {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.875rem;
   color: var(--text-primary);
 }
 
 .user-role {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   text-transform: capitalize;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .logout-btn {
@@ -160,11 +184,12 @@
 /* Main Content Area */
 .dashboard-main {
   flex: 1;
-  padding: 16px 16px 16px 0;
+  padding: 16px 16px 16px 16px;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* Mobile Header (hidden on desktop) */

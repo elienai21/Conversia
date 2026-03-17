@@ -1,0 +1,14 @@
+src/routes/knowledge-base.routes.ts(12,34): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/knowledge-base.routes.ts(16,25): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/routes/knowledge-base.routes.ts(34,32): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/knowledge-base.routes.ts(63,35): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/knowledge-base.routes.ts(76,34): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/knowledge-base.routes.ts(96,35): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/knowledge-base.routes.ts(103,18): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/tenant.routes.ts(50,35): error TS2339: Property 'tenantSettings' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/tenant.routes.ts(90,35): error TS2339: Property 'tenantSettings' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/tenant.routes.ts(116,35): error TS2339: Property 'tenantSettings' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/routes/tenant.routes.ts(140,35): error TS2339: Property 'tenantSettings' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/services/copilot.service.ts(40,39): error TS2339: Property 'tenantSettings' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/services/copilot.service.ts(45,34): error TS2339: Property 'knowledgeBase' does not exist on type 'PrismaClient<{ log: ("error" | "info" | "query" | "warn")[]; }, "error" | "info" | "query" | "warn", DefaultArgs>'.
+src/services/copilot.service.ts(52,52): error TS7006: Parameter 'kb' implicitly has an 'any' type.

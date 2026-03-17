@@ -11,6 +11,10 @@ import { messageRoutes } from "./routes/message.routes.js";
 import { copilotRoutes } from "./routes/copilot.routes.js";
 import { agentRoutes } from "./routes/agent.routes.js";
 import { jobRoutes } from "./routes/job.routes.js";
+import { tenantRoutes } from "./routes/tenant.routes.js";
+import { knowledgeBaseRoutes } from "./routes/knowledge-base.routes.js";
+import { staysnetRoutes } from "./routes/staysnet.routes.js";
+import { audioRoutes } from "./routes/audio.routes.js";
 import { copilotWorker } from "./lib/queue.js";
 import { SocketService } from "./services/socket.service.js";
 
@@ -22,11 +26,20 @@ await app.register(cors, {
   credentials: true,
 });
 
+import fastifyMultipart from "@fastify/multipart";
+
 // Error handler
 app.setErrorHandler(errorHandler);
 
 // Health check
 app.get("/health", async () => ({ status: "ok" }));
+
+// Plugins
+await app.register(fastifyMultipart, {
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20 MB max file size for OpenAI audio
+  },
+});
 
 // Routes
 await app.register(authRoutes, { prefix: "/api/v1/auth" });
@@ -34,17 +47,28 @@ await app.register(webhookRoutes, { prefix: "/api/v1/webhook" });
 await app.register(conversationRoutes, { prefix: "/api/v1/conversations" });
 await app.register(messageRoutes, { prefix: "/api/v1/conversations" });
 await app.register(copilotRoutes, { prefix: "/api/v1/conversations" });
+await app.register(audioRoutes, { prefix: "/api/v1/audio" });
 await app.register(agentRoutes, { prefix: "/api/v1/agents" });
 await app.register(jobRoutes, { prefix: "/api/v1/jobs" });
+await app.register(tenantRoutes, { prefix: "/api/v1/tenants" });
+await app.register(knowledgeBaseRoutes, { prefix: "/api/v1/tenants" });
+await app.register(staysnetRoutes, { prefix: "/api/v1/staysnet" });
 
 // Start
 async function start(): Promise<void> {
   try {
-    await redis.connect();
-    console.log("Redis connected");
-
     await prisma.$connect();
     console.log("Database connected");
+
+    // Redis is optional for local dev — don't block the server if unavailable
+    try {
+      await redis.connect();
+      console.log("Redis connected");
+      console.log(`BullMQ Copilot Worker started: ${copilotWorker.name}`);
+    } catch (redisErr) {
+      console.warn("⚠️  Redis not available — server will start without queue/copilot features");
+      console.warn("   To enable: install Docker and run 'docker run -d -p 6379:6379 redis:alpine'");
+    }
 
     await app.listen({ port: config.PORT, host: "0.0.0.0" });
     console.log(`Server running on http://localhost:${config.PORT}`);
@@ -52,8 +76,6 @@ async function start(): Promise<void> {
     // Initialize WebSockets using the Fastify raw HTTP server
     SocketService.initialize(app.server);
     console.log("WebSocket Server Initialized");
-
-    console.log(`BullMQ Copilot Worker started: ${copilotWorker.name}`);
   } catch (err) {
     console.error("Failed to start:", err);
     process.exit(1);

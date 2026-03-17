@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { ApiService } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Square } from "lucide-react";
+import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
 type Conversation = {
@@ -41,6 +42,17 @@ type RawMessage = {
   created_at: string;
 };
 
+function channelIcon(channel: string) {
+  switch (channel) {
+    case "instagram":
+      return <Camera size={14} />;
+    case "whatsapp":
+      return <MessageCircle size={14} />;
+    default:
+      return null;
+  }
+}
+
 function mapConversation(raw: RawConversation): Conversation {
   return {
     id: raw.id,
@@ -67,9 +79,11 @@ export function InboxPage() {
   const [replyText, setReplyText] = useState("");
   const [usedSuggestionId, setUsedSuggestionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConversationRef = useRef<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     ApiService.get<RawConversation[]>("/conversations")
@@ -87,6 +101,11 @@ export function InboxPage() {
     }
     prevConversationRef.current = activeConversation;
   }, [activeConversation, joinConversation, leaveConversation]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Listen for real-time suggestion.ready events from BullMQ Worker
   useEffect(() => {
@@ -189,6 +208,16 @@ export function InboxPage() {
     }
   };
 
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const name = conv.customer?.name?.toLowerCase() || "";
+    const phone = conv.customer?.phone?.toLowerCase() || "";
+    return name.includes(q) || phone.includes(q);
+  });
+
+  const activeConv = conversations.find(c => c.id === activeConversation);
+
   return (
     <div className={`inbox-container glass-panel ${activeConversation ? "show-chat" : ""}`}>
       {/* Sidebar - Conversation List */}
@@ -197,15 +226,22 @@ export function InboxPage() {
           <h3>Messages</h3>
           <div className="search-bar">
             <Search size={16} />
-            <input type="text" placeholder="Search conversations..." />
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
 
         <div className="conversations-list">
           {conversations.length === 0 ? (
              <div className="empty-state-list">No active conversations</div>
+          ) : filteredConversations.length === 0 ? (
+             <div className="empty-state-list">No results found</div>
           ) : (
-            conversations.map(conv => (
+            filteredConversations.map(conv => (
               <div
                 key={conv.id}
                 className={`conversation-card ${activeConversation === conv.id ? 'active' : ''}`}
@@ -217,7 +253,7 @@ export function InboxPage() {
                     <span className="conv-name">{conv.customer?.name || conv.customer?.phone || "Unknown"}</span>
                     <span className="conv-time">{new Date(conv.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                   </div>
-                  <span className="conv-preview text-ellipsis">{conv.channel} - {conv.status}</span>
+                  <span className="conv-preview text-ellipsis">{channelIcon(conv.channel)} {conv.channel} - {conv.status}</span>
                 </div>
               </div>
             ))
@@ -245,8 +281,12 @@ export function InboxPage() {
                 <ArrowLeft size={20} />
               </button>
               <div className="chat-contact-info">
-                <h3>{conversations.find(c => c.id === activeConversation)?.customer?.name || "Customer"}</h3>
-                <span className="status-indicator online">Online</span>
+                <h3>{channelIcon(activeConv?.channel || "")} {conversations.find(c => c.id === activeConversation)?.customer?.name || "Customer"}</h3>
+                <span className={`status-indicator ${activeConv?.status || ""}`}>
+                  {activeConv?.status
+                    ? activeConv.status.charAt(0).toUpperCase() + activeConv.status.slice(1)
+                    : "Unknown"}
+                </span>
               </div>
             </div>
 
@@ -276,19 +316,64 @@ export function InboxPage() {
                     <div className="copilot-suggestion-card">
                       <div className="suggestion-header"><Sparkles size={14} /> AI Suggestion</div>
                       <p>{msg.suggestion.suggestionText}</p>
-                      <button
-                        className="use-suggestion-btn"
-                        onClick={() => handleUseSuggestion(msg.suggestion!.id, msg.suggestion!.suggestionText)}
-                      >
-                        Use this draft
-                      </button>
+                      <div className="suggestion-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button
+                          className="use-suggestion-btn"
+                          onClick={() => handleUseSuggestion(msg.suggestion!.id, msg.suggestion!.suggestionText)}
+                        >
+                          Use this draft
+                        </button>
+                        <button
+                          className="use-suggestion-btn secondary"
+                          style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                          onClick={async (e) => {
+                            const btn = e.currentTarget;
+                            const originalText = btn.innerText;
+                            btn.innerText = "Loading audio...";
+                            btn.disabled = true;
+                            try {
+                              const token = localStorage.getItem("conversia_token");
+                              // Use native fetch to get the binary audio stream
+                              const res = await fetch("http://localhost:3000/api/v1/audio/synthesize", {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                  ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                },
+                                body: JSON.stringify({ text: msg.suggestion!.suggestionText })
+                              });
+                              if (!res.ok) throw new Error("Failed to load audio");
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const audio = new Audio(url);
+                              audio.play();
+                            } catch (err) {
+                              console.error(err);
+                              alert("Failed to play audio");
+                            } finally {
+                              btn.innerText = originalText;
+                              btn.disabled = false;
+                            }
+                          }}
+                        >
+                          <Volume2 size={16} style={{ marginRight: '6px' }} /> Speak Answer
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             <div className="chat-input-area">
+              <AudioRecorder
+                disabled={isSending}
+                onUpload={(blob) => ApiService.uploadAudio("/audio/transcribe", blob)}
+                onTranscription={(text) => {
+                  setReplyText((prev) => (prev ? prev + " " + text : text));
+                }}
+              />
               <input
                 type="text"
                 placeholder="Type a message..."

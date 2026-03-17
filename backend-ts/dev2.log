@@ -1,0 +1,304 @@
+
+> conversia-backend@1.0.0 dev
+> tsx watch src/server.ts
+
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+[ioredis] Unhandled error event: AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+Failed to start: Error: Connection is closed.
+    at EventEmitter.connectionCloseHandler (C:\Projetos\Conversia\backend-ts\node_modules\ioredis\built\Redis.js:208:28)
+    at Object.onceWrapper (node:events:639:26)
+    at EventEmitter.emit (node:events:524:28)
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+00:50:18 [tsx] change in ./src\schemas\tenant.schema.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633020002,"pid":27332,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633020003,"pid":27332,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633020003,"pid":27332,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+00:50:42 [tsx] change in ./src\routes\tenant.routes.ts Restarting...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633044304,"pid":30224,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633044304,"pid":30224,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633044304,"pid":30224,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+00:50:57 [tsx] change in ./src\routes\tenant.routes.ts Restarting...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633059166,"pid":21544,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633059167,"pid":21544,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633059167,"pid":21544,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+00:51:16 [tsx] change in ./src\routes\tenant.routes.ts Restarting...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633077617,"pid":27432,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633077617,"pid":27432,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633077617,"pid":27432,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+00:51:34 [tsx] change in ./src\server.ts Restarting...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633096394,"pid":26436,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633096395,"pid":26436,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633096395,"pid":26436,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+00:52:03 [tsx] change in ./src\server.ts Restarting...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+{"level":30,"time":1773633125402,"pid":14264,"hostname":"Vivare_Admin","msg":"Server listening at http://127.0.0.1:8000"}
+Server running on http://localhost:8000
+WebSocket Server Initialized
+BullMQ Copilot Worker started: copilot-suggestions
+{"level":30,"time":1773633125402,"pid":14264,"hostname":"Vivare_Admin","msg":"Server listening at http://192.168.0.3:8000"}
+{"level":30,"time":1773633125402,"pid":14264,"hostname":"Vivare_Admin","msg":"Server listening at http://172.28.80.1:8000"}
+[Socket] Client connected to room tenant_d8f84f36-0aff-4eab-b9c2-5dc54c81df6a
+{"level":30,"time":1773633378589,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-1","req":{"method":"POST","url":"/api/v1/auth/login","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":50764},"msg":"incoming request"}
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE "public"."users"."email" = $1 LIMIT $2 OFFSET $3
+{"level":30,"time":1773633378842,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-1","res":{"statusCode":200},"responseTime":252.01309999916703,"msg":"request completed"}
+{"level":30,"time":1773633379130,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-2","req":{"method":"GET","url":"/api/v1/staysnet/test","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":50766},"msg":"incoming request"}
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE ("public"."users"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."tenant_settings"."id", "public"."tenant_settings"."tenant_id", "public"."tenant_settings"."openai_api_key", "public"."tenant_settings"."deepl_api_key", "public"."tenant_settings"."whatsapp_api_token", "public"."tenant_settings"."whatsapp_verify_token", "public"."tenant_settings"."whatsapp_phone_number_id", "public"."tenant_settings"."whatsapp_business_account_id", "public"."tenant_settings"."openai_model", "public"."tenant_settings"."ai_temperature", "public"."tenant_settings"."ai_system_prompt", "public"."tenant_settings"."ai_max_tokens", "public"."tenant_settings"."created_at", "public"."tenant_settings"."updated_at" FROM "public"."tenant_settings" WHERE ("public"."tenant_settings"."tenant_id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+{"level":30,"time":1773633379144,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-2","res":{"statusCode":200},"responseTime":14.59900000039488,"msg":"request completed"}
+{"level":30,"time":1773633391001,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-3","req":{"method":"POST","url":"/api/v1/auth/login","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":50774},"msg":"incoming request"}
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE "public"."users"."email" = $1 LIMIT $2 OFFSET $3
+{"level":30,"time":1773633391282,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-3","res":{"statusCode":200},"responseTime":281.44700000062585,"msg":"request completed"}
+{"level":30,"time":1773633391577,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-4","req":{"method":"GET","url":"/api/v1/staysnet/test","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":50776},"msg":"incoming request"}
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE ("public"."users"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."tenant_settings"."id", "public"."tenant_settings"."tenant_id", "public"."tenant_settings"."openai_api_key", "public"."tenant_settings"."deepl_api_key", "public"."tenant_settings"."whatsapp_api_token", "public"."tenant_settings"."whatsapp_verify_token", "public"."tenant_settings"."whatsapp_phone_number_id", "public"."tenant_settings"."whatsapp_business_account_id", "public"."tenant_settings"."openai_model", "public"."tenant_settings"."ai_temperature", "public"."tenant_settings"."ai_system_prompt", "public"."tenant_settings"."ai_max_tokens", "public"."tenant_settings"."created_at", "public"."tenant_settings"."updated_at" FROM "public"."tenant_settings" WHERE ("public"."tenant_settings"."tenant_id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+{"level":30,"time":1773633391584,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-4","res":{"statusCode":200},"responseTime":6.869899999350309,"msg":"request completed"}
+{"level":30,"time":1773633391861,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-5","req":{"method":"GET","url":"/api/v1/staysnet/listings?limit=2","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":57420},"msg":"incoming request"}
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE ("public"."users"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."tenant_settings"."id", "public"."tenant_settings"."tenant_id", "public"."tenant_settings"."openai_api_key", "public"."tenant_settings"."deepl_api_key", "public"."tenant_settings"."whatsapp_api_token", "public"."tenant_settings"."whatsapp_verify_token", "public"."tenant_settings"."whatsapp_phone_number_id", "public"."tenant_settings"."whatsapp_business_account_id", "public"."tenant_settings"."openai_model", "public"."tenant_settings"."ai_temperature", "public"."tenant_settings"."ai_system_prompt", "public"."tenant_settings"."ai_max_tokens", "public"."tenant_settings"."created_at", "public"."tenant_settings"."updated_at" FROM "public"."tenant_settings" WHERE ("public"."tenant_settings"."tenant_id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+Unhandled error: Error: Stays.net credentials not configured
+    at getCredentials (C:\Projetos\Conversia\backend-ts\src\services\staysnet.service.ts:16:11)
+    at async apiRequest (C:\Projetos\Conversia\backend-ts\src\services\staysnet.service.ts:37:17)
+{"level":30,"time":1773633391873,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-5","res":{"statusCode":500},"responseTime":12.131899999454618,"msg":"request completed"}
+{"level":30,"time":1773633409280,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-6","req":{"method":"POST","url":"/api/v1/auth/login","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":57426},"msg":"incoming request"}
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE "public"."users"."email" = $1 LIMIT $2 OFFSET $3
+{"level":30,"time":1773633409498,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-6","res":{"statusCode":200},"responseTime":218.1010999996215,"msg":"request completed"}
+{"level":30,"time":1773633409786,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-7","req":{"method":"GET","url":"/api/v1/staysnet/test","host":"localhost:8000","remoteAddress":"127.0.0.1","remotePort":57428},"msg":"incoming request"}
+prisma:query SELECT "public"."users"."id", "public"."users"."tenant_id", "public"."users"."email", "public"."users"."password_hash", "public"."users"."full_name", "public"."users"."role", "public"."users"."preferred_language", "public"."users"."is_online", "public"."users"."is_active", "public"."users"."max_concurrent_conversations", "public"."users"."created_at" FROM "public"."users" WHERE ("public"."users"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."tenant_settings"."id", "public"."tenant_settings"."tenant_id", "public"."tenant_settings"."openai_api_key", "public"."tenant_settings"."deepl_api_key", "public"."tenant_settings"."whatsapp_api_token", "public"."tenant_settings"."whatsapp_verify_token", "public"."tenant_settings"."whatsapp_phone_number_id", "public"."tenant_settings"."whatsapp_business_account_id", "public"."tenant_settings"."openai_model", "public"."tenant_settings"."ai_temperature", "public"."tenant_settings"."ai_system_prompt", "public"."tenant_settings"."ai_max_tokens", "public"."tenant_settings"."created_at", "public"."tenant_settings"."updated_at" FROM "public"."tenant_settings" WHERE ("public"."tenant_settings"."tenant_id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+{"level":30,"time":1773633409792,"pid":14264,"hostname":"Vivare_Admin","reqId":"req-7","res":{"statusCode":200},"responseTime":5.551500000059605,"msg":"request completed"}
+01:34:36 [tsx] change in ./src\config.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:36:15 [tsx] change in ./src\routes\webhook.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:36:47 [tsx] change in ./src\schemas\tenant.schema.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:37:18 [tsx] change in ./src\routes\tenant.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:37:44 [tsx] change in ./src\routes\tenant.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:37:56 [tsx] change in ./src\routes\tenant.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:38:24 [tsx] change in ./src\routes\message.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+01:38:34 [tsx] change in ./src\routes\message.routes.ts Rerunning...
+cRedis connected
+prisma:info Starting a postgresql pool with 21 connections.
+Database connected
+Failed to start: Error: listen EADDRINUSE: address already in use 0.0.0.0:8000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 8000
+}
+^C^CDeseja finalizar o arquivo em lotes (S/N)? 

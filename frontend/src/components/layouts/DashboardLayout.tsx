@@ -37,7 +37,6 @@ export function DashboardLayout() {
           <NavLink to="/inbox" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
             <MessageSquare size={20} />
             <span>Inbox</span>
-            <span className="nav-badge">3</span>
           </NavLink>
           <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
             <Users size={20} />

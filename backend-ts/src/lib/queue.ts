@@ -5,6 +5,14 @@ import { generateSuggestionWorker } from "../services/copilot.service.js";
 
 const connection = new Redis(config.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
+  lazyConnect: true,
+  retryStrategy(times: number) {
+    if (times > 3) {
+      console.warn("[BullMQ] Redis unavailable — copilot queue disabled");
+      return null; // Stop retrying
+    }
+    return Math.min(times * 500, 2000);
+  },
 });
 
 export const COPILOT_QUEUE_NAME = "copilot-suggestions";

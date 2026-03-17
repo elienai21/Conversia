@@ -1,0 +1,66 @@
+/* src/pages/settings/TeamTab.css */
+.team-tab .flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.agents-list {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.agents-list table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.agents-list th {
+  padding: var(--spacing-4) var(--spacing-6);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(0,0,0,0.2);
+}
+
+.agents-list td {
+  padding: var(--spacing-4) var(--spacing-6);
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.agents-list tr:last-child td {
+  border-bottom: none;
+}
+
+.agents-list tr.inactive td {
+  opacity: 0.5;
+}
+
+.role-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.role-badge.admin {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+}
+
+.role-badge.agent {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-danger);
+}

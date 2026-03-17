@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+*.log
+build.log
+build2.log
+dev.log
+dev2.log

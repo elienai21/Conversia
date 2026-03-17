@@ -3,7 +3,9 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardLayout } from "./components/layouts/DashboardLayout";
+import { DashboardPage } from "./pages/DashboardPage";
 import { InboxPage } from "./pages/InboxPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -37,10 +39,10 @@ function App() {
           {/* Protected Main SaaS Routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<div className="page-container flex-center"><h1>Dashboard coming soon</h1></div>} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/customers" element={<div className="page-container flex-center"><h1>Customers coming soon</h1></div>} />
-              <Route path="/settings" element={<div className="page-container flex-center"><h1>Settings coming soon</h1></div>} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 

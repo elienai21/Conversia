@@ -1,5 +1,5 @@
 // src/services/api.ts
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 export class ApiService {
   static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -64,5 +64,48 @@ export class ApiService {
       method: "PATCH",
       body: JSON.stringify(body),
     });
+  }
+  static put<T>(endpoint: string, body: any, options?: RequestInit) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  static delete<T>(endpoint: string, options?: RequestInit) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "DELETE",
+    });
+  }
+
+  static async uploadAudio(endpoint: string, audioBlob: Blob): Promise<string> {
+    const formData = new FormData();
+    // Send it as a file named "audio.webm"
+    formData.append("file", audioBlob, "audio.webm");
+
+    const token = localStorage.getItem("conversia_token"); // Using existing token retrieval
+    const headers: Record<string, string> = {
+      // Do NOT set Content-Type here, let fetch handle the boundary for FormData
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to upload audio");
+    }
+
+    const data = await response.json();
+    return data.text; // Return the transcribed text directly
   }
 }

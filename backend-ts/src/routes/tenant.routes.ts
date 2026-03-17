@@ -1,0 +1,317 @@
+import type { FastifyInstance } from "fastify";
+import { prisma } from "../lib/prisma.js";
+import { hashPassword } from "../lib/auth.js";
+import { encrypt, decrypt, maskApiKey } from "../lib/encryption.js";
+import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
+import { updateTenantSchema, updateIntegrationsSchema, updateAISettingsSchema } from "../schemas/tenant.schema.js";
+
+export async function tenantRoutes(app: FastifyInstance): Promise<void> {
+  app.addHook("onRequest", authMiddleware);
+  app.addHook("onRequest", requireAdmin);
+
+  // GET /me — tenant info
+  app.get("/me", async (request) => {
+    const tenant = await prisma.tenant.findUniqueOrThrow({
+      where: { id: request.user.tenantId },
+    });
+    return {
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      default_language: tenant.defaultLanguage,
+      created_at: tenant.createdAt.toISOString(),
+    };
+  });
+
+  // PATCH /me — update tenant
+  app.patch("/me", async (request, reply) => {
+    const parsed = updateTenantSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Invalid input", errors: parsed.error.flatten() });
+    }
+    const data: Record<string, unknown> = {};
+    if (parsed.data.name) data.name = parsed.data.name;
+    if (parsed.data.default_language) data.defaultLanguage = parsed.data.default_language;
+
+    const tenant = await prisma.tenant.update({
+      where: { id: request.user.tenantId },
+      data,
+    });
+    return {
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+      default_language: tenant.defaultLanguage,
+    };
+  });
+
+  // GET /me/integrations — masked integration status
+  app.get("/me/integrations", async (request) => {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId: request.user.tenantId },
+    });
+    const tenant = await prisma.tenant.findUniqueOrThrow({
+      where: { id: request.user.tenantId },
+    });
+
+    return {
+      whatsapp: {
+        phone_number_id: settings?.whatsappPhoneNumberId || tenant.whatsappPhoneNumberId || null,
+        business_account_id: settings?.whatsappBusinessAccountId || tenant.whatsappBusinessAccountId || null,
+        api_token_set: !!settings?.whatsappApiToken,
+        verify_token: settings?.whatsappVerifyToken || null,
+      },
+      openai: {
+        api_key_set: !!settings?.openaiApiKey,
+        api_key_preview: settings?.openaiApiKey ? maskApiKey(decrypt(settings.openaiApiKey)) : null,
+      },
+      deepl: {
+        api_key_set: !!settings?.deeplApiKey,
+        api_key_preview: settings?.deeplApiKey ? maskApiKey(decrypt(settings.deeplApiKey)) : null,
+      },
+      staysnet: {
+        client_id_set: !!settings?.staysnetClientId,
+        client_id_preview: settings?.staysnetClientId ? maskApiKey(decrypt(settings.staysnetClientId)) : null,
+        client_secret_set: !!settings?.staysnetClientSecret,
+        domain: settings?.staysnetDomain || null,
+      },
+      instagram: {
+        page_id: settings?.instagramPageId || tenant.instagramPageId || null,
+        page_access_token_set: !!settings?.instagramPageAccessToken,
+      },
+    };
+  });
+
+  // PATCH /me/integrations — save API keys (encrypted)
+  app.patch("/me/integrations", async (request, reply) => {
+    const parsed = updateIntegrationsSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Invalid input", errors: parsed.error.flatten() });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (parsed.data.whatsapp_api_token) data.whatsappApiToken = encrypt(parsed.data.whatsapp_api_token);
+    if (parsed.data.whatsapp_phone_number_id) data.whatsappPhoneNumberId = parsed.data.whatsapp_phone_number_id;
+    if (parsed.data.whatsapp_business_account_id) data.whatsappBusinessAccountId = parsed.data.whatsapp_business_account_id;
+    if (parsed.data.whatsapp_verify_token) data.whatsappVerifyToken = parsed.data.whatsapp_verify_token;
+    if (parsed.data.openai_api_key) data.openaiApiKey = encrypt(parsed.data.openai_api_key);
+    if (parsed.data.deepl_api_key) data.deeplApiKey = encrypt(parsed.data.deepl_api_key);
+    if (parsed.data.staysnet_client_id) data.staysnetClientId = encrypt(parsed.data.staysnet_client_id);
+    if (parsed.data.staysnet_client_secret) data.staysnetClientSecret = encrypt(parsed.data.staysnet_client_secret);
+    if (parsed.data.staysnet_domain) data.staysnetDomain = parsed.data.staysnet_domain;
+    if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
+    if (parsed.data.instagram_page_id) data.instagramPageId = parsed.data.instagram_page_id;
+
+    // Sync Instagram Page ID to Tenant model for webhook resolution
+    if (parsed.data.instagram_page_id) {
+      await prisma.tenant.update({
+        where: { id: request.user.tenantId },
+        data: { instagramPageId: parsed.data.instagram_page_id },
+      });
+    }
+
+    const settings = await prisma.tenantSettings.upsert({
+      where: { tenantId: request.user.tenantId },
+      create: { tenantId: request.user.tenantId, ...data },
+      update: data,
+    });
+
+    return {
+      whatsapp: {
+        phone_number_id: settings.whatsappPhoneNumberId,
+        business_account_id: settings.whatsappBusinessAccountId,
+        api_token_set: !!settings.whatsappApiToken,
+        verify_token: settings.whatsappVerifyToken,
+      },
+      openai: {
+        api_key_set: !!settings.openaiApiKey,
+        api_key_preview: settings.openaiApiKey ? maskApiKey(decrypt(settings.openaiApiKey)) : null,
+      },
+      deepl: {
+        api_key_set: !!settings.deeplApiKey,
+        api_key_preview: settings.deeplApiKey ? maskApiKey(decrypt(settings.deeplApiKey)) : null,
+      },
+      staysnet: {
+        client_id_set: !!settings.staysnetClientId,
+        client_id_preview: settings.staysnetClientId ? maskApiKey(decrypt(settings.staysnetClientId)) : null,
+        client_secret_set: !!settings.staysnetClientSecret,
+        domain: settings.staysnetDomain || null,
+      },
+      instagram: {
+        page_id: settings.instagramPageId,
+        page_access_token_set: !!settings.instagramPageAccessToken,
+      },
+    };
+  });
+
+  // GET /me/ai-settings
+  app.get("/me/ai-settings", async (request) => {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId: request.user.tenantId },
+    });
+    return {
+      openai_model: settings?.openaiModel || "gpt-4.1-mini",
+      ai_temperature: settings?.aiTemperature ?? 0.7,
+      ai_system_prompt: settings?.aiSystemPrompt || "",
+      ai_max_tokens: settings?.aiMaxTokens || 200,
+    };
+  });
+
+  // PATCH /me/ai-settings
+  app.patch("/me/ai-settings", async (request, reply) => {
+    const parsed = updateAISettingsSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Invalid input", errors: parsed.error.flatten() });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (parsed.data.openai_model !== undefined) data.openaiModel = parsed.data.openai_model;
+    if (parsed.data.ai_temperature !== undefined) data.aiTemperature = parsed.data.ai_temperature;
+    if (parsed.data.ai_system_prompt !== undefined) data.aiSystemPrompt = parsed.data.ai_system_prompt;
+    if (parsed.data.ai_max_tokens !== undefined) data.aiMaxTokens = parsed.data.ai_max_tokens;
+
+    const settings = await prisma.tenantSettings.upsert({
+      where: { tenantId: request.user.tenantId },
+      create: { tenantId: request.user.tenantId, ...data },
+      update: data,
+    });
+
+    return {
+      openai_model: settings.openaiModel,
+      ai_temperature: settings.aiTemperature,
+      ai_system_prompt: settings.aiSystemPrompt || "",
+      ai_max_tokens: settings.aiMaxTokens,
+    };
+  });
+
+  // GET /me/agents — list all agents in tenant
+  app.get("/me/agents", async (request) => {
+    const agents = await prisma.user.findMany({
+      where: { tenantId: request.user.tenantId },
+      orderBy: { createdAt: "desc" },
+    });
+    return agents.map((a) => ({
+      id: a.id,
+      email: a.email,
+      full_name: a.fullName,
+      role: a.role,
+      is_online: a.isOnline,
+      is_active: a.isActive,
+      preferred_language: a.preferredLanguage,
+      max_concurrent_conversations: a.maxConcurrentConversations,
+      created_at: a.createdAt.toISOString(),
+    }));
+  });
+
+  // POST /me/agents — create new agent
+  app.post("/me/agents", async (request, reply) => {
+    const body = request.body as {
+      email: string;
+      full_name: string;
+      password: string;
+      role?: string;
+      preferred_language?: string;
+    };
+
+    if (!body.email || !body.full_name || !body.password) {
+      return reply.status(422).send({ detail: "email, full_name, and password are required" });
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: { tenantId: request.user.tenantId, email: body.email },
+    });
+    if (existing) {
+      return reply.status(409).send({ detail: "Agent with this email already exists" });
+    }
+
+    const passwordHash = await hashPassword(body.password);
+    const agent = await prisma.user.create({
+      data: {
+        tenantId: request.user.tenantId,
+        email: body.email,
+        fullName: body.full_name,
+        passwordHash,
+        role: body.role || "agent",
+        preferredLanguage: body.preferred_language || "en",
+      },
+    });
+
+    return reply.status(201).send({
+      id: agent.id,
+      email: agent.email,
+      full_name: agent.fullName,
+      role: agent.role,
+      is_online: agent.isOnline,
+      is_active: agent.isActive,
+      preferred_language: agent.preferredLanguage,
+      max_concurrent_conversations: agent.maxConcurrentConversations,
+      created_at: agent.createdAt.toISOString(),
+    });
+  });
+
+  // PATCH /me/agents/:agentId — update agent
+  app.patch<{ Params: { agentId: string } }>("/me/agents/:agentId", async (request, reply) => {
+    const { agentId } = request.params;
+    const body = request.body as {
+      full_name?: string;
+      role?: string;
+      is_active?: boolean;
+      preferred_language?: string;
+      max_concurrent_conversations?: number;
+    };
+
+    const agent = await prisma.user.findFirst({
+      where: { id: agentId, tenantId: request.user.tenantId },
+    });
+    if (!agent) {
+      return reply.status(404).send({ detail: "Agent not found" });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (body.full_name !== undefined) data.fullName = body.full_name;
+    if (body.role !== undefined) data.role = body.role;
+    if (body.is_active !== undefined) data.isActive = body.is_active;
+    if (body.preferred_language !== undefined) data.preferredLanguage = body.preferred_language;
+    if (body.max_concurrent_conversations !== undefined) data.maxConcurrentConversations = body.max_concurrent_conversations;
+
+    const updated = await prisma.user.update({
+      where: { id: agentId },
+      data,
+    });
+
+    return {
+      id: updated.id,
+      email: updated.email,
+      full_name: updated.fullName,
+      role: updated.role,
+      is_online: updated.isOnline,
+      is_active: updated.isActive,
+      preferred_language: updated.preferredLanguage,
+      max_concurrent_conversations: updated.maxConcurrentConversations,
+      created_at: updated.createdAt.toISOString(),
+    };
+  });
+
+  // DELETE /me/agents/:agentId — soft delete (deactivate)
+  app.delete<{ Params: { agentId: string } }>("/me/agents/:agentId", async (request, reply) => {
+    const { agentId } = request.params;
+
+    if (agentId === request.user.id) {
+      return reply.status(400).send({ detail: "Cannot deactivate yourself" });
+    }
+
+    const agent = await prisma.user.findFirst({
+      where: { id: agentId, tenantId: request.user.tenantId },
+    });
+    if (!agent) {
+      return reply.status(404).send({ detail: "Agent not found" });
+    }
+
+    await prisma.user.update({
+      where: { id: agentId },
+      data: { isActive: false, isOnline: false },
+    });
+
+    return reply.status(204).send();
+  });
+}

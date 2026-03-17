@@ -13,6 +13,8 @@ import {
 } from "../services/message.service.js";
 import { translateText } from "../services/translation.service.js";
 import { sendWhatsappMessage } from "../services/whatsapp.service.js";
+import { sendInstagramMessage } from "../services/instagram.service.js";
+import { decrypt } from "../lib/encryption.js";
 
 export async function messageRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -121,18 +123,30 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         outboundText = translatedText;
       }
 
-      // 3. Send via WhatsApp
-      if (conversation.channel === "whatsapp" && conversation.customer) {
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: user.tenantId },
-        });
+      // 3. Send via the appropriate channel
+      if (conversation.customer) {
+        if (conversation.channel === "whatsapp") {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: user.tenantId },
+          });
 
-        if (tenant?.whatsappPhoneNumberId) {
-          await sendWhatsappMessage(
-            tenant.whatsappPhoneNumberId,
-            conversation.customer.phone,
-            outboundText,
-          );
+          if (tenant?.whatsappPhoneNumberId) {
+            await sendWhatsappMessage(
+              tenant.whatsappPhoneNumberId,
+              conversation.customer.phone,
+              outboundText,
+            );
+          }
+        } else if (conversation.channel === "instagram") {
+          const settings = await prisma.tenantSettings.findUnique({
+            where: { tenantId: user.tenantId },
+          });
+
+          if (settings?.instagramPageAccessToken) {
+            const token = decrypt(settings.instagramPageAccessToken);
+            const igsid = conversation.customer.phone.replace(/^ig:/, "");
+            await sendInstagramMessage(token, igsid, outboundText);
+          }
         }
       }
 
