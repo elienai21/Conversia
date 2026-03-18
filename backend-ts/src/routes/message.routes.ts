@@ -92,22 +92,6 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         detectedLanguage: user.preferredLanguage,
       });
 
-      // Emit new message event to the conversation room
-      SocketService.emitToConversation(conversation.id, "message.new", {
-        id: message.id,
-        conversation_id: message.conversationId,
-        sender_type: message.senderType,
-        original_text: message.originalText,
-        detected_language: message.detectedLanguage,
-        created_at: message.createdAt,
-      });
-
-      // Emit conversation updated event to the tenant room so the sidebar updates
-      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
-        type: "replied",
-        conversationId: conversation.id,
-      });
-
       // 2. Translate if target_language is explicitly set, or auto-detect from conversation
       const explicitTarget = parsed.data.target_language;
       const customerLang = conversation.detectedLanguage;
@@ -144,7 +128,23 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         outboundText = translatedText;
       }
 
-      // 3. Send via the appropriate channel
+      // 3. Emit socket events (after translation so translated text is included)
+      SocketService.emitToConversation(conversation.id, "message.new", {
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_type: message.senderType,
+        original_text: message.originalText,
+        detected_language: message.detectedLanguage,
+        created_at: message.createdAt,
+        translations,
+      });
+
+      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "replied",
+        conversationId: conversation.id,
+      });
+
+      // 4. Send via the appropriate channel
       if (conversation.customer) {
         if (conversation.channel === "whatsapp") {
           const tenant = await prisma.tenant.findUnique({

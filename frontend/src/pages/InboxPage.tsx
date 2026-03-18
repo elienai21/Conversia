@@ -242,7 +242,15 @@ export function InboxPage() {
       );
 
       const newMsg = mapMessage(raw);
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === newMsg.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = newMsg;
+          return updated;
+        }
+        return [...prev, newMsg];
+      });
       setReplyText("");
       setUsedSuggestionId(null);
     } catch (error) {
