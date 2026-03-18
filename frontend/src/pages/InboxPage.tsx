@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ApiService } from "@/services/api";
+import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
 import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown } from "lucide-react";
@@ -397,7 +397,7 @@ export function InboxPage() {
                             try {
                               const token = localStorage.getItem("conversia_token");
                               // Use native fetch to get the binary audio stream
-                              const res = await fetch("http://localhost:3000/api/v1/audio/synthesize", {
+                              const res = await fetch(`${API_URL}/audio/synthesize`, {
                                 method: "POST",
                                 headers: {
                                   "Content-Type": "application/json",
