@@ -170,3 +170,30 @@ async function findPasswordLoginUser(
 
   return null;
 }
+
+async function findPasswordLoginUser(
+  users: Array<{
+    id: string;
+    tenantId: string;
+    email: string;
+    passwordHash: string | null;
+    fullName: string;
+    role: string;
+    isActive: boolean;
+  }>,
+  password: string,
+  verifyPassword: (password: string, hash: string) => Promise<boolean>,
+) {
+  for (const user of users) {
+    if (!user.passwordHash) {
+      continue;
+    }
+
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (valid) {
+      return user;
+    }
+  }
+
+  return null;
+}
