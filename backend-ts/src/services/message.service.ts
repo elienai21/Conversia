@@ -40,7 +40,7 @@ export async function saveTranslation(params: {
 
 export async function getConversationMessages(conversationId: string) {
   return prisma.message.findMany({
-    where: { conversationId },
+    where: { conversationId, deletedAt: null },
     include: { translations: true },
     orderBy: { createdAt: "asc" },
   });

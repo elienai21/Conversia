@@ -21,6 +21,7 @@ model Tenant {
   conversations             Conversation[]
   customers                 Customer[]
   knowledgeBase             KnowledgeBase[]
+  quickReplies              QuickReply[]
   settings                  TenantSettings?
   users                     User[]
 
@@ -41,6 +42,7 @@ model User {
   createdAt                  DateTime       @default(now()) @map("created_at")
   suggestions                AISuggestion[]
   conversations              Conversation[] @relation("AssignedAgent")
+  conversationReads          ConversationRead[]
   tenant                     Tenant         @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, email], map: "ix_users_tenant_email")
@@ -49,17 +51,18 @@ model User {
 }
 
 model Customer {
-  id            String         @id @default(uuid()) @db.Uuid
-  tenantId      String         @map("tenant_id") @db.Uuid
-  phone         String         @map("phone")
-  name          String?        @map("name")
-  email         String?        @map("email")
-  socialMedia   String?        @map("social_media")
-  tag           String?        @map("tag")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  conversations Conversation[]
-  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  phone             String         @map("phone")
+  name              String?        @map("name")
+  email             String?        @map("email")
+  socialMedia       String?        @map("social_media")
+  tag               String?        @map("tag")
+  profilePictureUrl String?        @map("profile_picture_url")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  conversations     Conversation[]
+  tenant            Tenant         @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, phone], map: "ix_customers_tenant_phone")
   @@map("customers")
@@ -75,10 +78,11 @@ model Conversation {
   detectedLanguage String?   @map("detected_language")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
-  assignedAgent    User?     @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
-  customer         Customer  @relation(fields: [customerId], references: [id])
-  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  assignedAgent    User?              @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  customer         Customer           @relation(fields: [customerId], references: [id])
+  tenant           Tenant             @relation(fields: [tenantId], references: [id])
   messages         Message[]
+  reads            ConversationRead[]
 
   @@index([tenantId, status], map: "ix_conversations_tenant_status")
   @@map("conversations")
@@ -92,6 +96,7 @@ model Message {
   originalText     String               @map("original_text")
   detectedLanguage String?              @map("detected_language")
   externalId       String?              @map("external_id")
+  deletedAt        DateTime?            @map("deleted_at")
   createdAt        DateTime             @default(now()) @map("created_at")
   suggestion       AISuggestion?
   translations     MessageTranslation[]
@@ -191,4 +196,30 @@ model KnowledgeBase {
 
   @@index([tenantId, isActive], map: "ix_kb_tenant_active")
   @@map("knowledge_base")
+}
+
+model QuickReply {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  title     String   @map("title")
+  body      String   @map("body")
+  shortcut  String?  @map("shortcut")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId], map: "ix_quick_replies_tenant")
+  @@map("quick_replies")
+}
+
+model ConversationRead {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  lastReadAt     DateTime     @default(now()) @map("last_read_at")
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([userId, conversationId], map: "ix_conversation_reads_user_conv")
+  @@map("conversation_reads")
 }

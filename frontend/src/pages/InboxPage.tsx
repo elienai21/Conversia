@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown } from "lucide-react";
+import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
 type Conversation = {
   id: string;
-  customer: { phone: string; name?: string | null } | null;
+  customer: { phone: string; name?: string | null; profilePictureUrl?: string | null } | null;
   channel: string;
   status: string;
   updatedAt: string;
+  unreadCount: number;
+  lastMessagePreview: string | null;
 };
 
 type Message = {
@@ -28,13 +30,22 @@ type Message = {
   translatedFrom?: string;
 };
 
+type QuickReply = {
+  id: string;
+  title: string;
+  body: string;
+  shortcut: string | null;
+};
+
 // Raw API response types (snake_case from backend)
 type RawConversation = {
   id: string;
   channel: string;
   status: string;
   updated_at: string;
-  customer: { phone: string; name: string | null } | null;
+  customer: { phone: string; name: string | null; profile_picture_url?: string | null } | null;
+  unread_count?: number;
+  last_message_preview?: string | null;
 };
 
 type RawTranslation = {
@@ -65,10 +76,14 @@ function channelIcon(channel: string) {
 function mapConversation(raw: RawConversation): Conversation {
   return {
     id: raw.id,
-    customer: raw.customer,
+    customer: raw.customer
+      ? { phone: raw.customer.phone, name: raw.customer.name, profilePictureUrl: raw.customer.profile_picture_url }
+      : null,
     channel: raw.channel,
     status: raw.status,
     updatedAt: raw.updated_at,
+    unreadCount: raw.unread_count || 0,
+    lastMessagePreview: raw.last_message_preview || null,
   };
 }
 
@@ -92,6 +107,9 @@ function mapMessage(raw: RawMessage): Message {
   };
 }
 
+// Notification sound (short beep)
+const notificationSound = typeof window !== "undefined" ? new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdGaJjIuBdHB2cISMi4J0cHR0hIyLgnRwdHaEjIuCdHB0doSMi4J0cHR2hIyLgnRwdA==") : null;
+
 export function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
@@ -103,18 +121,29 @@ export function InboxPage() {
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
-  
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: string } | null>(null);
+  const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConversationRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const fetchConversations = useCallback(() => {
     ApiService.get<RawConversation[]>("/conversations")
       .then((raw) => setConversations(raw.map(mapConversation)))
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    fetchConversations();
+    // Load quick replies
+    ApiService.get<QuickReply[]>("/quick-replies")
+      .then(setQuickReplies)
+      .catch(console.error);
+  }, [fetchConversations]);
 
   // Join/leave socket rooms when active conversation changes
   useEffect(() => {
@@ -132,7 +161,15 @@ export function InboxPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Listen for real-time suggestion.ready events from BullMQ Worker
+  // Close context menu on click anywhere
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [contextMenu]);
+
+  // Listen for real-time events
   useEffect(() => {
     if (!socket) return;
 
@@ -140,14 +177,11 @@ export function InboxPage() {
       messageId: string;
       suggestion: { id: string; suggestionText: string; wasUsed: boolean };
     }) => {
-      console.log("[Socket] suggestion.ready received:", data);
-
       setPendingCopilotIds((prev) => {
         const next = new Set(prev);
         next.delete(data.messageId);
         return next;
       });
-
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === data.messageId
@@ -158,32 +192,41 @@ export function InboxPage() {
     };
 
     const handleMessageNew = (data: RawMessage & { conversation_id: string }) => {
-      console.log("[Socket] message.new received:", data);
+      // Play notification sound for customer messages not in the active conversation
+      if (data.sender_type === "customer") {
+        if (data.conversation_id !== activeConversation) {
+          notificationSound?.play().catch(() => {});
+        }
+        // Update unread counts in sidebar
+        fetchConversations();
+      }
+
       setMessages((prev) => {
-        // If message already exists, don't duplicate
         if (prev.some((m) => m.id === data.id)) return prev;
         return [...prev, mapMessage(data)];
       });
     };
 
-    const handleConversationUpdated = (data: { type: string; conversationId: string; agentId?: string }) => {
-      console.log("[Socket] conversation.updated received:", data);
-      // Re-fetch conversations to update the list in the sidebar based on new status/previews
-      ApiService.get<RawConversation[]>("/conversations")
-        .then((raw) => setConversations(raw.map(mapConversation)))
-        .catch(console.error);
+    const handleConversationUpdated = () => {
+      fetchConversations();
+    };
+
+    const handleMessageDeleted = (data: { messageId: string }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
     };
 
     socket.on("suggestion.ready", handleSuggestionReady);
     socket.on("message.new", handleMessageNew);
     socket.on("conversation.updated", handleConversationUpdated);
+    socket.on("message.deleted", handleMessageDeleted);
 
     return () => {
       socket.off("suggestion.ready", handleSuggestionReady);
       socket.off("message.new", handleMessageNew);
       socket.off("conversation.updated", handleConversationUpdated);
+      socket.off("message.deleted", handleMessageDeleted);
     };
-  }, [socket]);
+  }, [socket, activeConversation, fetchConversations]);
 
   const loadMessages = async (id: string) => {
     setActiveConversation(id);
@@ -192,6 +235,10 @@ export function InboxPage() {
     try {
       const raw = await ApiService.get<RawMessage[]>(`/conversations/${id}/messages`);
       setMessages(raw.map(mapMessage));
+      // Mark as read - update sidebar unread count
+      setConversations((prev) =>
+        prev.map((c) => c.id === id ? { ...c, unreadCount: 0 } : c)
+      );
     } catch (e) {
       console.error(e);
     }
@@ -219,6 +266,17 @@ export function InboxPage() {
   const handleUseSuggestion = (suggestionId: string, text: string) => {
     setReplyText(text);
     setUsedSuggestionId(suggestionId);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeConversation) return;
+    try {
+      await ApiService.delete(`/conversations/${activeConversation}/messages/${messageId}`);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    } catch (e) {
+      console.error(e);
+    }
+    setContextMenu(null);
   };
 
   const handleSendMessage = async () => {
@@ -253,6 +311,7 @@ export function InboxPage() {
       });
       setReplyText("");
       setUsedSuggestionId(null);
+      setShowQuickReplies(false);
     } catch (error) {
       console.error(error);
     } finally {
@@ -267,6 +326,11 @@ export function InboxPage() {
     }
   };
 
+  const handleMessageContextMenu = (e: React.MouseEvent, messageId: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+  };
+
   const filteredConversations = conversations.filter((conv) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -276,6 +340,24 @@ export function InboxPage() {
   });
 
   const activeConv = conversations.find(c => c.id === activeConversation);
+
+  // Filter quick replies based on input text (show when typing "/" or when picker is open)
+  const filteredQuickReplies = showQuickReplies
+    ? quickReplies.filter((qr) => {
+        if (!replyText.startsWith("/")) return true;
+        const search = replyText.slice(1).toLowerCase();
+        return qr.title.toLowerCase().includes(search) || (qr.shortcut?.toLowerCase().includes(search) ?? false);
+      })
+    : [];
+
+  // Detect "/" prefix to show quick replies
+  useEffect(() => {
+    if (replyText.startsWith("/")) {
+      setShowQuickReplies(true);
+    } else {
+      setShowQuickReplies(false);
+    }
+  }, [replyText]);
 
   return (
     <div className={`inbox-container glass-panel ${activeConversation ? "show-chat" : ""}`}>
@@ -303,16 +385,29 @@ export function InboxPage() {
             filteredConversations.map(conv => (
               <div
                 key={conv.id}
-                className={`conversation-card ${activeConversation === conv.id ? 'active' : ''}`}
+                className={`conversation-card ${activeConversation === conv.id ? 'active' : ''} ${conv.unreadCount > 0 ? 'has-unread' : ''}`}
                 onClick={() => loadMessages(conv.id)}
               >
-                <div className="conv-avatar">{conv.customer?.name?.charAt(0) || <Bot size={20}/>}</div>
+                <div className="conv-avatar">
+                  {conv.customer?.profilePictureUrl ? (
+                    <img src={conv.customer.profilePictureUrl} alt="" className="conv-avatar-img" />
+                  ) : (
+                    conv.customer?.name?.charAt(0) || <Bot size={20}/>
+                  )}
+                </div>
                 <div className="conv-details">
                   <div className="conv-header">
                     <span className="conv-name">{conv.customer?.name || conv.customer?.phone || "Unknown"}</span>
-                    <span className="conv-time">{new Date(conv.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <div className="conv-header-right">
+                      {conv.unreadCount > 0 && (
+                        <span className="unread-badge">{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
+                      )}
+                      <span className="conv-time">{new Date(conv.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
                   </div>
-                  <span className="conv-preview text-ellipsis">{channelIcon(conv.channel)} {conv.channel} - {conv.status}</span>
+                  <span className="conv-preview text-ellipsis">
+                    {conv.lastMessagePreview || <>{channelIcon(conv.channel)} {conv.channel} - {conv.status}</>}
+                  </span>
                 </div>
               </div>
             ))
@@ -339,8 +434,17 @@ export function InboxPage() {
               >
                 <ArrowLeft size={20} />
               </button>
+              <div className="chat-header-avatar">
+                {activeConv?.customer?.profilePictureUrl ? (
+                  <img src={activeConv.customer.profilePictureUrl} alt="" className="header-avatar-img" />
+                ) : (
+                  <div className="header-avatar-fallback">
+                    {activeConv?.customer?.name?.charAt(0) || "?"}
+                  </div>
+                )}
+              </div>
               <div className="chat-contact-info">
-                <h3>{channelIcon(activeConv?.channel || "")} {conversations.find(c => c.id === activeConversation)?.customer?.name || "Customer"}</h3>
+                <h3>{channelIcon(activeConv?.channel || "")} {activeConv?.customer?.name || "Customer"}</h3>
                 <span className={`status-indicator ${activeConv?.status || ""}`}>
                   {activeConv?.status
                     ? activeConv.status.charAt(0).toUpperCase() + activeConv.status.slice(1)
@@ -351,7 +455,11 @@ export function InboxPage() {
 
             <div className="chat-messages">
               {messages.map(msg => (
-                <div key={msg.id} className={`message-wrapper ${msg.senderType}`}>
+                <div
+                  key={msg.id}
+                  className={`message-wrapper ${msg.senderType}`}
+                  onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
+                >
                   <div className="message-bubble">
                     <p>{msg.originalText}</p>
                     {msg.translatedFrom && (
@@ -397,12 +505,11 @@ export function InboxPage() {
                           style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
                           onClick={async (e) => {
                             const btn = e.currentTarget;
-                            const originalText = btn.innerText;
+                            const originalBtnText = btn.innerText;
                             btn.innerText = "Loading audio...";
                             btn.disabled = true;
                             try {
                               const token = localStorage.getItem("conversia_token");
-                              // Use native fetch to get the binary audio stream
                               const res = await fetch(`${API_URL}/audio/synthesize`, {
                                 method: "POST",
                                 headers: {
@@ -420,7 +527,7 @@ export function InboxPage() {
                               console.error(err);
                               alert("Failed to play audio");
                             } finally {
-                              btn.innerText = originalText;
+                              btn.innerText = originalBtnText;
                               btn.disabled = false;
                             }
                           }}
@@ -443,9 +550,16 @@ export function InboxPage() {
                   setReplyText((prev) => (prev ? prev + " " + text : text));
                 }}
               />
+              <button
+                className="quick-reply-btn"
+                onClick={() => setShowQuickReplies(!showQuickReplies)}
+                title="Quick Replies"
+              >
+                <Zap size={18} />
+              </button>
               <div className="language-selector-wrapper">
-                <button 
-                  className="lang-toggle-btn" 
+                <button
+                  className="lang-toggle-btn"
                   onClick={() => setShowLangMenu(!showLangMenu)}
                   title="Output Language"
                 >
@@ -455,12 +569,12 @@ export function InboxPage() {
                   </span>
                   <ChevronDown size={14} />
                 </button>
-                
+
                 {showLangMenu && (
                   <div className="lang-menu glass-panel">
                     {LANGUAGES.map(lang => (
-                      <button 
-                        key={lang} 
+                      <button
+                        key={lang}
                         className={`lang-option ${targetLanguage === lang ? 'active' : ''}`}
                         onClick={() => {
                           setTargetLanguage(lang);
@@ -473,9 +587,30 @@ export function InboxPage() {
                   </div>
                 )}
               </div>
+
+              {/* Quick Replies Popup */}
+              {showQuickReplies && filteredQuickReplies.length > 0 && (
+                <div className="quick-replies-popup glass-panel">
+                  {filteredQuickReplies.map((qr) => (
+                    <button
+                      key={qr.id}
+                      className="quick-reply-option"
+                      onClick={() => {
+                        setReplyText(qr.body);
+                        setShowQuickReplies(false);
+                      }}
+                    >
+                      <span className="qr-title">{qr.title}</span>
+                      {qr.shortcut && <span className="qr-shortcut">/{qr.shortcut}</span>}
+                      <span className="qr-preview">{qr.body.substring(0, 60)}{qr.body.length > 60 ? "..." : ""}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <input
                 type="text"
-                placeholder="Type a message..."
+                placeholder='Type a message... (type "/" for quick replies)'
                 value={replyText}
                 onChange={e => { setReplyText(e.target.value); setUsedSuggestionId(null); }}
                 onKeyDown={handleKeyDown}
@@ -492,6 +627,21 @@ export function InboxPage() {
           </>
         )}
       </div>
+
+      {/* Context Menu for message actions */}
+      {contextMenu && (
+        <div
+          className="message-context-menu glass-panel"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            className="context-menu-item danger"
+            onClick={() => handleDeleteMessage(contextMenu.messageId)}
+          >
+            <Trash2 size={14} /> Apagar mensagem
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ShieldAlert, Settings, Webhook, BookOpen, Users, Bot } from "lucide-react";
+import { ShieldAlert, Settings, Webhook, BookOpen, Users, Bot, Zap } from "lucide-react";
 import { GeneralTab } from "./settings/GeneralTab";
 import { IntegrationsTab } from "./settings/IntegrationsTab";
 import { KnowledgeBaseTab } from "./settings/KnowledgeBaseTab";
 import { TeamTab } from "./settings/TeamTab";
 import { AISettingsTab } from "./settings/AISettingsTab";
+import { QuickRepliesTab } from "./settings/QuickRepliesTab";
 import "./SettingsPage.css";
 
-type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai";
+type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai" | "quick-replies";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ export function SettingsPage() {
       case "knowledge-base": return <KnowledgeBaseTab />;
       case "team": return <TeamTab />;
       case "ai": return <AISettingsTab />;
+      case "quick-replies": return <QuickRepliesTab />;
       default: return null;
     }
   };
@@ -66,11 +68,17 @@ export function SettingsPage() {
           >
             <Users size={18} /> Team & Agents
           </button>
-          <button 
+          <button
             className={`settings-tab-btn ${activeTab === "ai" ? "active" : ""}`}
             onClick={() => setActiveTab("ai")}
           >
             <Bot size={18} /> AI Settings
+          </button>
+          <button
+            className={`settings-tab-btn ${activeTab === "quick-replies" ? "active" : ""}`}
+            onClick={() => setActiveTab("quick-replies")}
+          >
+            <Zap size={18} /> Quick Replies
           </button>
         </nav>
       </div>

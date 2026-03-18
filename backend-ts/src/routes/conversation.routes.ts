@@ -44,8 +44,36 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     const conversations = await prisma.conversation.findMany({
       where,
       orderBy: { updatedAt: "desc" },
-      include: { customer: true },
+      include: {
+        customer: true,
+        messages: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { originalText: true },
+        },
+      },
     });
+
+    // Get unread counts per conversation for this user
+    const conversationIds = conversations.map((c) => c.id);
+    const unreadCounts = conversationIds.length > 0
+      ? await prisma.$queryRawUnsafe<{ conversation_id: string; count: bigint }[]>(
+          `SELECT m.conversation_id, COUNT(*)::bigint as count
+           FROM messages m
+           LEFT JOIN conversation_reads cr
+             ON cr.conversation_id = m.conversation_id AND cr.user_id = $1
+           WHERE m.conversation_id = ANY($2)
+             AND m.deleted_at IS NULL
+             AND m.sender_type = 'customer'
+             AND (cr.last_read_at IS NULL OR m.created_at > cr.last_read_at)
+           GROUP BY m.conversation_id`,
+          user.id,
+          conversationIds,
+        )
+      : [];
+
+    const unreadMap = new Map(unreadCounts.map((r) => [r.conversation_id, Number(r.count)]));
 
     const result: ConversationOut[] = conversations.map((c) => ({
       id: c.id,
@@ -57,7 +85,11 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       detected_language: c.detectedLanguage,
       created_at: c.createdAt,
       updated_at: c.updatedAt,
-      customer: c.customer ? { phone: c.customer.phone, name: c.customer.name } : null,
+      customer: c.customer
+        ? { phone: c.customer.phone, name: c.customer.name, profile_picture_url: c.customer.profilePictureUrl }
+        : null,
+      unread_count: unreadMap.get(c.id) || 0,
+      last_message_preview: c.messages[0]?.originalText?.substring(0, 80) || null,
     }));
 
     return reply.send(result);

@@ -38,6 +38,15 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Conversation not found" });
       }
 
+      // Mark conversation as read for this user
+      await prisma.conversationRead.upsert({
+        where: {
+          userId_conversationId: { userId: user.id, conversationId },
+        },
+        update: { lastReadAt: new Date() },
+        create: { userId: user.id, conversationId, lastReadAt: new Date() },
+      });
+
       const messages = await getConversationMessages(conversationId);
 
       const result: MessageOut[] = messages.map((m) => ({
@@ -190,6 +199,45 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       };
 
       return reply.send(result);
+    },
+  );
+
+  // Delete a message (soft delete)
+  app.delete<{ Params: { conversationId: string; messageId: string } }>(
+    "/:conversationId/messages/:messageId",
+    async (request, reply) => {
+      const user = request.user;
+      const { conversationId, messageId } = request.params;
+
+      const conversation = await getAgentConversation(
+        conversationId,
+        user.tenantId,
+        user.role === "agent" ? user.id : undefined,
+      );
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, conversationId },
+      });
+
+      if (!message || message.deletedAt) {
+        return reply.status(404).send({ detail: "Message not found" });
+      }
+
+      await prisma.message.update({
+        where: { id: messageId },
+        data: { deletedAt: new Date() },
+      });
+
+      SocketService.emitToConversation(conversationId, "message.deleted", {
+        messageId,
+        conversationId,
+      });
+
+      return reply.status(204).send();
     },
   );
 }

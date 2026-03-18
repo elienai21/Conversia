@@ -39,17 +39,25 @@ export async function findOrCreateConversation(
   customerId: string,
   channel: string,
 ): Promise<{ conversation: Conversation; isNew: boolean }> {
-  // Look for an open conversation
+  // Look for the most recent conversation (including closed ones)
   const existing = await prisma.conversation.findFirst({
     where: {
       tenantId,
       customerId,
       channel,
-      status: { not: "closed" },
     },
+    orderBy: { updatedAt: "desc" },
   });
 
   if (existing) {
+    // Reopen closed conversations so the same chat is always reused
+    if (existing.status === "closed") {
+      const reopened = await prisma.conversation.update({
+        where: { id: existing.id },
+        data: { status: "queued" },
+      });
+      return { conversation: reopened, isNew: false };
+    }
     return { conversation: existing, isNew: false };
   }
 

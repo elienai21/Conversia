@@ -21,5 +21,8 @@ export interface ConversationOut {
   customer: {
     phone: string;
     name: string | null;
+    profile_picture_url?: string | null;
   } | null;
+  unread_count?: number;
+  last_message_preview?: string | null;
 }
