@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
@@ -58,18 +59,16 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     // Get unread counts per conversation for this user
     const conversationIds = conversations.map((c) => c.id);
     const unreadCounts = conversationIds.length > 0
-      ? await prisma.$queryRawUnsafe<{ conversation_id: string; count: bigint }[]>(
-          `SELECT m.conversation_id, COUNT(*)::bigint as count
+      ? await prisma.$queryRaw<{ conversation_id: string; count: bigint }[]>(
+          Prisma.sql`SELECT m.conversation_id, COUNT(*)::bigint as count
            FROM messages m
            LEFT JOIN conversation_reads cr
-             ON cr.conversation_id = m.conversation_id AND cr.user_id = $1
-           WHERE m.conversation_id = ANY($2)
+             ON cr.conversation_id = m.conversation_id AND cr.user_id = ${user.id}::uuid
+           WHERE m.conversation_id IN (${Prisma.join(conversationIds.map(id => Prisma.sql`${id}::uuid`))})
              AND m.deleted_at IS NULL
              AND m.sender_type = 'customer'
              AND (cr.last_read_at IS NULL OR m.created_at > cr.last_read_at)
            GROUP BY m.conversation_id`,
-          user.id,
-          conversationIds,
         )
       : [];
 
