@@ -20,6 +20,7 @@ import { staysnetRoutes } from "./routes/staysnet.routes.js";
 import { analyticsRoutes } from "./routes/analytics.routes.js";
 import { customerRoutes } from "./routes/customer.routes.js";
 import { audioRoutes } from "./routes/audio.routes.js";
+import { evolutionRoutes } from "./routes/evolution.routes.js";
 import { copilotWorker } from "./lib/queue.js";
 import { SocketService } from "./services/socket.service.js";
 
@@ -90,6 +91,7 @@ await app.register(knowledgeBaseRoutes, { prefix: "/api/v1/tenants" });
 await app.register(staysnetRoutes, { prefix: "/api/v1/staysnet" });
 await app.register(analyticsRoutes, { prefix: "/api/v1/analytics" });
 await app.register(customerRoutes, { prefix: "/api/v1/customers" });
+await app.register(evolutionRoutes, { prefix: "/api/v1/whatsapp" });
 
 // Start
 async function start(): Promise<void> {

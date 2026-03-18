@@ -225,18 +225,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     // Send via WhatsApp
     if (parsed.data.channel === "whatsapp") {
-      const settings = await prisma.tenantSettings.findUnique({
-        where: { tenantId: user.tenantId },
-      });
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: user.tenantId },
-      });
-      const phoneId = settings?.whatsappPhoneNumberId || tenant?.whatsappPhoneNumberId;
-      const waToken = settings?.whatsappApiToken ? decrypt(settings.whatsappApiToken) : undefined;
-
-      if (phoneId) {
-        await sendWhatsappMessage(phoneId, customer.phone, parsed.data.message, waToken);
-      }
+      await sendWhatsappMessage(user.tenantId, customer.phone, parsed.data.message);
     }
 
     // Emit socket events

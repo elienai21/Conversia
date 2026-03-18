@@ -145,14 +145,7 @@ Reply in ${tenantLang}. Keep it under 3 sentences. Be friendly and professional.
 
   if (conversation?.customer) {
     if (conversation.channel === "whatsapp") {
-      const tenantRecord = await prisma.tenant.findUnique({
-        where: { id: tenantId },
-      });
-      const phoneId = settings.whatsappPhoneNumberId || tenantRecord?.whatsappPhoneNumberId;
-      const waToken = settings.whatsappApiToken ? decrypt(settings.whatsappApiToken) : undefined;
-      if (phoneId) {
-        await sendWhatsappMessage(phoneId, conversation.customer.phone, outboundText, waToken);
-      }
+      await sendWhatsappMessage(tenantId, conversation.customer.phone, outboundText);
     } else if (conversation.channel === "instagram") {
       if (settings.instagramPageAccessToken) {
         const token = decrypt(settings.instagramPageAccessToken);

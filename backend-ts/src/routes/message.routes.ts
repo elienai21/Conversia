@@ -154,12 +154,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         });
 
         if (conversation.channel === "whatsapp") {
-          const phoneId = settings?.whatsappPhoneNumberId || tenant?.whatsappPhoneNumberId;
-          const waToken = settings?.whatsappApiToken ? decrypt(settings.whatsappApiToken) : undefined;
-
-          if (phoneId) {
-            await sendWhatsappMessage(phoneId, conversation.customer.phone, outboundText, waToken);
-          }
+          await sendWhatsappMessage(user.tenantId, conversation.customer.phone, outboundText);
         } else if (conversation.channel === "instagram") {
           if (settings?.instagramPageAccessToken) {
             const igToken = decrypt(settings.instagramPageAccessToken);

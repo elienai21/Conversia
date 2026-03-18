@@ -171,40 +171,43 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     const body = request.body as Record<string, unknown>;
 
     // Step 1: Parse incoming message
-    const incoming = parseIncomingMessage(body);
-    if (!incoming) {
+    const parsed = parseIncomingMessage(body);
+    if (!parsed || parsed.messages.length === 0) {
       return reply.send({ status: "ignored" });
     }
 
-    // Step 2: Resolve tenant by phone number ID
-    const tenant = await resolveTenant(incoming.phoneNumberId);
-    if (!tenant) {
-      console.warn(`No tenant for phoneNumberId: ${incoming.phoneNumberId}`);
-      return reply.send({ status: "no_tenant" });
+    // Process each message (usually only 1)
+    for (const incoming of parsed.messages) {
+      // Step 2: Resolve tenant by providerId
+      const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
+      if (!tenant) {
+        console.warn(`No tenant for providerId: ${incoming.providerId}`);
+        continue;
+      }
+
+      // Step 3: Find or create customer
+      const customer = await findOrCreateCustomer(
+        tenant.id,
+        incoming.from,
+        incoming.displayName,
+      );
+
+      // Step 4: Find or create conversation
+      const { conversation, isNew } = await findOrCreateConversation(
+        tenant.id,
+        customer.id,
+        "whatsapp",
+      );
+
+      // Steps 5-11: Shared pipeline
+      await processIncomingMessage({
+        tenant,
+        conversation,
+        text: incoming.text,
+        externalMessageId: incoming.messageId,
+        isNewConversation: isNew,
+      });
     }
-
-    // Step 3: Find or create customer
-    const customer = await findOrCreateCustomer(
-      tenant.id,
-      incoming.from,
-      incoming.displayName,
-    );
-
-    // Step 4: Find or create conversation
-    const { conversation, isNew } = await findOrCreateConversation(
-      tenant.id,
-      customer.id,
-      "whatsapp",
-    );
-
-    // Steps 5-11: Shared pipeline
-    await processIncomingMessage({
-      tenant,
-      conversation,
-      text: incoming.text,
-      externalMessageId: incoming.messageId,
-      isNewConversation: isNew,
-    });
 
     return reply.send({ status: "processed" });
   });
