@@ -46,17 +46,28 @@ export function parseIncomingMessage(
 export async function resolveTenant(phoneNumberId: string) {
   const { prisma } = await import("../lib/prisma.js");
 
-  return prisma.tenant.findFirst({
+  // Check Tenant model first (synced from TenantSettings)
+  const tenant = await prisma.tenant.findFirst({
     where: { whatsappPhoneNumberId: phoneNumberId },
   });
+  if (tenant) return tenant;
+
+  // Fallback: check TenantSettings directly
+  const settings = await prisma.tenantSettings.findFirst({
+    where: { whatsappPhoneNumberId: phoneNumberId },
+    include: { tenant: true },
+  });
+  return settings?.tenant || null;
 }
 
 export async function sendWhatsappMessage(
   phoneNumberId: string,
   to: string,
   text: string,
+  apiToken?: string,
 ): Promise<void> {
-  if (!config.WHATSAPP_API_TOKEN) {
+  const token = apiToken || config.WHATSAPP_API_TOKEN;
+  if (!token) {
     console.log("[WhatsApp] No API token configured, skipping send");
     return;
   }
@@ -67,7 +78,7 @@ export async function sendWhatsappMessage(
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.WHATSAPP_API_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

@@ -102,6 +102,14 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
     if (parsed.data.instagram_page_id) data.instagramPageId = parsed.data.instagram_page_id;
 
+    // Sync WhatsApp Phone Number ID to Tenant model for webhook resolution
+    if (parsed.data.whatsapp_phone_number_id) {
+      await prisma.tenant.update({
+        where: { id: request.user.tenantId },
+        data: { whatsappPhoneNumberId: parsed.data.whatsapp_phone_number_id },
+      });
+    }
+
     // Sync Instagram Page ID to Tenant model for webhook resolution
     if (parsed.data.instagram_page_id) {
       await prisma.tenant.update({

@@ -146,27 +146,25 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
 
       // 4. Send via the appropriate channel
       if (conversation.customer) {
-        if (conversation.channel === "whatsapp") {
-          const tenant = await prisma.tenant.findUnique({
-            where: { id: user.tenantId },
-          });
+        const settings = await prisma.tenantSettings.findUnique({
+          where: { tenantId: user.tenantId },
+        });
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: user.tenantId },
+        });
 
-          if (tenant?.whatsappPhoneNumberId) {
-            await sendWhatsappMessage(
-              tenant.whatsappPhoneNumberId,
-              conversation.customer.phone,
-              outboundText,
-            );
+        if (conversation.channel === "whatsapp") {
+          const phoneId = settings?.whatsappPhoneNumberId || tenant?.whatsappPhoneNumberId;
+          const waToken = settings?.whatsappApiToken ? decrypt(settings.whatsappApiToken) : undefined;
+
+          if (phoneId) {
+            await sendWhatsappMessage(phoneId, conversation.customer.phone, outboundText, waToken);
           }
         } else if (conversation.channel === "instagram") {
-          const settings = await prisma.tenantSettings.findUnique({
-            where: { tenantId: user.tenantId },
-          });
-
           if (settings?.instagramPageAccessToken) {
-            const token = decrypt(settings.instagramPageAccessToken);
+            const igToken = decrypt(settings.instagramPageAccessToken);
             const igsid = conversation.customer.phone.replace(/^ig:/, "");
-            await sendInstagramMessage(token, igsid, outboundText);
+            await sendInstagramMessage(igToken, igsid, outboundText);
           }
         }
       }

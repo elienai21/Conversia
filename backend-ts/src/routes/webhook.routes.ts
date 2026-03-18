@@ -147,7 +147,19 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     const token = query["hub.verify_token"];
     const challenge = query["hub.challenge"];
 
-    if (mode === "subscribe" && token === config.WHATSAPP_VERIFY_TOKEN) {
+    if (mode !== "subscribe") {
+      return reply.status(403).send({ detail: "Verification failed" });
+    }
+
+    // Check env var first, then any TenantSettings verify token
+    if (token === config.WHATSAPP_VERIFY_TOKEN) {
+      return reply.send(challenge);
+    }
+
+    const settingsMatch = await prisma.tenantSettings.findFirst({
+      where: { whatsappVerifyToken: token },
+    });
+    if (settingsMatch) {
       return reply.send(challenge);
     }
 

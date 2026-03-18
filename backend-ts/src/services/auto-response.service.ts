@@ -148,12 +148,10 @@ Reply in ${tenantLang}. Keep it under 3 sentences. Be friendly and professional.
       const tenantRecord = await prisma.tenant.findUnique({
         where: { id: tenantId },
       });
-      if (tenantRecord?.whatsappPhoneNumberId) {
-        await sendWhatsappMessage(
-          tenantRecord.whatsappPhoneNumberId,
-          conversation.customer.phone,
-          outboundText,
-        );
+      const phoneId = settings.whatsappPhoneNumberId || tenantRecord?.whatsappPhoneNumberId;
+      const waToken = settings.whatsappApiToken ? decrypt(settings.whatsappApiToken) : undefined;
+      if (phoneId) {
+        await sendWhatsappMessage(phoneId, conversation.customer.phone, outboundText, waToken);
       }
     } else if (conversation.channel === "instagram") {
       if (settings.instagramPageAccessToken) {
