@@ -6,10 +6,13 @@ export const updateTenantSchema = z.object({
 });
 
 export const updateIntegrationsSchema = z.object({
+  whatsapp_provider: z.enum(["evolution", "official"]).optional(),
   whatsapp_api_token: z.string().optional(),
   whatsapp_phone_number_id: z.string().optional(),
   whatsapp_business_account_id: z.string().optional(),
   whatsapp_verify_token: z.string().optional(),
+  evolution_server_url: z.string().optional(),
+  evolution_instance_token: z.string().optional(),
   openai_api_key: z.string().optional(),
   deepl_api_key: z.string().optional(),
   staysnet_client_id: z.string().optional(),

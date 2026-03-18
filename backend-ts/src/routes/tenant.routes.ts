@@ -56,10 +56,14 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
 
     return {
       whatsapp: {
+        provider: settings?.whatsappProvider || "evolution",
         phone_number_id: settings?.whatsappPhoneNumberId || tenant.whatsappPhoneNumberId || null,
         business_account_id: settings?.whatsappBusinessAccountId || tenant.whatsappBusinessAccountId || null,
         api_token_set: !!settings?.whatsappApiToken,
         verify_token: settings?.whatsappVerifyToken || null,
+        evolution_server_url: settings?.evolutionServerUrl || null,
+        evolution_instance_token_set: !!settings?.evolutionInstanceToken,
+        connected: settings?.whatsappConnected || false,
       },
       openai: {
         api_key_set: !!settings?.openaiApiKey,
@@ -90,10 +94,13 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const data: Record<string, unknown> = {};
+    if (parsed.data.whatsapp_provider) data.whatsappProvider = parsed.data.whatsapp_provider;
     if (parsed.data.whatsapp_api_token) data.whatsappApiToken = encrypt(parsed.data.whatsapp_api_token);
     if (parsed.data.whatsapp_phone_number_id) data.whatsappPhoneNumberId = parsed.data.whatsapp_phone_number_id;
     if (parsed.data.whatsapp_business_account_id) data.whatsappBusinessAccountId = parsed.data.whatsapp_business_account_id;
     if (parsed.data.whatsapp_verify_token) data.whatsappVerifyToken = parsed.data.whatsapp_verify_token;
+    if (parsed.data.evolution_server_url) data.evolutionServerUrl = parsed.data.evolution_server_url;
+    if (parsed.data.evolution_instance_token) data.evolutionInstanceToken = encrypt(parsed.data.evolution_instance_token);
     if (parsed.data.openai_api_key) data.openaiApiKey = encrypt(parsed.data.openai_api_key);
     if (parsed.data.deepl_api_key) data.deeplApiKey = encrypt(parsed.data.deepl_api_key);
     if (parsed.data.staysnet_client_id) data.staysnetClientId = encrypt(parsed.data.staysnet_client_id);
@@ -126,10 +133,14 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
 
     return {
       whatsapp: {
+        provider: settings.whatsappProvider,
         phone_number_id: settings.whatsappPhoneNumberId,
         business_account_id: settings.whatsappBusinessAccountId,
         api_token_set: !!settings.whatsappApiToken,
         verify_token: settings.whatsappVerifyToken,
+        evolution_server_url: settings.evolutionServerUrl,
+        evolution_instance_token_set: !!settings.evolutionInstanceToken,
+        connected: settings.whatsappConnected,
       },
       openai: {
         api_key_set: !!settings.openaiApiKey,
