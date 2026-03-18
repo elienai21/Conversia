@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
+import { decrypt } from "../lib/encryption.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
 // Endpoint to manage Integration with Evolution API from the Frontend Settings Page
@@ -19,7 +20,8 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
     const instanceName = settings.evolutionInstanceName;
     const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
-    const apikey = settings.evolutionInstanceToken || process.env.EVOLUTION_API_KEY;
+    const rawToken = settings.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
     if (!instanceName || !serverUrl || !apikey) {
       return reply.send({ connected: false, state: "unconfigured" });
@@ -73,7 +75,8 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
     const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
     const globalApiKey = process.env.EVOLUTION_API_KEY;
-    const instanceToken = settings.evolutionInstanceToken || globalApiKey;
+    const rawToken = settings.evolutionInstanceToken;
+    const instanceToken = rawToken ? decrypt(rawToken) : globalApiKey;
 
     if (!serverUrl || !instanceToken) {
       return reply.status(400).send({ error: "Evolution API URL or API Key not configured." });
@@ -170,7 +173,8 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
     const instanceName = settings.evolutionInstanceName;
     const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
-    const apikey = process.env.EVOLUTION_API_KEY || settings.evolutionInstanceToken;
+    const rawToken = settings.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
     if (serverUrl && apikey) {
       try {
