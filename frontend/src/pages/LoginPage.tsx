@@ -65,6 +65,9 @@ export function LoginPage() {
     }
   };
 
+  const forgotPasswordHref =
+    "mailto:support@conversia.ai?subject=Recupera%C3%A7%C3%A3o%20de%20senha&body=Ol%C3%A1%2C%20preciso%20redefinir%20minha%20senha%20do%20Conversia.%20Meu%20e-mail%20de%20acesso%20%C3%A9%3A%20";
+
   return (
     <div className="login-container animate-fade-in">
       {/* Left Branded Panel */}
@@ -148,9 +151,12 @@ export function LoginPage() {
 
           <div className="login-password-row">
             <span className="login-restricted-text">Ambiente restrito a usu&aacute;rios autorizados.</span>
-            <button type="button" className="login-forgot-link">
+            <a
+              className="login-forgot-link"
+              href={`${forgotPasswordHref}${encodeURIComponent(email)}`}
+            >
               Esqueceu a senha?
-            </button>
+            </a>
           </div>
 
           <button type="submit" disabled={loading} className="login-submit-btn">

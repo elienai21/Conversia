@@ -1,3 +1,4 @@
+import type { MessageAttachmentInput } from "./whatsapp/provider.interface.js";
 import { config } from "../config.js";
 
 export interface IncomingInstagramMessage {
@@ -5,6 +6,7 @@ export interface IncomingInstagramMessage {
   messageId: string;
   text: string;
   pageId: string;
+  attachments?: MessageAttachmentInput[];
 }
 
 export function parseIncomingInstagramMessage(
@@ -28,7 +30,8 @@ export function parseIncomingInstagramMessage(
     if (!message) return null;
     if (message.is_echo) return null;
 
-    const text = message.text as string | undefined;
+    const attachments = extractInstagramAttachments(message);
+    const text = (message.text as string | undefined) ?? (attachments[0] ? `[${attachments[0].type}]` : undefined);
     if (!text) return null;
 
     const sender = event.sender as Record<string, string> | undefined;
@@ -39,6 +42,7 @@ export function parseIncomingInstagramMessage(
       messageId: (message.mid as string) ?? "",
       text,
       pageId,
+      attachments,
     };
   } catch {
     return null;
@@ -84,4 +88,26 @@ export async function sendInstagramMessage(
   } catch (err) {
     console.error("Instagram send error:", err);
   }
+}
+
+function extractInstagramAttachments(
+  message: Record<string, unknown>,
+): MessageAttachmentInput[] {
+  const attachments = message.attachments as Array<Record<string, unknown>> | undefined;
+  if (!attachments?.length) {
+    return [];
+  }
+
+  return attachments.flatMap((attachment) => {
+      const type = attachment.type as MessageAttachmentInput["type"] | undefined;
+      const payload = attachment.payload as Record<string, unknown> | undefined;
+      if (!type || !["image", "video", "audio", "document"].includes(type)) {
+        return [];
+      }
+
+      return [{
+        type,
+        sourceUrl: payload?.url as string | undefined,
+      } satisfies MessageAttachmentInput];
+    });
 }
