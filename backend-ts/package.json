@@ -6,6 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "start": "prisma db push --skip-generate && node dist/server.js",
+    "test": "tsx --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
     "db:push": "prisma db push",

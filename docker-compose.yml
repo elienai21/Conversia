@@ -1,4 +1,20 @@
 services:
+  backend:
+    build:
+      context: ./backend-ts
+      dockerfile: Dockerfile
+    container_name: conversia-backend
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/conversia
+      REDIS_URL: redis://redis:6379/0
+      ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8000:8000"
+
   postgres:
     image: postgres:16-alpine
     container_name: conversia-postgres

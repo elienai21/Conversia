@@ -1,22 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { prisma } from "../lib/prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   sendMessageRequestSchema,
+  type AttachmentOut,
   type MessageOut,
   type TranslationOut,
 } from "../schemas/message.schema.js";
-import {
-  getConversationMessages,
-  saveMessage,
-  saveTranslation,
-} from "../services/message.service.js";
-import { translateText } from "../services/translation.service.js";
-import { sendWhatsappMessage } from "../services/whatsapp.service.js";
-import { sendInstagramMessage } from "../services/instagram.service.js";
-import { decrypt } from "../lib/encryption.js";
-import { SocketService } from "../services/socket.service.js";
-
 export async function messageRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
 
@@ -24,11 +13,13 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { conversationId: string } }>(
     "/:conversationId/messages",
     async (request, reply) => {
+      const { prisma, services } = request.server.deps;
       const user = request.user;
       const { conversationId } = request.params;
 
       // Verify access
       const conversation = await getAgentConversation(
+        prisma,
         conversationId,
         user.tenantId,
         user.role === "agent" ? user.id : undefined,
@@ -47,9 +38,9 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         create: { userId: user.id, conversationId, lastReadAt: new Date() },
       });
 
-      const messages = await getConversationMessages(conversationId);
+      const messages = await services.getConversationMessages(conversationId);
 
-      const result: MessageOut[] = messages.map((m) => ({
+      const result: MessageOut[] = messages.map((m: any) => ({
         id: m.id,
         conversation_id: m.conversationId,
         sender_type: m.senderType,
@@ -57,11 +48,22 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         original_text: m.originalText,
         detected_language: m.detectedLanguage,
         created_at: m.createdAt,
-        translations: m.translations.map(
-          (t): TranslationOut => ({
+        translations: (m.translations ?? []).map(
+          (t: any): TranslationOut => ({
             target_language: t.targetLanguage,
             translated_text: t.translatedText,
             provider: t.provider,
+          }),
+        ),
+        attachments: (m.attachments ?? []).map(
+          (attachment: any): AttachmentOut => ({
+            id: attachment.id,
+            type: attachment.type,
+            mime_type: attachment.mimeType,
+            file_name: attachment.fileName,
+            file_size_bytes: attachment.fileSizeBytes,
+            source_url: attachment.sourceUrl,
+            provider_media_id: attachment.providerMediaId,
           }),
         ),
       }));
@@ -74,6 +76,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { conversationId: string } }>(
     "/:conversationId/messages",
     async (request, reply) => {
+      const { prisma, services, socket } = request.server.deps;
       const user = request.user;
       const { conversationId } = request.params;
 
@@ -83,6 +86,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const conversation = await getAgentConversation(
+        prisma,
         conversationId,
         user.tenantId,
         user.role === "agent" ? user.id : undefined,
@@ -93,7 +97,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       }
 
       // 1. Save agent message
-      const message = await saveMessage({
+      const message = await services.saveMessage({
         conversationId: conversation.id,
         senderType: "agent",
         senderId: user.id,
@@ -113,14 +117,14 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       let outboundText = parsed.data.text;
 
       if (effectiveTargetLang) {
-        const { translatedText, provider } = await translateText(
+        const { translatedText, provider } = await services.translateText(
           user.tenantId,
           parsed.data.text,
           agentLang,
           effectiveTargetLang,
         );
 
-        await saveTranslation({
+        await services.saveTranslation({
           messageId: message.id,
           sourceLanguage: agentLang,
           targetLanguage: effectiveTargetLang,
@@ -138,7 +142,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       }
 
       // 3. Emit socket events (after translation so translated text is included)
-      SocketService.emitToConversation(conversation.id, "message.new", {
+      socket.emitToConversation(conversation.id, "message.new", {
         id: message.id,
         conversation_id: message.conversationId,
         sender_type: message.senderType,
@@ -148,7 +152,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         translations,
       });
 
-      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
         type: "replied",
         conversationId: conversation.id,
       });
@@ -163,12 +167,12 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         });
 
         if (conversation.channel === "whatsapp") {
-          await sendWhatsappMessage(user.tenantId, conversation.customer.phone, outboundText);
+          await services.sendWhatsappMessage(user.tenantId, conversation.customer.phone, outboundText);
         } else if (conversation.channel === "instagram") {
           if (settings?.instagramPageAccessToken) {
-            const igToken = decrypt(settings.instagramPageAccessToken);
+            const igToken = services.decrypt(settings.instagramPageAccessToken);
             const igsid = conversation.customer.phone.replace(/^ig:/, "");
-            await sendInstagramMessage(igToken, igsid, outboundText);
+            await services.sendInstagramMessage(igToken, igsid, outboundText);
           }
         }
       }
@@ -196,6 +200,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         detected_language: message.detectedLanguage,
         created_at: message.createdAt,
         translations,
+        attachments: [],
       };
 
       return reply.send(result);
@@ -208,8 +213,10 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const user = request.user;
       const { conversationId, messageId } = request.params;
+      const { prisma } = request.server.deps;
 
       const conversation = await getAgentConversation(
+        prisma,
         conversationId,
         user.tenantId,
         user.role === "agent" ? user.id : undefined,
@@ -232,7 +239,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         data: { deletedAt: new Date() },
       });
 
-      SocketService.emitToConversation(conversationId, "message.deleted", {
+      request.server.deps.socket.emitToConversation(conversationId, "message.deleted", {
         messageId,
         conversationId,
       });
@@ -243,6 +250,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
 }
 
 async function getAgentConversation(
+  prisma: FastifyInstance["deps"]["prisma"],
   conversationId: string,
   tenantId: string,
   agentId?: string,
