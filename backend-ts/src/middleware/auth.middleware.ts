@@ -1,7 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { User } from "@prisma/client";
-import { prisma } from "../lib/prisma.js";
-import { decodeAccessToken } from "../lib/auth.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -13,6 +11,7 @@ export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
+  const { prisma, auth } = request.server.deps;
   const authHeader = request.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -22,7 +21,7 @@ export async function authMiddleware(
   const token = authHeader.slice(7);
 
   try {
-    const payload = decodeAccessToken(token);
+    const payload = auth.decodeAccessToken(token);
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },

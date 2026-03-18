@@ -1,7 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { OAuth2Client } from "google-auth-library";
-import { prisma } from "../lib/prisma.js";
-import { verifyPassword, createAccessToken } from "../lib/auth.js";
 import { config } from "../config.js";
 import {
   loginRequestSchema,
@@ -13,16 +11,18 @@ const googleClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post("/login", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
     const parsed = loginRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(422).send({ detail: "Invalid credentials format" });
     }
 
     const { email, password } = parsed.data;
-
-    const user = await prisma.user.findFirst({
+    const users = await prisma.user.findMany({
       where: { email },
+      orderBy: { createdAt: "asc" },
     });
+    const user = await findPasswordLoginUser(users, password, auth.verifyPassword);
 
     if (!user) {
       return reply.status(401).send({ detail: "Invalid credentials" });
@@ -32,7 +32,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(401).send({ detail: "This account uses Google Sign-In. Please use the Google button to log in." });
     }
 
-    const valid = await verifyPassword(password, user.passwordHash);
+    const valid = await auth.verifyPassword(password, user.passwordHash);
     if (!valid) {
       return reply.status(401).send({ detail: "Invalid credentials" });
     }
@@ -41,7 +41,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ detail: "Account is deactivated" });
     }
 
-    const token = createAccessToken(user.id, user.tenantId);
+    const token = auth.createAccessToken(user.id, user.tenantId);
 
     const result: LoginResponse = {
       access_token: token,
@@ -59,6 +59,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/google", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
     const parsed = googleLoginRequestSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(422).send({ detail: "Invalid request format" });
@@ -97,7 +98,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(403).send({ detail: "Account is deactivated" });
     }
 
-    const token = createAccessToken(user.id, user.tenantId);
+    const token = auth.createAccessToken(user.id, user.tenantId);
 
     const result: LoginResponse = {
       access_token: token,
@@ -113,4 +114,31 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send(result);
   });
+}
+
+async function findPasswordLoginUser(
+  users: Array<{
+    id: string;
+    tenantId: string;
+    email: string;
+    passwordHash: string | null;
+    fullName: string;
+    role: string;
+    isActive: boolean;
+  }>,
+  password: string,
+  verifyPassword: (password: string, hash: string) => Promise<boolean>,
+) {
+  for (const user of users) {
+    if (!user.passwordHash) {
+      continue;
+    }
+
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (valid) {
+      return user;
+    }
+  }
+
+  return null;
 }
