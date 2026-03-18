@@ -56,6 +56,17 @@ type TranslationRecord = {
   provider: string;
 };
 
+type AttachmentRecord = {
+  id: string;
+  messageId: string;
+  type: string;
+  mimeType: string | null;
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  sourceUrl: string | null;
+  providerMediaId: string | null;
+};
+
 type SuggestionRecord = {
   id: string;
   agentId: string;
@@ -75,6 +86,7 @@ type Store = {
   conversations: ConversationRecord[];
   messages: MessageRecord[];
   translations: TranslationRecord[];
+  attachments: AttachmentRecord[];
   reads: ReadRecord[];
   suggestions: SuggestionRecord[];
 };
@@ -186,6 +198,18 @@ function createStore(): Store {
         deletedAt: null,
       },
     ],
+    attachments: [
+      {
+        id: "attachment-a-1",
+        messageId: "msg-a-1",
+        type: "image",
+        mimeType: "image/jpeg",
+        fileName: "property-front.jpg",
+        fileSizeBytes: 245678,
+        sourceUrl: "https://files.example.com/property-front.jpg",
+        providerMediaId: "provider-image-1",
+      },
+    ],
     translations: [],
     reads: [],
     suggestions: [],
@@ -277,6 +301,9 @@ function createTestDeps(store: Store): AppDeps {
 
         return messages.map((message) => ({
           ...message,
+          attachments: include?.attachments
+            ? store.attachments.filter((attachment) => attachment.messageId === message.id)
+            : [],
           translations: include?.translations
             ? store.translations.filter((translation) => translation.messageId === message.id)
             : [],
@@ -318,6 +345,22 @@ function createTestDeps(store: Store): AppDeps {
         };
         store.translations.push(translation);
         return translation;
+      },
+    },
+    messageAttachment: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const attachment: AttachmentRecord = {
+          id: `attachment-${store.attachments.length + 1}`,
+          messageId: String(data.messageId),
+          type: String(data.type),
+          mimeType: data.mimeType ? String(data.mimeType) : null,
+          fileName: data.fileName ? String(data.fileName) : null,
+          fileSizeBytes: typeof data.fileSizeBytes === "number" ? data.fileSizeBytes : null,
+          sourceUrl: data.sourceUrl ? String(data.sourceUrl) : null,
+          providerMediaId: data.providerMediaId ? String(data.providerMediaId) : null,
+        };
+        store.attachments.push(attachment);
+        return attachment;
       },
     },
     conversationRead: {
@@ -425,7 +468,7 @@ function createTestDeps(store: Store): AppDeps {
       getConversationMessages: async (conversationId) =>
         prisma.message.findMany({
           where: { conversationId, deletedAt: null },
-          include: { translations: true },
+          include: { translations: true, attachments: true },
           orderBy: { createdAt: "asc" },
         }),
       saveTranslation: async (params) =>

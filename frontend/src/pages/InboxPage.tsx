@@ -21,6 +21,13 @@ type Message = {
   senderType: "customer" | "agent" | "system";
   originalText: string;
   createdAt: string;
+  attachments?: Array<{
+    id: string;
+    type: "image" | "video" | "audio" | "document";
+    sourceUrl?: string | null;
+    fileName?: string | null;
+    mimeType?: string | null;
+  }>;
   suggestion?: {
     id: string;
     suggestionText: string;
@@ -59,6 +66,13 @@ type RawMessage = {
   sender_type: "customer" | "agent" | "system";
   original_text: string;
   created_at: string;
+  attachments?: Array<{
+    id: string;
+    type: "image" | "video" | "audio" | "document";
+    source_url?: string | null;
+    file_name?: string | null;
+    mime_type?: string | null;
+  }>;
   translations?: RawTranslation[];
 };
 
@@ -103,8 +117,84 @@ function mapMessage(raw: RawMessage): Message {
     senderType: raw.sender_type,
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
+    attachments: raw.attachments?.map((attachment) => ({
+      id: attachment.id,
+      type: attachment.type,
+      sourceUrl: attachment.source_url,
+      fileName: attachment.file_name,
+      mimeType: attachment.mime_type,
+    })),
     translatedTo: translation ? translation.target_language : undefined,
   };
+}
+
+function renderAttachments(message: Message) {
+  if (!message.attachments?.length) {
+    return null;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
+      {message.attachments.map((attachment) => {
+        if (attachment.type === "image" && attachment.sourceUrl) {
+          return (
+            <a key={attachment.id} href={attachment.sourceUrl} target="_blank" rel="noreferrer">
+              <img
+                src={attachment.sourceUrl}
+                alt={attachment.fileName || "Image attachment"}
+                style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
+              />
+            </a>
+          );
+        }
+
+        if (attachment.type === "video" && attachment.sourceUrl) {
+          return (
+            <video
+              key={attachment.id}
+              controls
+              src={attachment.sourceUrl}
+              style={{ maxWidth: "260px", borderRadius: "12px" }}
+            />
+          );
+        }
+
+        if (attachment.type === "audio" && attachment.sourceUrl) {
+          return (
+            <audio
+              key={attachment.id}
+              controls
+              src={attachment.sourceUrl}
+              style={{ width: "100%" }}
+            />
+          );
+        }
+
+        return (
+          <a
+            key={attachment.id}
+            href={attachment.sourceUrl || "#"}
+            target={attachment.sourceUrl ? "_blank" : undefined}
+            rel={attachment.sourceUrl ? "noreferrer" : undefined}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 12px",
+              borderRadius: "12px",
+              border: "1px solid var(--border-color)",
+              background: "var(--surface-secondary)",
+              color: "var(--text-primary)",
+              textDecoration: "none",
+            }}
+          >
+            <Camera size={16} />
+            <span>{attachment.fileName || `${attachment.type} attachment`}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
 }
 
 // Notification sound (short beep)
@@ -462,6 +552,7 @@ export function InboxPage() {
                 >
                   <div className="message-bubble">
                     <p>{msg.originalText}</p>
+                    {renderAttachments(msg)}
                     {msg.translatedFrom && (
                       <div className="translation-badge">
                         <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
