@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
-import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag } from "lucide-react";
+import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag, Send } from "lucide-react";
+import { StartConversationModal } from "@/components/StartConversationModal";
 import "./CustomersPage.css";
 
 type CustomerItem = {
@@ -79,6 +80,7 @@ export function CustomersPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [msgCustomer, setMsgCustomer] = useState<CustomerItem | null>(null);
 
   const fetchCustomers = useCallback(() => {
     setIsLoading(true);
@@ -196,6 +198,16 @@ export function CustomersPage() {
                   </div>
                 </div>
                 <div className="customer-card-actions">
+                  <button
+                    className="send-msg-btn"
+                    title="Enviar Mensagem"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMsgCustomer(customer);
+                    }}
+                  >
+                    <Send size={15} />
+                  </button>
                   <span className={`customer-channel-icon ${customer.last_channel || ""}`}>
                     {channelIcon(customer.last_channel)}
                   </span>
@@ -265,6 +277,12 @@ export function CustomersPage() {
           ))}
         </div>
       )}
+
+      <StartConversationModal
+        open={!!msgCustomer}
+        customer={msgCustomer}
+        onClose={() => setMsgCustomer(null)}
+      />
     </div>
   );
 }
