@@ -12,6 +12,7 @@ type IntegrationsInfo = {
     verify_token: string | null;
     evolution_server_url: string | null;
     evolution_instance_token_set: boolean;
+    evolution_instance_token_preview: string | null;
     connected: boolean;
   };
   openai: {
@@ -78,7 +79,7 @@ export function IntegrationsTab() {
       // WhatsApp
       setWaProvider((res.whatsapp.provider as "evolution" | "official") || "evolution");
       setEvoServerUrl(res.whatsapp.evolution_server_url || "");
-      setEvoApiKey("");
+      setEvoApiKey(res.whatsapp.evolution_instance_token_preview || "");
       setWaConnected(res.whatsapp.connected);
       setWhatsappToken("");
       setWhatsappPhoneId(res.whatsapp.phone_number_id || "");
@@ -112,7 +113,7 @@ export function IntegrationsTab() {
 
       // Evolution fields
       if (evoServerUrl) payload.evolution_server_url = evoServerUrl;
-      if (evoApiKey) payload.evolution_instance_token = evoApiKey;
+      if (evoApiKey && !evoApiKey.includes("...")) payload.evolution_instance_token = evoApiKey;
 
       // Cloud API fields
       if (whatsappToken) payload.whatsapp_api_token = whatsappToken;

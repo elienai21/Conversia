@@ -63,6 +63,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         verify_token: settings?.whatsappVerifyToken || null,
         evolution_server_url: settings?.evolutionServerUrl || null,
         evolution_instance_token_set: !!settings?.evolutionInstanceToken,
+        evolution_instance_token_preview: settings?.evolutionInstanceToken ? maskApiKey(decrypt(settings.evolutionInstanceToken)) : null,
         connected: settings?.whatsappConnected || false,
       },
       openai: {
