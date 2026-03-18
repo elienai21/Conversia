@@ -3,6 +3,7 @@ import { z } from "zod";
 export const sendMessageRequestSchema = z.object({
   text: z.string().min(1),
   suggestion_id: z.string().uuid().optional(),
+  target_language: z.string().optional(),
 });
 
 export interface TranslationOut {

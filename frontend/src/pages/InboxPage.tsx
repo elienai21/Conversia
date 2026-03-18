@@ -37,11 +37,18 @@ type RawConversation = {
   customer: { phone: string; name: string | null } | null;
 };
 
+type RawTranslation = {
+  target_language: string;
+  translated_text: string;
+  provider: string;
+};
+
 type RawMessage = {
   id: string;
   sender_type: "customer" | "agent" | "system";
   original_text: string;
   created_at: string;
+  translations?: RawTranslation[];
 };
 
 function channelIcon(channel: string) {
@@ -65,15 +72,23 @@ function mapConversation(raw: RawConversation): Conversation {
   };
 }
 
+const LANGUAGE_CODE_MAP: Record<string, string> = {
+  Portuguese: "pt",
+  English: "en",
+  Spanish: "es",
+  French: "fr",
+  German: "de",
+};
+
 function mapMessage(raw: RawMessage): Message {
-  const isForeign = raw.original_text.toLowerCase().includes("book") || raw.original_text.toLowerCase().includes("hello");
+  const translation = raw.translations?.[0];
 
   return {
     id: raw.id,
     senderType: raw.sender_type,
-    originalText: isForeign ? "Olá, gostaria de reservar um quarto." : raw.original_text,
+    originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
-    translatedFrom: isForeign && raw.sender_type === 'customer' ? "Inglês" : undefined,
+    translatedTo: translation ? translation.target_language : undefined,
   };
 }
 
@@ -209,29 +224,16 @@ export function InboxPage() {
   const handleSendMessage = async () => {
     if (!activeConversation || !replyText.trim()) return;
     setIsSending(true);
-    let finalPayloadText = replyText.trim();
-    let currentTargetLang = targetLanguage;
-
-    if (currentTargetLang !== "Original") {
-      const translatingMsgId = "temp-translating-" + Date.now();
-      setMessages((prev) => [...prev, {
-        id: translatingMsgId,
-        senderType: "agent",
-        originalText: `[AI] Translating to ${currentTargetLang}...`,
-        createdAt: new Date().toISOString()
-      } as Message]);
-
-      await new Promise(r => setTimeout(r, 1200));
-      
-      setMessages((prev) => prev.filter(m => m.id !== translatingMsgId));
-    }
 
     try {
-      const body: { text: string; suggestion_id?: string } = {
-        text: finalPayloadText,
+      const body: { text: string; suggestion_id?: string; target_language?: string } = {
+        text: replyText.trim(),
       };
       if (usedSuggestionId) {
         body.suggestion_id = usedSuggestionId;
+      }
+      if (targetLanguage !== "Original") {
+        body.target_language = LANGUAGE_CODE_MAP[targetLanguage] || targetLanguage.toLowerCase();
       }
 
       const raw = await ApiService.post<RawMessage>(
@@ -239,11 +241,7 @@ export function InboxPage() {
         body
       );
 
-      // Append the new message to the list
       const newMsg = mapMessage(raw);
-      if (currentTargetLang !== "Original") {
-        newMsg.translatedTo = currentTargetLang;
-      }
       setMessages((prev) => [...prev, newMsg]);
       setReplyText("");
       setUsedSuggestionId(null);

@@ -108,31 +108,35 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         conversationId: conversation.id,
       });
 
-      // 2. Translate to customer language if different
+      // 2. Translate if target_language is explicitly set, or auto-detect from conversation
+      const explicitTarget = parsed.data.target_language;
       const customerLang = conversation.detectedLanguage;
       const agentLang = user.preferredLanguage;
       const translations: TranslationOut[] = [];
 
+      // Use explicit target from frontend dropdown, otherwise fall back to auto-detect
+      const effectiveTargetLang = explicitTarget || (customerLang && customerLang !== agentLang ? customerLang : null);
+
       let outboundText = parsed.data.text;
 
-      if (customerLang && customerLang !== agentLang) {
+      if (effectiveTargetLang) {
         const { translatedText, provider } = await translateText(
           user.tenantId,
           parsed.data.text,
           agentLang,
-          customerLang,
+          effectiveTargetLang,
         );
 
         await saveTranslation({
           messageId: message.id,
           sourceLanguage: agentLang,
-          targetLanguage: customerLang,
+          targetLanguage: effectiveTargetLang,
           translatedText,
           provider,
         });
 
         translations.push({
-          target_language: customerLang,
+          target_language: effectiveTargetLang,
           translated_text: translatedText,
           provider,
         });
