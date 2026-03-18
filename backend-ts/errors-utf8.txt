@@ -1,0 +1,2 @@
+src/routes/conversation.routes.ts(238,81): error TS2554: Expected 3 arguments, but got 4.
+src/services/auto-response.service.ts(154,87): error TS2554: Expected 3 arguments, but got 4.

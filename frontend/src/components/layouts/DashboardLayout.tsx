@@ -100,20 +100,24 @@ export function DashboardLayout() {
             </NavLink>
           </div>
 
-          <div className="nav-section-divider">
-            <span className="nav-section-label">SYSTEM</span>
-          </div>
+          {user?.role === "admin" && (
+            <>
+              <div className="nav-section-divider">
+                <span className="nav-section-label">SYSTEM</span>
+              </div>
 
-          <div className="nav-section">
-            <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <Settings size={20} />
-              <span>{t("Settings")}</span>
-            </NavLink>
-            <NavLink to="/support" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <HelpCircle size={20} />
-              <span>{t("Support")}</span>
-            </NavLink>
-          </div>
+              <div className="nav-section">
+                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <Settings size={20} />
+                  <span>{t("Settings")}</span>
+                </NavLink>
+                <NavLink to="/support" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <HelpCircle size={20} />
+                  <span>{t("Support")}</span>
+                </NavLink>
+              </div>
+            </>
+          )}
 
           <button className="new-customer-btn" onClick={() => setShowNewCustomer(true)}>
             <UserPlus size={18} />
