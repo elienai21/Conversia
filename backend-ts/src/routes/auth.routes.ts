@@ -18,10 +18,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const { email, password } = parsed.data;
-
-    const user = await prisma.user.findFirst({
+    const users = await prisma.user.findMany({
       where: { email },
+      orderBy: { createdAt: "asc" },
     });
+    const user = await findPasswordLoginUser(users, password, auth.verifyPassword);
 
     if (!user) {
       return reply.status(401).send({ detail: "Invalid credentials" });
@@ -113,4 +114,31 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send(result);
   });
+}
+
+async function findPasswordLoginUser(
+  users: Array<{
+    id: string;
+    tenantId: string;
+    email: string;
+    passwordHash: string | null;
+    fullName: string;
+    role: string;
+    isActive: boolean;
+  }>,
+  password: string,
+  verifyPassword: (password: string, hash: string) => Promise<boolean>,
+) {
+  for (const user of users) {
+    if (!user.passwordHash) {
+      continue;
+    }
+
+    const valid = await verifyPassword(password, user.passwordHash);
+    if (valid) {
+      return user;
+    }
+  }
+
+  return null;
 }

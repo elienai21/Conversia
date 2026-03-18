@@ -91,6 +91,10 @@ type Store = {
   suggestions: SuggestionRecord[];
 };
 
+type TestAppOverrides = {
+  users?: UserRecord[];
+};
+
 function matchesWhere<T extends Record<string, unknown>>(record: T, where: Record<string, unknown>) {
   return Object.entries(where).every(([key, value]) => {
     if (value && typeof value === "object" && "not" in (value as Record<string, unknown>)) {
@@ -221,6 +225,8 @@ function createTestDeps(store: Store): AppDeps {
     user: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
         store.users.find((user) => matchesWhere(user, where)) ?? null,
+      findMany: async ({ where }: { where: Record<string, unknown> }) =>
+        store.users.filter((user) => matchesWhere(user, where)),
       findUnique: async ({ where }: { where: { id: string } }) =>
         store.users.find((user) => user.id === where.id) ?? null,
     },
@@ -490,9 +496,12 @@ function createTestDeps(store: Store): AppDeps {
   };
 }
 
-export async function createCriticalRoutesTestApp() {
+export async function createCriticalRoutesTestApp(overrides: TestAppOverrides = {}) {
   const app = Fastify();
-  attachAppDeps(app, createTestDeps(createStore()));
+  attachAppDeps(app, createTestDeps({
+    ...createStore(),
+    ...overrides,
+  }));
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(conversationRoutes, { prefix: "/api/v1/conversations" });
   await app.register(messageRoutes, { prefix: "/api/v1/conversations" });

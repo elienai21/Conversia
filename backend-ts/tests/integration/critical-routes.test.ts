@@ -92,3 +92,43 @@ test('tenant isolation blocks reading messages from another tenant conversation'
 
   assert.equal(response.statusCode, 404);
 });
+
+test('auth login matches the correct tenant user when duplicate emails exist', async () => {
+  const app = await createCriticalRoutesTestApp({
+    users: [
+      {
+        id: 'agent-dup-a',
+        tenantId: 'tenant-a',
+        email: 'shared@tenant.test',
+        passwordHash: 'hashed-secret123',
+        fullName: 'Shared A',
+        role: 'agent',
+        preferredLanguage: 'en',
+        isOnline: true,
+        isActive: true,
+      },
+      {
+        id: 'agent-dup-b',
+        tenantId: 'tenant-b',
+        email: 'shared@tenant.test',
+        passwordHash: 'hashed-otherpass',
+        fullName: 'Shared B',
+        role: 'agent',
+        preferredLanguage: 'pt',
+        isOnline: true,
+        isActive: true,
+      },
+    ],
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/login',
+    payload: { email: 'shared@tenant.test', password: 'otherpass' },
+  });
+
+  assert.equal(response.statusCode, 200);
+  const body = response.json();
+  assert.equal(body.user.id, 'agent-dup-b');
+  assert.equal(body.user.tenantId, 'tenant-b');
+});
