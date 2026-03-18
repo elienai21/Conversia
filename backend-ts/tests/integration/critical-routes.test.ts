@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCriticalRoutesTestApp } from '../support/test-app.js';
+import { buildApp } from '../../src/app.js';
+import { createStore, createTestDeps } from '../support/test-app.js';
 
 test('auth login returns a bearer token for valid credentials', async () => {
   const app = await createCriticalRoutesTestApp();
@@ -131,4 +133,27 @@ test('auth login matches the correct tenant user when duplicate emails exist', a
   const body = response.json();
   assert.equal(body.user.id, 'agent-dup-b');
   assert.equal(body.user.tenantId, 'tenant-b');
+});
+
+test('password reset request accepts a known email and triggers reset delivery', async () => {
+  const deliveries: Array<{ email: string; resetUrl: string }> = [];
+  const deps = createTestDeps(createStore(), {
+    services: {
+      sendPasswordResetEmail: async (email, resetUrl) => {
+        deliveries.push({ email, resetUrl });
+      },
+    },
+  });
+  const app = await buildApp(deps);
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/password-reset/request',
+    payload: { email: 'agent@tenant-a.test' },
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(deliveries.length, 1);
+  assert.equal(deliveries[0].email, 'agent@tenant-a.test');
+  assert.match(deliveries[0].resetUrl, /reset-password\?token=/);
 });

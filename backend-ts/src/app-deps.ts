@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "./lib/prisma.js";
 import {
   createAccessToken,
+  createPasswordResetToken,
+  decodePasswordResetToken,
   decodeAccessToken,
   verifyPassword,
 } from "./lib/auth.js";
@@ -23,7 +25,9 @@ export interface AppDeps {
   auth: {
     verifyPassword: typeof verifyPassword;
     createAccessToken: typeof createAccessToken;
+    createPasswordResetToken: typeof createPasswordResetToken;
     decodeAccessToken: typeof decodeAccessToken;
+    decodePasswordResetToken: typeof decodePasswordResetToken;
   };
   services: {
     findOrCreateConversation: typeof findOrCreateConversation;
@@ -36,6 +40,7 @@ export interface AppDeps {
     sendWhatsappMessage: typeof sendWhatsappMessage;
     sendInstagramMessage: typeof sendInstagramMessage;
     decrypt: typeof decrypt;
+    sendPasswordResetEmail: (email: string, resetUrl: string) => Promise<void>;
   };
   socket: Pick<typeof SocketService, "emitToTenant" | "emitToConversation">;
 }
@@ -51,7 +56,9 @@ export const defaultAppDeps: AppDeps = {
   auth: {
     verifyPassword,
     createAccessToken,
+    createPasswordResetToken,
     decodeAccessToken,
+    decodePasswordResetToken,
   },
   services: {
     findOrCreateConversation,
@@ -64,6 +71,9 @@ export const defaultAppDeps: AppDeps = {
     sendWhatsappMessage,
     sendInstagramMessage,
     decrypt,
+    sendPasswordResetEmail: async (email, resetUrl) => {
+      console.log(`[Auth] Password reset requested for ${email}: ${resetUrl}`);
+    },
   },
   socket: {
     emitToTenant: SocketService.emitToTenant.bind(SocketService),
