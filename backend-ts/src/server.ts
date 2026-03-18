@@ -38,6 +38,7 @@ await app.register(rateLimit, {
 await app.register(cors, {
   origin: allowedOrigins,
   credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 });
 
 // Error handler
