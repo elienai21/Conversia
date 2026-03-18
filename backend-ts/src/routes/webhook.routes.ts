@@ -212,6 +212,52 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ status: "processed" });
   });
 
+  // ─── Evolution API Webhook ─────────────────────────────
+  app.post("/evolution", async (request, reply) => {
+    const body = request.body as Record<string, unknown>;
+
+    // Step 1: Parse incoming message (factory auto-detects Evolution)
+    const parsed = parseIncomingMessage(body);
+    if (!parsed || parsed.messages.length === 0) {
+      return reply.send({ status: "ignored" });
+    }
+
+    // Process each message
+    for (const incoming of parsed.messages) {
+      // Step 2: Resolve tenant by instance name
+      const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
+      if (!tenant) {
+        console.warn(`[Evolution Webhook] No tenant for instance: ${incoming.providerId}`);
+        continue;
+      }
+
+      // Step 3: Find or create customer
+      const customer = await findOrCreateCustomer(
+        tenant.id,
+        incoming.from,
+        incoming.displayName,
+      );
+
+      // Step 4: Find or create conversation
+      const { conversation, isNew } = await findOrCreateConversation(
+        tenant.id,
+        customer.id,
+        "whatsapp",
+      );
+
+      // Steps 5-11: Shared pipeline
+      await processIncomingMessage({
+        tenant,
+        conversation,
+        text: incoming.text,
+        externalMessageId: incoming.messageId,
+        isNewConversation: isNew,
+      });
+    }
+
+    return reply.send({ status: "processed" });
+  });
+
   // ─── Instagram DM ──────────────────────────────────────
 
   // Instagram webhook verification (challenge-response)

@@ -1,5 +1,6 @@
 import { IWhatsAppProvider, IncomingWhatsappMessage } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
+import { decrypt } from "../../lib/encryption.js";
 
 export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
   parseWebhooks(body: Record<string, unknown>): IncomingWhatsappMessage[] {
@@ -58,16 +59,22 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       where: { tenantId },
     });
 
-    const serverUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
     const instanceName = settings?.evolutionInstanceName;
-    const apikey = settings?.evolutionInstanceToken || process.env.EVOLUTION_API_KEY;
+    const rawToken = settings?.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
-    if (!serverUrl || !instanceName || !apikey) {
+    if (!rawUrl || !instanceName || !apikey) {
       console.error("[Evolution] Missing serverUrl, instanceName, or apikey for sending message.");
       return;
     }
 
-    const url = `${serverUrl.replace(/\/$/, '')}/message/sendText/${instanceName}`;
+    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
+    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+      serverUrl = `https://${serverUrl}`;
+    }
+
+    const url = `${serverUrl}/message/sendText/${instanceName}`;
     const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
 
     try {
