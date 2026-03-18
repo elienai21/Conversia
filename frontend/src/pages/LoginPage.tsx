@@ -11,7 +11,9 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -42,6 +44,7 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setInfo("");
     setLoading(true);
 
     try {
@@ -65,8 +68,27 @@ export function LoginPage() {
     }
   };
 
-  const forgotPasswordHref =
-    "mailto:support@conversia.ai?subject=Recupera%C3%A7%C3%A3o%20de%20senha&body=Ol%C3%A1%2C%20preciso%20redefinir%20minha%20senha%20do%20Conversia.%20Meu%20e-mail%20de%20acesso%20%C3%A9%3A%20";
+  const handleForgotPassword = async () => {
+    setError("");
+    setInfo("");
+
+    if (!email) {
+      setError("Digite seu e-mail para receber o link de redefinição.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const response = await ApiService.post<{ detail: string }>("/auth/password-reset/request", {
+        email,
+      });
+      setInfo(response.detail);
+    } catch (err: any) {
+      setError(err.message || "Não foi possível solicitar a redefinição de senha.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   return (
     <div className="login-container animate-fade-in">
@@ -106,6 +128,7 @@ export function LoginPage() {
         </div>
 
         {error && <div className="login-error">{error}</div>}
+        {info && <div className="login-success">{info}</div>}
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="login-field">
@@ -151,12 +174,14 @@ export function LoginPage() {
 
           <div className="login-password-row">
             <span className="login-restricted-text">Ambiente restrito a usu&aacute;rios autorizados.</span>
-            <a
+            <button
+              type="button"
               className="login-forgot-link"
-              href={`${forgotPasswordHref}${encodeURIComponent(email)}`}
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
             >
-              Esqueceu a senha?
-            </a>
+              {resetLoading ? "Enviando..." : "Esqueceu a senha?"}
+            </button>
           </div>
 
           <button type="submit" disabled={loading} className="login-submit-btn">

@@ -93,6 +93,7 @@ type Store = {
 
 type TestAppOverrides = {
   users?: UserRecord[];
+  services?: Partial<AppDeps["services"]>;
 };
 
 function matchesWhere<T extends Record<string, unknown>>(record: T, where: Record<string, unknown>) {
@@ -220,7 +221,10 @@ export function createStore(): Store {
   };
 }
 
-export function createTestDeps(store: Store): AppDeps {
+export function createTestDeps(
+  store: Store,
+  overrides: { services?: Partial<AppDeps["services"]> } = {},
+): AppDeps {
   const prisma = {
     user: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
@@ -411,6 +415,7 @@ export function createTestDeps(store: Store): AppDeps {
     auth: {
       verifyPassword: async (password, hash) => hash === `hashed-${password}`,
       createAccessToken: (userId) => `${userId}-generated-token`,
+      createPasswordResetToken: (userId, tenantId) => `reset-${userId}-${tenantId}`,
       decodeAccessToken: (token) => {
         const mapping: Record<string, { sub: string; tenant_id: string }> = {
           "agent-a-token": { sub: "agent-a", tenant_id: "tenant-a" },
@@ -425,6 +430,11 @@ export function createTestDeps(store: Store): AppDeps {
 
         return payload;
       },
+      decodePasswordResetToken: () => ({
+        sub: "agent-a",
+        tenant_id: "tenant-a",
+        purpose: "password_reset" as const,
+      }),
     },
     services: {
       findOrCreateConversation: async (tenantId, customerId, channel) => {
@@ -488,6 +498,8 @@ export function createTestDeps(store: Store): AppDeps {
       sendWhatsappMessage: async () => undefined,
       sendInstagramMessage: async () => undefined,
       decrypt: (value) => value,
+      sendPasswordResetEmail: async () => undefined,
+      ...overrides.services,
     },
     socket: {
       emitToTenant: () => undefined,
@@ -501,7 +513,7 @@ export async function createCriticalRoutesTestApp(overrides: TestAppOverrides = 
   attachAppDeps(app, createTestDeps({
     ...createStore(),
     ...overrides,
-  }));
+  }, { services: overrides.services }));
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(conversationRoutes, { prefix: "/api/v1/conversations" });
   await app.register(messageRoutes, { prefix: "/api/v1/conversations" });

@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import { config } from "../config.js";
 import {
   loginRequestSchema,
+  passwordResetRequestSchema,
   googleLoginRequestSchema,
   type LoginResponse,
 } from "../schemas/auth.schema.js";
@@ -113,6 +114,33 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     };
 
     return reply.send(result);
+  });
+
+  app.post("/password-reset/request", async (request, reply) => {
+    const { prisma, auth, services } = request.server.deps;
+    const parsed = passwordResetRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Invalid request format" });
+    }
+
+    const users = await prisma.user.findMany({
+      where: { email: parsed.data.email },
+      orderBy: { createdAt: "asc" },
+    });
+
+    for (const user of users) {
+      if (!user.isActive) {
+        continue;
+      }
+
+      const token = auth.createPasswordResetToken(user.id, user.tenantId);
+      const resetUrl = `${config.FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
+      await services.sendPasswordResetEmail(user.email, resetUrl);
+    }
+
+    return reply.send({
+      detail: "If an account exists for this email, a password reset link will be sent shortly.",
+    });
   });
 }
 
