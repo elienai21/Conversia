@@ -3,6 +3,14 @@ import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/encryption.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
+function normalizeUrl(url: string): string {
+  let u = url.trim().replace(/\/+$/, '');
+  if (!u.startsWith('http://') && !u.startsWith('https://')) {
+    u = `https://${u}`;
+  }
+  return u;
+}
+
 // Endpoint to manage Integration with Evolution API from the Frontend Settings Page
 export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -19,16 +27,18 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const instanceName = settings.evolutionInstanceName;
-    const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const rawUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
     const rawToken = settings.evolutionInstanceToken;
     const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
-    if (!instanceName || !serverUrl || !apikey) {
+    if (!instanceName || !rawUrl || !apikey) {
       return reply.send({ connected: false, state: "unconfigured" });
     }
 
+    const serverUrl = normalizeUrl(rawUrl);
+
     try {
-      const fetchUrl = `${serverUrl.replace(/\/$/, '')}/instance/connectionState/${instanceName}`;
+      const fetchUrl = `${serverUrl}/instance/connectionState/${instanceName}`;
       const res = await fetch(fetchUrl, {
         headers: { apikey },
       });
@@ -73,14 +83,16 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const rawUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
     const globalApiKey = process.env.EVOLUTION_API_KEY;
     const rawToken = settings.evolutionInstanceToken;
     const instanceToken = rawToken ? decrypt(rawToken) : globalApiKey;
 
-    if (!serverUrl || !instanceToken) {
+    if (!rawUrl || !instanceToken) {
       return reply.status(400).send({ error: "Evolution API URL or API Key not configured." });
     }
+
+    const serverUrl = normalizeUrl(rawUrl);
 
     // Usually, instance name is the tenantSlug or tenantId
     const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
@@ -99,7 +111,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
     // Try to connect to existing instance
     try {
-      const connectUrl = `${serverUrl.replace(/\/$/, '')}/instance/connect/${instanceName}`;
+      const connectUrl = `${serverUrl}/instance/connect/${instanceName}`;
       const connectRes = await fetch(connectUrl, {
         method: "GET",
         headers: { apikey: instanceToken },
@@ -125,7 +137,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
       // If we got 404 or instance doesn't exist, create it
       if (connectRes.status === 404 || connectRes.status === 400 || connectRes.status === 403) {
         // Create instance
-        const createUrl = `${serverUrl.replace(/\/$/, '')}/instance/create`;
+        const createUrl = `${serverUrl}/instance/create`;
         const createRes = await fetch(createUrl, {
           method: "POST",
           headers: { 
@@ -172,13 +184,14 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const instanceName = settings.evolutionInstanceName;
-    const serverUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const rawUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
     const rawToken = settings.evolutionInstanceToken;
     const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
-    if (serverUrl && apikey) {
+    if (rawUrl && apikey) {
+      const serverUrl = normalizeUrl(rawUrl);
       try {
-        const logoutUrl = `${serverUrl.replace(/\/$/, '')}/instance/logout/${instanceName}`;
+        const logoutUrl = `${serverUrl}/instance/logout/${instanceName}`;
         await fetch(logoutUrl, {
           method: "DELETE",
           headers: { apikey },
