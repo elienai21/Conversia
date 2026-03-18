@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "build": "prisma generate && tsc",
+    "start": "prisma db push --skip-generate && node dist/server.js",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
     "db:push": "prisma db push",
