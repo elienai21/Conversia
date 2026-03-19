@@ -75,4 +75,50 @@ export const crmTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_all_properties",
+      description: "Lista todas as propriedades cadastradas no CRM com seus respectivos IDs. Útil para descobrir o ID de um imóvel antes de buscar os detalhes ou regras dele.",
+      parameters: {
+        type: "object",
+        properties: {}, // No params needed
+        required: []
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_listing_details",
+      description: "Consulta os detalhes completos de um imóvel/apartamento (comodidades, descrição, etc) a partir do seu ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          listingId: {
+            type: "string",
+            description: "O ID do anúncio/propriedade (descubra usando get_all_properties se necessário).",
+          },
+        },
+        required: ["listingId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_house_rules",
+      description: "Consulta as regras da casa e horários de um imóvel específico a partir do seu ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          listingId: {
+            type: "string",
+            description: "O ID do anúncio/propriedade (descubra usando get_all_properties se necessário).",
+          },
+        },
+        required: ["listingId"],
+      },
+    },
+  },
 ];

@@ -162,6 +162,15 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
               } else if (fnName === "get_reservation_details") {
                 const res = await adapter.getReservation(args.reservationCode);
                 resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else if (fnName === "get_all_properties") {
+                const res = await adapter.getProperties();
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else if (fnName === "get_listing_details") {
+                const res = await adapter.getListing(args.listingId);
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else if (fnName === "get_house_rules") {
+                const res = await adapter.getHouseRules(args.listingId);
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
               } else {
                 resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });
               }
