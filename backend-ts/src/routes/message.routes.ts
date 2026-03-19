@@ -59,9 +59,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         attachments: (m.attachments ?? []).map(
           (attachment: any): AttachmentOut => {
             let sourceUrl = attachment.sourceUrl;
-            // For customer messages with non-http sourceUrls (e.g. WhatsApp directPath),
-            // provide our media proxy endpoint instead
-            if (m.senderType === "customer" && m.externalId && sourceUrl && !sourceUrl.startsWith("http")) {
+            // For customer messages, always use the media proxy since WhatsApp CDN URLs expire
+            if (m.senderType === "customer" && m.externalId) {
               sourceUrl = `/api/v1/whatsapp/media/${m.id}`;
             }
             return {

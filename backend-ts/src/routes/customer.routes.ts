@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
+import { normalizePhone } from "../services/conversation.service.js";
 
 export async function customerRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -82,10 +83,11 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
       tag?: string;
     };
 
-    const phone = body.phone?.trim();
-    if (!phone) {
+    const rawPhone = body.phone?.trim();
+    if (!rawPhone) {
       return reply.status(422).send({ detail: "Phone number is required" });
     }
+    const phone = normalizePhone(rawPhone);
 
     // Check for duplicate
     const existing = await prisma.customer.findUnique({
@@ -140,7 +142,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       // If phone is changing, check for duplicates
-      const newPhone = body.phone?.trim();
+      const newPhone = body.phone?.trim() ? normalizePhone(body.phone.trim()) : undefined;
       if (newPhone && newPhone !== customer.phone) {
         const existing = await prisma.customer.findUnique({
           where: { tenantId_phone: { tenantId, phone: newPhone } },

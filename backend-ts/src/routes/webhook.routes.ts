@@ -51,6 +51,18 @@ async function processIncomingMessage(params: {
     });
   }
 
+  // Dedup: skip if a message with this externalId already exists
+  if (externalMessageId) {
+    const dup = await prisma.message.findFirst({
+      where: { externalId: externalMessageId },
+      select: { id: true },
+    });
+    if (dup) {
+      console.log(`[Webhook] Duplicate message ignored: ${externalMessageId}`);
+      return;
+    }
+  }
+
   // Step 7: Save message
   const message = await saveMessage({
     conversationId: conversation.id,
