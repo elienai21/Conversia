@@ -72,8 +72,10 @@ async function processIncomingMessage(params: {
     externalId: externalMessageId,
   });
 
+  console.log(`[Webhook] processIncomingMessage: attachments received=${attachments.length}, types=${attachments.map(a => a.type).join(',')}`);
   const savedAttachments = [];
   for (const attachment of attachments) {
+    console.log(`[Webhook] Saving attachment: type=${attachment.type}, hasSourceUrl=${!!attachment.sourceUrl}, sourceUrlLen=${attachment.sourceUrl?.length ?? 0}, hasProviderMediaId=${!!attachment.providerMediaId}`);
     const saved = await saveAttachment({
       messageId: message.id,
       type: attachment.type,
@@ -83,6 +85,7 @@ async function processIncomingMessage(params: {
       sourceUrl: attachment.sourceUrl,
       providerMediaId: attachment.providerMediaId,
     });
+    console.log(`[Webhook] Attachment saved: id=${saved.id}`);
     savedAttachments.push(saved);
   }
 

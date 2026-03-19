@@ -15,6 +15,23 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       const data = body.data as Record<string, unknown> | undefined;
       if (!data) return [];
 
+      // === DEBUG: Log the full webhook structure ===
+      const topKeys = Object.keys(body);
+      const dataKeys = Object.keys(data);
+      const dataHasBase64 = !!data.base64;
+      const dataHasMessage = !!data.message;
+      console.log(`[Evolution DEBUG] body.keys=${topKeys.join(',')}`);
+      console.log(`[Evolution DEBUG] data.keys=${dataKeys.join(',')}, data.base64=${dataHasBase64}, data.message=${dataHasMessage}`);
+      if (data.message && typeof data.message === 'object') {
+        const msgKeys = Object.keys(data.message as object);
+        console.log(`[Evolution DEBUG] data.message.keys=${msgKeys.join(',')}`);
+        const innerMsg = (data.message as Record<string, unknown>).message;
+        if (innerMsg && typeof innerMsg === 'object') {
+          console.log(`[Evolution DEBUG] data.message.message.keys=${Object.keys(innerMsg as object).join(',')}`);
+        }
+      }
+      // === END DEBUG ===
+
       let msgData = data;
       // evolution v1 vs v2 differences sometimes put it in data.message
       if (data.message && typeof (data.message as any).key === 'object') {
@@ -39,6 +56,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       }
 
       const attachments = extractEvolutionAttachments(messageContent, msgData);
+      console.log(`[Evolution] parseWebhooks: text="${text}", attachments=${attachments.length}, messageContentKeys=${Object.keys(messageContent).join(',')}`);      
       if (!text && attachments.length > 0) {
         text = `[${attachments[0].type}]`;
       }
@@ -222,6 +240,8 @@ function extractEvolutionAttachments(
     { key: "audioMessage", type: "audio" },
     { key: "documentMessage", type: "document" },
   ];
+
+  console.log(`[Evolution] extractAttachments: messageContentKeys=${Object.keys(messageContent).join(',')}, msgDataKeys=${msgData ? Object.keys(msgData).join(',') : 'null'}`);
 
   for (const mapping of mappings) {
     const payload = messageContent[mapping.key] as Record<string, unknown> | undefined;
