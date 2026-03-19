@@ -16,6 +16,7 @@ import {
 } from "../services/conversation.service.js";
 import { saveAttachment, saveMessage, saveTranslation } from "../services/message.service.js";
 import type { MessageAttachmentInput } from "../services/whatsapp/provider.interface.js";
+import { fetchEvolutionProfilePicture } from "../services/whatsapp/evolution.provider.js";
 import { detectLanguage } from "../services/language.service.js";
 import { detectIntent } from "../services/intent.service.js";
 import { translateText } from "../services/translation.service.js";
