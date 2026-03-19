@@ -7,7 +7,7 @@ export class ApiService {
     const tenantId = localStorage.getItem("conversia_tenant_id"); // Optional, if using manual header, otherwise JWT holds it
 
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(options.headers as Record<string, string>),
     };
 
