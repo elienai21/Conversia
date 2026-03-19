@@ -38,7 +38,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
         text = (messageContent.extendedTextMessage as Record<string, unknown>).text as string;
       }
 
-      const attachments = extractEvolutionAttachments(messageContent);
+      const attachments = extractEvolutionAttachments(messageContent, msgData);
       if (!text && attachments.length > 0) {
         text = `[${attachments[0].type}]`;
       }
@@ -214,6 +214,7 @@ export async function fetchEvolutionProfilePicture(
 
 function extractEvolutionAttachments(
   messageContent: Record<string, unknown>,
+  msgData?: Record<string, unknown>
 ): MessageAttachmentInput[] {
   const mappings: Array<{ key: string; type: MessageAttachmentInput["type"] }> = [
     { key: "imageMessage", type: "image" },
@@ -226,15 +227,31 @@ function extractEvolutionAttachments(
     const payload = messageContent[mapping.key] as Record<string, unknown> | undefined;
     if (!payload) continue;
 
-    return [{
-      type: mapping.type,
-      mimeType: payload.mimetype as string | undefined,
-      fileName: payload.fileName as string | undefined,
-      sourceUrl:
-        (payload.url as string | undefined)
-        ?? (payload.mediaUrl as string | undefined)
-        ?? (payload.directPath as string | undefined),
-    }];
+    let sourceUrl =
+      (payload.url as string | undefined) ??
+      (payload.mediaUrl as string | undefined) ??
+      (payload.directPath as string | undefined);
+
+    // Evolution API may inject base64 natively if configured.
+    // Check common paths for base64 injection in the webhook payload.
+    const b64 =
+      (payload.base64 as string) ||
+      (messageContent.base64 as string) ||
+      (msgData?.base64 as string);
+
+    if (b64) {
+      const mimeType = (payload.mimetype as string) || "application/octet-stream";
+      sourceUrl = `data:${mimeType};base64,${b64}`;
+    }
+
+    return [
+      {
+        type: mapping.type,
+        mimeType: payload.mimetype as string | undefined,
+        fileName: payload.fileName as string | undefined,
+        sourceUrl,
+      },
+    ];
   }
 
   return [];

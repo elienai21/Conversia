@@ -327,10 +327,46 @@
   border-bottom-right-radius: 4px;
 }
 
-.message-bubble p {
+.message-bubble p,
+.message-bubble .message-text-formatted {
   font-size: 0.95rem;
   margin-bottom: 4px;
   word-break: break-word;
+  line-height: 1.4;
+}
+
+.message-text-formatted strong {
+  font-weight: 700;
+}
+
+.message-text-formatted em {
+  font-style: italic;
+}
+
+.message-text-formatted del {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.message-text-formatted code {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.message-text-formatted pre {
+  background: rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 4px 0;
+}
+
+.message-text-formatted pre code {
+  background: transparent;
+  padding: 0;
 }
 
 .message-meta {

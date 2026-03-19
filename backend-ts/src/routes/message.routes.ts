@@ -107,17 +107,43 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Attachment not found" });
       }
 
+      const settings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: user.tenantId },
+      });
+
+      // Special handling for remote sourceUrl (Evolution API)
       if (attachment.sourceUrl) {
-        return reply.redirect(attachment.sourceUrl);
+        if (attachment.sourceUrl.startsWith("data:")) {
+          return reply.redirect(attachment.sourceUrl);
+        }
+
+        const tokenRaw = settings?.evolutionInstanceToken;
+        const apikey = tokenRaw ? request.server.deps.services.decrypt(tokenRaw) : process.env.EVOLUTION_API_KEY;
+
+        const headers: Record<string, string> = {};
+        if (apikey) headers["apikey"] = apikey;
+
+        try {
+          const mediaResponse = await fetch(attachment.sourceUrl, { headers });
+          if (!mediaResponse.ok) {
+            return reply.redirect(attachment.sourceUrl);
+          }
+          
+          const mediaBuffer = Buffer.from(await mediaResponse.arrayBuffer());
+          reply.header("content-type", attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream");
+          if (attachment.fileName) {
+            reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
+          }
+          return reply.send(mediaBuffer);
+        } catch (err) {
+          return reply.redirect(attachment.sourceUrl);
+        }
       }
 
       if (!attachment.providerMediaId) {
         return reply.status(404).send({ detail: "Attachment source unavailable" });
       }
 
-      const settings = await prisma.tenantSettings.findUnique({
-        where: { tenantId: user.tenantId },
-      });
       const token = settings?.whatsappApiToken || config.WHATSAPP_API_TOKEN;
 
       if (!token) {
@@ -454,11 +480,11 @@ function buildAttachmentSourceUrl(
     providerMediaId?: string | null;
   },
 ) {
-  if (attachment.sourceUrl) {
+  if (attachment.sourceUrl && attachment.sourceUrl.startsWith("data:")) {
     return attachment.sourceUrl;
   }
 
-  if (!attachment.providerMediaId) {
+  if (!attachment.sourceUrl && !attachment.providerMediaId) {
     return null;
   }
 

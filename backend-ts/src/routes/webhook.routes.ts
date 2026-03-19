@@ -72,8 +72,9 @@ async function processIncomingMessage(params: {
     externalId: externalMessageId,
   });
 
+  const savedAttachments = [];
   for (const attachment of attachments) {
-    await saveAttachment({
+    const saved = await saveAttachment({
       messageId: message.id,
       type: attachment.type,
       mimeType: attachment.mimeType,
@@ -82,6 +83,7 @@ async function processIncomingMessage(params: {
       sourceUrl: attachment.sourceUrl,
       providerMediaId: attachment.providerMediaId,
     });
+    savedAttachments.push(saved);
   }
 
   // Emit real-time event for the new message
@@ -92,15 +94,25 @@ async function processIncomingMessage(params: {
     original_text: message.originalText,
     detected_language: message.detectedLanguage,
     created_at: message.createdAt,
-    attachments: attachments.map((attachment, index) => ({
-      id: `${message.id}-attachment-${index}`,
-      type: attachment.type,
-      mime_type: attachment.mimeType ?? null,
-      file_name: attachment.fileName ?? null,
-      file_size_bytes: attachment.fileSizeBytes ?? null,
-      source_url: attachment.sourceUrl ?? null,
-      provider_media_id: attachment.providerMediaId ?? null,
-    })),
+    attachments: savedAttachments.map((saved) => {
+      let finalSourceUrl = null;
+      if (saved.sourceUrl) {
+        if (saved.sourceUrl.startsWith("data:")) finalSourceUrl = saved.sourceUrl;
+        else finalSourceUrl = `/api/v1/conversations/${conversation.id}/messages/${message.id}/attachments/${saved.id}`;
+      } else if (saved.providerMediaId) {
+        finalSourceUrl = `/api/v1/conversations/${conversation.id}/messages/${message.id}/attachments/${saved.id}`;
+      }
+
+      return {
+        id: saved.id,
+        type: saved.type,
+        mime_type: saved.mimeType ?? null,
+        file_name: saved.fileName ?? null,
+        file_size_bytes: saved.fileSizeBytes ?? null,
+        source_url: finalSourceUrl,
+        provider_media_id: saved.providerMediaId ?? null,
+      };
+    }),
   });
 
   // If new conversation, notify the tenant room so sidebar updates

@@ -222,7 +222,35 @@ function renderMessageText(message: Message) {
   ) {
     return null;
   }
-  return <p>{message.originalText}</p>;
+
+  const formatWhatsAppText = (text: string) => {
+    let safeText = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Monospace block: ```text```
+    safeText = safeText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    // Bold: *text*
+    safeText = safeText.replace(/\*([^\n*]+?)\*/g, '<strong>$1</strong>');
+    // Italic: _text_
+    safeText = safeText.replace(/_([^\n_]+?)_/g, '<em>$1</em>');
+    // Strikethrough: ~text~
+    safeText = safeText.replace(/~([^\n~]+?)~/g, '<del>$1</del>');
+    // Inline Code: `text`
+    safeText = safeText.replace(/`([^\n`]+?)`/g, '<code>$1</code>');
+    // Newlines
+    safeText = safeText.replace(/\n/g, '<br/>');
+
+    return safeText;
+  };
+
+  return (
+    <div 
+      className="message-text-formatted"
+      dangerouslySetInnerHTML={{ __html: formatWhatsAppText(message.originalText) }} 
+    />
+  );
 }
 
 // Notification sound (short beep)
@@ -516,10 +544,12 @@ export function InboxPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && (replyText.trim() || pendingFile)) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if ((replyText.trim() || pendingFile) && !isSending) {
+        handleSendMessage();
+      }
     }
   };
 
@@ -876,13 +906,19 @@ export function InboxPage() {
                 </div>
               )}
 
-              <input
-                type="text"
-                placeholder='Type a message... (type "/" for quick replies)'
+              <textarea
+                placeholder='Type a message... (Shift+Enter for new line, "/" for quick replies)'
                 value={replyText}
                 onChange={e => { setReplyText(e.target.value); setUsedSuggestionId(null); }}
                 onKeyDown={handleKeyDown}
                 disabled={isSending}
+                rows={Math.max(1, Math.min(5, replyText.split("\n").length))}
+                style={{ 
+                  resize: "none", 
+                  paddingTop: "12px", 
+                  paddingBottom: "12px",
+                  lineHeight: "1.4"
+                }}
               />
               <button
                 className="send-btn"
