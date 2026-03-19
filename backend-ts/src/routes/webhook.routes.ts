@@ -14,7 +14,8 @@ import {
   findOrCreateCustomer,
   findOrCreateConversation,
 } from "../services/conversation.service.js";
-import { saveMessage, saveTranslation } from "../services/message.service.js";
+import { saveAttachment, saveMessage, saveTranslation } from "../services/message.service.js";
+import type { MessageAttachmentInput } from "../services/whatsapp/provider.interface.js";
 import { detectLanguage } from "../services/language.service.js";
 import { detectIntent } from "../services/intent.service.js";
 import { translateText } from "../services/translation.service.js";
@@ -34,17 +35,18 @@ async function processIncomingMessage(params: {
   text: string;
   externalMessageId: string;
   isNewConversation: boolean;
+  attachments?: MessageAttachmentInput[];
 }): Promise<void> {
-  const { tenant, conversation, text, externalMessageId, isNewConversation } = params;
+  const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [] } = params;
 
   // Step 5: Detect language
-  const detectedLang = detectLanguage(text);
+  const detectedLang = text.startsWith("[") && text.endsWith("]") ? null : detectLanguage(text);
 
   // Step 6: Update conversation language if not set
   if (!conversation.detectedLanguage) {
     await prisma.conversation.update({
       where: { id: conversation.id },
-      data: { detectedLanguage: detectedLang },
+      data: { detectedLanguage: detectedLang ?? tenant.defaultLanguage },
     });
   }
 
@@ -53,9 +55,21 @@ async function processIncomingMessage(params: {
     conversationId: conversation.id,
     senderType: "customer",
     text,
-    detectedLanguage: detectedLang,
+    detectedLanguage: detectedLang ?? undefined,
     externalId: externalMessageId,
   });
+
+  for (const attachment of attachments) {
+    await saveAttachment({
+      messageId: message.id,
+      type: attachment.type,
+      mimeType: attachment.mimeType,
+      fileName: attachment.fileName,
+      fileSizeBytes: attachment.fileSizeBytes,
+      sourceUrl: attachment.sourceUrl,
+      providerMediaId: attachment.providerMediaId,
+    });
+  }
 
   // Emit real-time event for the new message
   SocketService.emitToConversation(conversation.id, "message.new", {
@@ -65,6 +79,15 @@ async function processIncomingMessage(params: {
     original_text: message.originalText,
     detected_language: message.detectedLanguage,
     created_at: message.createdAt,
+    attachments: attachments.map((attachment, index) => ({
+      id: `${message.id}-attachment-${index}`,
+      type: attachment.type,
+      mime_type: attachment.mimeType ?? null,
+      file_name: attachment.fileName ?? null,
+      file_size_bytes: attachment.fileSizeBytes ?? null,
+      source_url: attachment.sourceUrl ?? null,
+      provider_media_id: attachment.providerMediaId ?? null,
+    })),
   });
 
   // If new conversation, notify the tenant room so sidebar updates
@@ -76,12 +99,12 @@ async function processIncomingMessage(params: {
   }
 
   // Step 8: Detect intent
-  const intent = await detectIntent(tenant.id, text);
+  const intent = detectedLang ? await detectIntent(tenant.id, text) : "media";
   console.log(`[Webhook] Intent detected: ${intent}`);
 
   // Step 9: Translate to tenant default language if different
   const tenantLang = tenant.defaultLanguage;
-  if (detectedLang !== tenantLang) {
+  if (detectedLang && detectedLang !== tenantLang) {
     const { translatedText, provider } = await translateText(
       tenant.id,
       text,
@@ -104,7 +127,7 @@ async function processIncomingMessage(params: {
       tenantId: tenant.id,
       conversationId: conversation.id,
       intent,
-      detectedLang,
+      detectedLang: detectedLang ?? tenant.defaultLanguage,
     });
     if (autoHandled) {
       console.log(`[Webhook] Auto-response handled conversation ${conversation.id}`);
@@ -206,6 +229,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         text: incoming.text,
         externalMessageId: incoming.messageId,
         isNewConversation: isNew,
+        attachments: incoming.attachments,
       });
     }
 
@@ -252,6 +276,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         text: incoming.text,
         externalMessageId: incoming.messageId,
         isNewConversation: isNew,
+        attachments: incoming.attachments,
       });
     }
 
@@ -317,6 +342,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       text: incoming.text,
       externalMessageId: incoming.messageId,
       isNewConversation: isNew,
+      attachments: incoming.attachments,
     });
 
     return reply.send({ status: "processed" });

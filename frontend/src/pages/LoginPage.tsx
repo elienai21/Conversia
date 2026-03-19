@@ -11,7 +11,9 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -42,6 +44,7 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setInfo("");
     setLoading(true);
 
     try {
@@ -62,6 +65,28 @@ export function LoginPage() {
       setError(err.message || "Failed to authenticate");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError("");
+    setInfo("");
+
+    if (!email) {
+      setError("Digite seu e-mail para receber o link de redefinição.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const response = await ApiService.post<{ detail: string }>("/auth/password-reset/request", {
+        email,
+      });
+      setInfo(response.detail);
+    } catch (err: any) {
+      setError(err.message || "Não foi possível solicitar a redefinição de senha.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -103,6 +128,7 @@ export function LoginPage() {
         </div>
 
         {error && <div className="login-error">{error}</div>}
+        {info && <div className="login-success">{info}</div>}
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="login-field">
@@ -148,8 +174,13 @@ export function LoginPage() {
 
           <div className="login-password-row">
             <span className="login-restricted-text">Ambiente restrito a usu&aacute;rios autorizados.</span>
-            <button type="button" className="login-forgot-link">
-              Esqueceu a senha?
+            <button
+              type="button"
+              className="login-forgot-link"
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
+            >
+              {resetLoading ? "Enviando..." : "Esqueceu a senha?"}
             </button>
           </div>
 
