@@ -13,6 +13,7 @@ import "./DashboardLayout.css";
 type ConversationSummary = {
   id: string;
   status: string;
+  unread_count?: number;
 };
 
 export function DashboardLayout() {
@@ -26,8 +27,8 @@ export function DashboardLayout() {
   const fetchOpenCount = useCallback(async () => {
     try {
       const conversations = await ApiService.get<ConversationSummary[]>("/conversations");
-      const open = conversations.filter((c) => c.status !== "closed").length;
-      setOpenCount(open);
+      const unread = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
+      setOpenCount(unread);
     } catch {
       // silently ignore
     }

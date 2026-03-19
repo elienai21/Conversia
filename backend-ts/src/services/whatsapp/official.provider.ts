@@ -3,6 +3,7 @@ import {
   IWhatsAppProvider,
   IncomingWhatsappMessage,
   type MessageAttachmentInput,
+  type MediaPayload,
 } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 
@@ -78,6 +79,48 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
       }
     } catch (err) {
       console.error("WhatsApp Official send error:", err);
+    }
+  }
+
+  async sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void> {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+    const token = settings?.whatsappApiToken || config.WHATSAPP_API_TOKEN;
+    const phoneNumberId = settings?.whatsappPhoneNumberId;
+
+    if (!token || !phoneNumberId) {
+      console.log("[Official WhatsApp] Missing token or phoneNumberId, skipping sendMedia");
+      return;
+    }
+
+    const url = `${config.WHATSAPP_API_URL}/${phoneNumberId}/messages`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: media.type,
+          [media.type]: {
+            link: media.url,
+            caption: media.caption || undefined,
+            filename: media.fileName || undefined,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        console.error(`WhatsApp Official sendMedia failed (${response.status}):`, body);
+      }
+    } catch (err) {
+      console.error("WhatsApp Official sendMedia error:", err);
     }
   }
 }

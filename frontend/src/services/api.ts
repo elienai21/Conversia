@@ -108,4 +108,32 @@ export class ApiService {
     const data = await response.json();
     return data.text; // Return the transcribed text directly
   }
+
+  static async uploadFile<T>(endpoint: string, file: File, caption?: string): Promise<T> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (caption) {
+      formData.append("caption", caption);
+    }
+
+    const token = localStorage.getItem("conversia_token");
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to upload file");
+    }
+
+    return response.json();
+  }
 }

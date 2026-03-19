@@ -2,6 +2,7 @@ import {
   IWhatsAppProvider,
   IncomingWhatsappMessage,
   type MessageAttachmentInput,
+  type MediaPayload,
 } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/encryption.js";
@@ -106,6 +107,54 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       }
     } catch (err) {
       console.error("Evolution send error:", err);
+    }
+  }
+
+  async sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void> {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+
+    const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const instanceName = settings?.evolutionInstanceName;
+    const rawToken = settings?.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+    if (!rawUrl || !instanceName || !apikey) {
+      console.error("[Evolution] Missing config for sending media.");
+      return;
+    }
+
+    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
+    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+      serverUrl = `https://${serverUrl}`;
+    }
+
+    const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
+    const url = `${serverUrl}/message/sendMedia/${instanceName}`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: apikey,
+        },
+        body: JSON.stringify({
+          number: formattedTo,
+          mediatype: media.type,
+          media: media.url,
+          caption: media.caption || "",
+          fileName: media.fileName || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const bodyText = await response.text();
+        console.error(`Evolution sendMedia failed (${response.status}):`, bodyText);
+      }
+    } catch (err) {
+      console.error("Evolution sendMedia error:", err);
     }
   }
 }

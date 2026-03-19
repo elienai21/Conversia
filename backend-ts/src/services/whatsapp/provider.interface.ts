@@ -18,6 +18,14 @@ export interface IncomingWhatsappMessage {
   attachments?: MessageAttachmentInput[];
 }
 
+export interface MediaPayload {
+  type: MessageAttachmentType;
+  url: string;
+  caption?: string;
+  fileName?: string;
+  mimeType?: string;
+}
+
 export interface IWhatsAppProvider {
   /**
    * Parse an incoming webhook payload and return any extracted messages.
@@ -29,4 +37,9 @@ export interface IWhatsAppProvider {
    * Send a text message to a recipient.
    */
   sendMessage(tenantId: string, to: string, text: string): Promise<void>;
+
+  /**
+   * Send a media message to a recipient.
+   */
+  sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void>;
 }

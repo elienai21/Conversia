@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap } from "lucide-react";
+import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, X, MoreVertical, Paperclip } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
@@ -213,12 +213,15 @@ export function InboxPage() {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: string } | null>(null);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
+  const [showChatMenu, setShowChatMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConversationRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchConversations = useCallback(() => {
@@ -369,8 +372,45 @@ export function InboxPage() {
     setContextMenu(null);
   };
 
+  const handleCloseConversation = async () => {
+    if (!activeConversation) return;
+    if (!confirm("Deseja fechar esta conversa?")) return;
+    try {
+      await ApiService.patch(`/conversations/${activeConversation}/status`, { status: "closed" });
+      setActiveConversation(null);
+      setMessages([]);
+      fetchConversations();
+    } catch (e) {
+      console.error(e);
+    }
+    setShowChatMenu(false);
+  };
+
   const handleSendMessage = async () => {
-    if (!activeConversation || !replyText.trim()) return;
+    if (!activeConversation) return;
+
+    // If there's a pending file, send as media
+    if (pendingFile) {
+      setIsSending(true);
+      try {
+        const raw = await ApiService.uploadFile<RawMessage>(
+          `/conversations/${activeConversation}/messages/media`,
+          pendingFile,
+          replyText.trim() || undefined,
+        );
+        const newMsg = mapMessage(raw);
+        setMessages((prev) => [...prev, newMsg]);
+        setReplyText("");
+        setPendingFile(null);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
+    if (!replyText.trim()) return;
     setIsSending(true);
 
     try {
@@ -409,8 +449,23 @@ export function InboxPage() {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPendingFile(file);
+    }
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && replyText.trim()) {
+    if (e.key === "Enter" && !e.shiftKey && (replyText.trim() || pendingFile)) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -541,6 +596,24 @@ export function InboxPage() {
                     : "Unknown"}
                 </span>
               </div>
+              <div className="chat-header-actions">
+                <div className="chat-menu-wrapper">
+                  <button
+                    className="icon-btn-header"
+                    onClick={() => setShowChatMenu(!showChatMenu)}
+                    title="Opções"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                  {showChatMenu && (
+                    <div className="chat-menu-dropdown glass-panel">
+                      <button className="chat-menu-item danger" onClick={handleCloseConversation}>
+                        <X size={14} /> Fechar conversa
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="chat-messages">
@@ -550,23 +623,43 @@ export function InboxPage() {
                   className={`message-wrapper ${msg.senderType}`}
                   onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
                 >
-                  <div className="message-bubble">
-                    <p>{msg.originalText}</p>
-                    {renderAttachments(msg)}
-                    {msg.translatedFrom && (
-                      <div className="translation-badge">
-                        <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
-                      </div>
+                  <div className="message-bubble-wrapper">
+                    {msg.senderType === 'agent' && (
+                      <button
+                        className="msg-delete-btn"
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        title="Apagar mensagem"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     )}
-                    {msg.translatedTo && (
-                      <div className="translation-badge">
-                        <Sparkles size={12} /> Traduzido para {msg.translatedTo}
+                    <div className="message-bubble">
+                      <p>{msg.originalText}</p>
+                      {renderAttachments(msg)}
+                      {msg.translatedFrom && (
+                        <div className="translation-badge">
+                          <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
+                        </div>
+                      )}
+                      {msg.translatedTo && (
+                        <div className="translation-badge">
+                          <Sparkles size={12} /> Traduzido para {msg.translatedTo}
+                        </div>
+                      )}
+                      <div className="message-meta">
+                        <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        {msg.senderType === 'agent' && <CheckCheck size={14} />}
                       </div>
-                    )}
-                    <div className="message-meta">
-                      <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      {msg.senderType === 'agent' && <CheckCheck size={14} />}
                     </div>
+                    {msg.senderType === 'customer' && (
+                      <button
+                        className="msg-delete-btn"
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        title="Apagar mensagem"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Copilot Action (Only for customer messages) */}
@@ -634,12 +727,46 @@ export function InboxPage() {
             </div>
 
             <div className="chat-input-area">
+              {/* Attachment preview */}
+              {pendingFile && (
+                <div className="attachment-preview">
+                  {pendingFile.type.startsWith("image/") ? (
+                    <img src={URL.createObjectURL(pendingFile)} alt="" className="attachment-preview-thumb" />
+                  ) : (
+                    <div className="attachment-preview-thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Paperclip size={20} />
+                    </div>
+                  )}
+                  <div className="attachment-preview-info">
+                    <span className="attachment-preview-name">{pendingFile.name}</span>
+                    <span className="attachment-preview-size">{formatFileSize(pendingFile.size)}</span>
+                  </div>
+                  <button className="attachment-remove-btn" onClick={() => setPendingFile(null)}>
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+              <div className="chat-input-row">
               <AudioRecorder
                 disabled={isSending}
                 onUpload={(blob) => ApiService.uploadAudio("/audio/transcribe", blob)}
                 onTranscription={(text) => {
                   setReplyText((prev) => (prev ? prev + " " + text : text));
                 }}
+              />
+              <button
+                className="attach-btn"
+                onClick={() => fileInputRef.current?.click()}
+                title="Enviar arquivo"
+              >
+                <Paperclip size={18} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
               />
               <button
                 className="quick-reply-btn"
@@ -709,11 +836,12 @@ export function InboxPage() {
               />
               <button
                 className="send-btn"
-                disabled={!replyText.trim() || isSending}
+                disabled={(!replyText.trim() && !pendingFile) || isSending}
                 onClick={handleSendMessage}
               >
                 {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
               </button>
+              </div>
             </div>
           </>
         )}
