@@ -47,6 +47,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_id: m.senderId,
         original_text: m.originalText,
         detected_language: m.detectedLanguage,
+        status: m.status || "sent",
         created_at: m.createdAt,
         translations: (m.translations ?? []).map(
           (t: any): TranslationOut => ({
@@ -56,15 +57,23 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           }),
         ),
         attachments: (m.attachments ?? []).map(
-          (attachment: any): AttachmentOut => ({
-            id: attachment.id,
-            type: attachment.type,
-            mime_type: attachment.mimeType,
-            file_name: attachment.fileName,
-            file_size_bytes: attachment.fileSizeBytes,
-            source_url: attachment.sourceUrl,
-            provider_media_id: attachment.providerMediaId,
-          }),
+          (attachment: any): AttachmentOut => {
+            let sourceUrl = attachment.sourceUrl;
+            // For customer messages with non-http sourceUrls (e.g. WhatsApp directPath),
+            // provide our media proxy endpoint instead
+            if (m.senderType === "customer" && m.externalId && sourceUrl && !sourceUrl.startsWith("http")) {
+              sourceUrl = `/api/v1/whatsapp/media/${m.id}`;
+            }
+            return {
+              id: attachment.id,
+              type: attachment.type,
+              mime_type: attachment.mimeType,
+              file_name: attachment.fileName,
+              file_size_bytes: attachment.fileSizeBytes,
+              source_url: sourceUrl,
+              provider_media_id: attachment.providerMediaId,
+            };
+          },
         ),
       }));
 
@@ -198,6 +207,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_id: message.senderId,
         original_text: message.originalText,
         detected_language: message.detectedLanguage,
+        status: (message as any).status || "sent",
         created_at: message.createdAt,
         translations,
         attachments: [],

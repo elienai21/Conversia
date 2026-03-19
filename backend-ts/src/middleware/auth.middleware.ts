@@ -13,12 +13,15 @@ export async function authMiddleware(
 ): Promise<void> {
   const { prisma, auth } = request.server.deps;
   const authHeader = request.headers.authorization;
+  const queryToken = (request.query as Record<string, string>)?.token;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : queryToken;
+
+  if (!token) {
     return reply.status(401).send({ detail: "Missing or invalid token" });
   }
-
-  const token = authHeader.slice(7);
 
   try {
     const payload = auth.decodeAccessToken(token);

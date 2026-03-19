@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, X, MoreVertical, Paperclip } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, X, MoreVertical, Paperclip } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
@@ -21,6 +21,7 @@ type Message = {
   senderType: "customer" | "agent" | "system";
   originalText: string;
   createdAt: string;
+  status?: "sent" | "delivered" | "read";
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -66,6 +67,7 @@ type RawMessage = {
   sender_type: "customer" | "agent" | "system";
   original_text: string;
   created_at: string;
+  status?: string;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -117,6 +119,7 @@ function mapMessage(raw: RawMessage): Message {
     senderType: raw.sender_type,
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
+    status: (raw.status as Message["status"]) || "sent",
     attachments: raw.attachments?.map((attachment) => ({
       id: attachment.id,
       type: attachment.type,
@@ -128,43 +131,75 @@ function mapMessage(raw: RawMessage): Message {
   };
 }
 
+function resolveMediaUrl(sourceUrl: string | null | undefined): string | null {
+  if (!sourceUrl) return null;
+  // If it's a relative API path (media proxy), prepend the API base URL
+  if (sourceUrl.startsWith("/api/")) {
+    return `${API_URL.replace("/api/v1", "")}${sourceUrl}`;
+  }
+  return sourceUrl;
+}
+
+function resolveAttachmentType(attachment: { type: string; mimeType?: string | null }): string {
+  // Use mimeType to correct the type if available (fixes misdetection)
+  if (attachment.mimeType) {
+    if (attachment.mimeType.startsWith("image/")) return "image";
+    if (attachment.mimeType.startsWith("video/")) return "video";
+    if (attachment.mimeType.startsWith("audio/")) return "audio";
+  }
+  return attachment.type;
+}
+
 function renderAttachments(message: Message) {
   if (!message.attachments?.length) {
     return null;
   }
 
+  // Build auth header for proxy URLs
+  const token = localStorage.getItem("conversia_token");
+
   return (
     <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
       {message.attachments.map((attachment) => {
-        if (attachment.type === "image" && attachment.sourceUrl) {
+        const mediaUrl = resolveMediaUrl(attachment.sourceUrl);
+        const actualType = resolveAttachmentType(attachment);
+        // For proxy URLs, append token as query param for auth
+        const authedUrl = mediaUrl && mediaUrl.includes("/api/") && token
+          ? `${mediaUrl}?token=${token}`
+          : mediaUrl;
+
+        if (actualType === "image" && authedUrl) {
           return (
-            <a key={attachment.id} href={attachment.sourceUrl} target="_blank" rel="noreferrer">
+            <a key={attachment.id} href={authedUrl} target="_blank" rel="noreferrer">
               <img
-                src={attachment.sourceUrl}
+                src={authedUrl}
                 alt={attachment.fileName || "Image attachment"}
                 style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
               />
             </a>
           );
         }
 
-        if (attachment.type === "video" && attachment.sourceUrl) {
+        if (actualType === "video" && authedUrl) {
           return (
             <video
               key={attachment.id}
               controls
-              src={attachment.sourceUrl}
+              src={authedUrl}
               style={{ maxWidth: "260px", borderRadius: "12px" }}
             />
           );
         }
 
-        if (attachment.type === "audio" && attachment.sourceUrl) {
+        if (actualType === "audio" && authedUrl) {
           return (
             <audio
               key={attachment.id}
               controls
-              src={attachment.sourceUrl}
+              src={authedUrl}
               style={{ width: "100%" }}
             />
           );
@@ -173,9 +208,9 @@ function renderAttachments(message: Message) {
         return (
           <a
             key={attachment.id}
-            href={attachment.sourceUrl || "#"}
-            target={attachment.sourceUrl ? "_blank" : undefined}
-            rel={attachment.sourceUrl ? "noreferrer" : undefined}
+            href={authedUrl || "#"}
+            target={authedUrl ? "_blank" : undefined}
+            rel={authedUrl ? "noreferrer" : undefined}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -189,7 +224,7 @@ function renderAttachments(message: Message) {
             }}
           >
             <Camera size={16} />
-            <span>{attachment.fileName || `${attachment.type} attachment`}</span>
+            <span>{attachment.fileName || `${actualType} attachment`}</span>
           </a>
         );
       })}
@@ -308,16 +343,26 @@ export function InboxPage() {
       setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
     };
 
+    const handleMessageStatus = (data: { messageId: string; status: string }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === data.messageId ? { ...m, status: data.status as Message["status"] } : m
+        )
+      );
+    };
+
     socket.on("suggestion.ready", handleSuggestionReady);
     socket.on("message.new", handleMessageNew);
     socket.on("conversation.updated", handleConversationUpdated);
     socket.on("message.deleted", handleMessageDeleted);
+    socket.on("message.status", handleMessageStatus);
 
     return () => {
       socket.off("suggestion.ready", handleSuggestionReady);
       socket.off("message.new", handleMessageNew);
       socket.off("conversation.updated", handleConversationUpdated);
       socket.off("message.deleted", handleMessageDeleted);
+      socket.off("message.status", handleMessageStatus);
     };
   }, [socket, activeConversation, fetchConversations]);
 
@@ -377,6 +422,20 @@ export function InboxPage() {
     if (!confirm("Deseja fechar esta conversa?")) return;
     try {
       await ApiService.patch(`/conversations/${activeConversation}/status`, { status: "closed" });
+      setActiveConversation(null);
+      setMessages([]);
+      fetchConversations();
+    } catch (e) {
+      console.error(e);
+    }
+    setShowChatMenu(false);
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!activeConversation) return;
+    if (!confirm("Deseja apagar esta conversa? Todas as mensagens serão excluídas permanentemente.")) return;
+    try {
+      await ApiService.delete(`/conversations/${activeConversation}`);
       setActiveConversation(null);
       setMessages([]);
       fetchConversations();
@@ -607,8 +666,11 @@ export function InboxPage() {
                   </button>
                   {showChatMenu && (
                     <div className="chat-menu-dropdown glass-panel">
-                      <button className="chat-menu-item danger" onClick={handleCloseConversation}>
+                      <button className="chat-menu-item" onClick={handleCloseConversation}>
                         <X size={14} /> Fechar conversa
+                      </button>
+                      <button className="chat-menu-item danger" onClick={handleDeleteConversation}>
+                        <Trash2 size={14} /> Apagar conversa
                       </button>
                     </div>
                   )}
@@ -648,7 +710,13 @@ export function InboxPage() {
                       )}
                       <div className="message-meta">
                         <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        {msg.senderType === 'agent' && <CheckCheck size={14} />}
+                        {msg.senderType === 'agent' && (
+                          msg.status === 'read'
+                            ? <CheckCheck size={14} className="status-read" />
+                            : msg.status === 'delivered'
+                              ? <CheckCheck size={14} className="status-delivered" />
+                              : <Check size={14} className="status-sent" />
+                        )}
                       </div>
                     </div>
                     {msg.senderType === 'customer' && (

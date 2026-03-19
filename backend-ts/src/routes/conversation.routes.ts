@@ -205,6 +205,51 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
+  // Delete a conversation and all its messages
+  app.delete<{ Params: { conversationId: string } }>(
+    "/:conversationId",
+    async (request, reply) => {
+      const { prisma, socket } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      // Delete in order: translations -> suggestions -> attachments -> messages -> reads -> conversation
+      await prisma.messageTranslation.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.aISuggestion.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.messageAttachment.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.message.deleteMany({
+        where: { conversationId },
+      });
+      await prisma.conversationRead.deleteMany({
+        where: { conversationId },
+      });
+      await prisma.conversation.delete({
+        where: { id: conversationId },
+      });
+
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "deleted",
+        conversationId,
+      });
+
+      return reply.status(204).send();
+    },
+  );
+
   // Start a new outbound conversation
   app.post("/", async (request, reply) => {
     const { prisma, services, socket } = request.server.deps;

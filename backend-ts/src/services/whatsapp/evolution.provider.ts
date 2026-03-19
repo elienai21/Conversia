@@ -133,6 +133,12 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
     const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
     const url = `${serverUrl}/message/sendMedia/${instanceName}`;
 
+    // Strip data URI prefix if present — Evolution expects raw base64 or URL
+    let mediaData = media.url;
+    if (mediaData.startsWith("data:")) {
+      mediaData = mediaData.split(",")[1] || mediaData;
+    }
+
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -143,7 +149,8 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
         body: JSON.stringify({
           number: formattedTo,
           mediatype: media.type,
-          media: media.url,
+          mimetype: media.mimeType || undefined,
+          media: mediaData,
           caption: media.caption || "",
           fileName: media.fileName || undefined,
         }),
@@ -152,6 +159,8 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       if (!response.ok) {
         const bodyText = await response.text();
         console.error(`Evolution sendMedia failed (${response.status}):`, bodyText);
+      } else {
+        console.log(`[Evolution] Media sent successfully (${media.type}) to ${to}`);
       }
     } catch (err) {
       console.error("Evolution sendMedia error:", err);

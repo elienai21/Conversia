@@ -29,6 +29,7 @@ export interface MessageOut {
   sender_id: string | null;
   original_text: string;
   detected_language: string | null;
+  status: string;
   created_at: Date;
   translations: TranslationOut[];
   attachments?: AttachmentOut[];

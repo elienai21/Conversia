@@ -342,6 +342,20 @@
   opacity: 0.7;
 }
 
+/* WhatsApp-style read status checkmarks */
+.message-meta .status-sent {
+  opacity: 0.7;
+}
+
+.message-meta .status-delivered {
+  opacity: 0.8;
+}
+
+.message-meta .status-read {
+  color: #53bdeb;
+  opacity: 1;
+}
+
 /* Copilot Suggestion UI */
 .copilot-action-btn {
   align-self: flex-start;
