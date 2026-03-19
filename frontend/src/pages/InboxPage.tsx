@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
@@ -21,6 +21,7 @@ type Message = {
   senderType: "customer" | "agent" | "system";
   originalText: string;
   createdAt: string;
+  status?: "sent" | "delivered" | "read";
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -66,6 +67,7 @@ type RawMessage = {
   sender_type: "customer" | "agent" | "system";
   original_text: string;
   created_at: string;
+  status?: string;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -117,6 +119,7 @@ function mapMessage(raw: RawMessage): Message {
     senderType: raw.sender_type,
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
+    status: (raw.status as Message["status"]) || "sent",
     attachments: raw.attachments?.map((attachment) => ({
       id: attachment.id,
       type: attachment.type,
@@ -207,6 +210,19 @@ function renderAttachments(message: Message) {
       })}
     </div>
   );
+}
+
+const MEDIA_PLACEHOLDER_RE = /^\[(image|video|audio|document)\]$/i;
+
+function renderMessageText(message: Message) {
+  // Hide placeholder text like [image], [audio] when real attachments exist
+  if (
+    message.attachments?.length &&
+    MEDIA_PLACEHOLDER_RE.test(message.originalText.trim())
+  ) {
+    return null;
+  }
+  return <p>{message.originalText}</p>;
 }
 
 // Notification sound (short beep)
@@ -663,40 +679,27 @@ export function InboxPage() {
                   onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
                 >
                   <div className="message-bubble">
-                    <p>{msg.originalText}</p>
+                    {renderMessageText(msg)}
                     {renderAttachments(msg)}
                     {msg.translatedFrom && (
                       <div className="translation-badge">
                         <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
                       </div>
                     )}
-                    <div className="message-bubble">
-                      <p>{msg.originalText}</p>
-                      {renderAttachments(msg)}
-                      {msg.translatedFrom && (
-                        <div className="translation-badge">
-                          <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
-                        </div>
-                      )}
-                      {msg.translatedTo && (
-                        <div className="translation-badge">
-                          <Sparkles size={12} /> Traduzido para {msg.translatedTo}
-                        </div>
-                      )}
-                      <div className="message-meta">
-                        <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                        {msg.senderType === 'agent' && (
-                          msg.status === 'read'
-                            ? <CheckCheck size={14} className="status-read" />
-                            : msg.status === 'delivered'
-                              ? <CheckCheck size={14} className="status-delivered" />
-                              : <Check size={14} className="status-sent" />
-                        )}
+                    {msg.translatedTo && (
+                      <div className="translation-badge">
+                        <Sparkles size={12} /> Traduzido para {msg.translatedTo}
                       </div>
                     )}
                     <div className="message-meta">
                       <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      {msg.senderType === 'agent' && <Check size={14} />}
+                      {msg.senderType === 'agent' && (
+                        msg.status === 'read'
+                          ? <CheckCheck size={14} className="status-read" />
+                          : msg.status === 'delivered'
+                            ? <CheckCheck size={14} className="status-delivered" />
+                            : <Check size={14} className="status-sent" />
+                      )}
                     </div>
                     {msg.senderType === 'customer' && (
                       <button
