@@ -6,19 +6,31 @@ import {
   calendarQuerySchema,
   reservationSearchSchema,
 } from "../schemas/staysnet.schema.js";
-import * as staysnet from "../services/staysnet.service.js";
+import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 
 export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
 
+  async function getAdapter(tenantId: string) {
+    const factoryResult = await CrmAdapterFactory.getAdapter(tenantId);
+    if (!factoryResult.ok) throw factoryResult.error;
+    return factoryResult.value;
+  }
+
   // --- Test connection ---
   app.get("/test", { onRequest: [requireAdmin] }, async (request) => {
-    return staysnet.testConnection(request.user.tenantId);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.testConnection();
+    if (!result.ok) throw result.error;
+    return { ok: result.value };
   });
 
   // --- Search filter (cities, regions, amenities, etc.) ---
   app.get("/search-filter", async (request) => {
-    return staysnet.getSearchFilter(request.user.tenantId);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getSearchFilter();
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Listings ---
@@ -26,29 +38,44 @@ export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
     "/listings",
     async (request) => {
       const { status, skip, limit } = request.query;
-      return staysnet.getListings(request.user.tenantId, {
+      const adapter = await getAdapter(request.user.tenantId);
+      const result = await adapter.getListings({
         status,
         skip: skip ? Number(skip) : undefined,
         limit: limit ? Number(limit) : undefined,
       });
+      if (!result.ok) throw result.error;
+      return result.value;
     }
   );
 
   app.get<{ Params: { id: string } }>("/listings/:id", async (request) => {
-    return staysnet.getListing(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getListing(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Listing details ---
   app.get<{ Params: { id: string } }>("/listings/:id/booking-settings", async (request) => {
-    return staysnet.getBookingSettings(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getBookingSettings(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   app.get<{ Params: { id: string } }>("/listings/:id/house-rules", async (request) => {
-    return staysnet.getHouseRules(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getHouseRules(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   app.get<{ Params: { id: string } }>("/listings/:id/sell-price", async (request) => {
-    return staysnet.getSellPriceSettings(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getSellPriceSettings(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Calendar / Availability ---
@@ -59,12 +86,14 @@ export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
       if (!parsed.success) {
         return reply.status(422).send({ detail: "from and to (YYYY-MM-DD) are required", errors: parsed.error.flatten() });
       }
-      return staysnet.getListingCalendar(
-        request.user.tenantId,
-        request.params.id,
-        parsed.data.from,
-        parsed.data.to
-      );
+      
+      const adapter = await getAdapter(request.user.tenantId);
+      const result = await adapter.getListingCalendar(request.params.id, {
+        from: parsed.data.from,
+        to: parsed.data.to,
+      });
+      if (!result.ok) throw result.error;
+      return result.value;
     }
   );
 
@@ -74,7 +103,11 @@ export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
     if (!parsed.success) {
       return reply.status(422).send({ detail: "Invalid search params", errors: parsed.error.flatten() });
     }
-    return staysnet.searchListings(request.user.tenantId, parsed.data);
+    
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.searchListings(parsed.data);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Calculate price ---
@@ -83,7 +116,11 @@ export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
     if (!parsed.success) {
       return reply.status(422).send({ detail: "Invalid params", errors: parsed.error.flatten() });
     }
-    return staysnet.calculatePrice(request.user.tenantId, parsed.data);
+    
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.calculatePrice(parsed.data);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Reservations ---
@@ -92,28 +129,44 @@ export async function staysnetRoutes(app: FastifyInstance): Promise<void> {
     if (!parsed.success) {
       return reply.status(422).send({ detail: "Invalid params", errors: parsed.error.flatten() });
     }
-    return staysnet.searchActiveReservations(request.user.tenantId, {
+    
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.searchActiveReservations({
       ...parsed.data,
       skip: parsed.data.skip ? Number(parsed.data.skip) : undefined,
       limit: parsed.data.limit ? Number(parsed.data.limit) : undefined,
     });
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   app.get<{ Params: { id: string } }>("/reservations/:id", async (request) => {
-    return staysnet.getReservation(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getReservation(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Properties ---
   app.get("/properties", async (request) => {
-    return staysnet.getProperties(request.user.tenantId);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getProperties();
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   app.get<{ Params: { id: string } }>("/properties/:id", async (request) => {
-    return staysnet.getProperty(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getProperty(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 
   // --- Clients ---
   app.get<{ Params: { id: string } }>("/clients/:id", async (request) => {
-    return staysnet.getClient(request.user.tenantId, request.params.id);
+    const adapter = await getAdapter(request.user.tenantId);
+    const result = await adapter.getClient(request.params.id);
+    if (!result.ok) throw result.error;
+    return result.value;
   });
 }

@@ -10,6 +10,9 @@ import { copilotQueue, type CopilotJobData } from "../lib/queue.js";
 import { type Result, ok, fail } from "../lib/result.js";
 import { AppError } from "../lib/errors.js";
 
+import { crmTools } from "./ai-tools.js";
+import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+
 // The public sync function just enqueues the request (Event-Driven AI)
 export async function enqueueSuggestionJob(
   tenantId: string,
@@ -73,77 +76,108 @@ export async function generateSuggestionWorker(
       content: m.originalText,
     }));
 
-  // 6b. Get past conversations for this customer (returning customer context)
-  let pastConversationsContext = "";
+  // 7. Build system prompt
+  let systemPrompt = customSystemPrompt
+    ? `${customSystemPrompt}${knowledgeContext}\n\nReply in ${agentLanguage}.`
+    : `You are a helpful hotel customer service agent assistant.
+Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${knowledgeContext}
+Use the available tools to fetch LIVE CRM DATA such as pricing and availability automatically when the customer requests them!
+Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
+
+  // 8. AI Execution Loop (Function Calling)
+  const messages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...conversationContext,
+  ];
+
+  let suggestionText = "I'll be happy to help you.";
+  let finalUsage = { prompt_tokens: 0, completion_tokens: 0 };
+
   try {
-    const currentConversation = await prisma.conversation.findUnique({
-      where: { id: message.conversationId },
-      select: { customerId: true },
-    });
-    if (currentConversation?.customerId) {
-      const pastConversations = await prisma.conversation.findMany({
-        where: {
-          customerId: currentConversation.customerId,
-          tenantId,
-          status: "closed",
-          id: { not: message.conversationId },
-        },
-        orderBy: { updatedAt: "desc" },
-        take: 3,
-        include: {
-          messages: {
-            select: { senderType: true, originalText: true },
-            orderBy: { createdAt: "desc" },
-            take: 3,
-          },
-        },
+    // We allow up to 5 loop iterations to prevent infinite loops if tools misbehave
+    for (let i = 0; i < 5; i++) {
+      const response = await openai.chat.completions.create({
+        model,
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+        tools: crmTools,
+        tool_choice: "auto",
       });
-      if (pastConversations.length > 0) {
-        const summaries = pastConversations.map((pc) => {
-          const snippets = pc.messages
-            .reverse()
-            .map((m) => `${m.senderType}: ${m.originalText.slice(0, 100)}`)
-            .join(" | ");
-          return `- ${pc.channel} conversation (${pc.updatedAt.toISOString().slice(0, 10)}): ${snippets}`;
-        });
-        pastConversationsContext = `\n\nPrevious interactions with this customer (${pastConversations.length} past conversations):\n${summaries.join("\n")}`;
+
+      if (response.usage) {
+        finalUsage.prompt_tokens += response.usage.prompt_tokens;
+        finalUsage.completion_tokens += response.usage.completion_tokens;
+      }
+
+      const responseMessage = response.choices[0]?.message;
+      if (!responseMessage) break;
+
+      messages.push(responseMessage); // Important: always append the assistant's response
+
+      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+        // Tool Call Execution Phase
+        for (const toolCall of responseMessage.tool_calls) {
+          if (toolCall.type !== "function") continue;
+          
+          let resultJson = "";
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const adapterResult = await CrmAdapterFactory.getAdapter(tenantId);
+            
+            if (!adapterResult.ok) {
+              resultJson = JSON.stringify({ error: adapterResult.error.message });
+            } else {
+              const adapter = adapterResult.value;
+              const fnName = toolCall.function.name;
+
+              if (fnName === "search_available_listings") {
+                const res = await adapter.searchListings({ from: args.from, to: args.to, guests: args.guests });
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else if (fnName === "calculate_price") {
+                const res = await adapter.calculatePrice({ listingIds: args.listingIds, from: args.from, to: args.to, guests: args.guests });
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else {
+                resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });
+              }
+            }
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            resultJson = JSON.stringify({ error: `Execution error: ${msg}` });
+          }
+
+          // Return result to the LLM
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: resultJson,
+          });
+        }
+        // Continue the loop: LLM reads the tool messages and decides the next action
+      } else {
+        // No more tool calls, we have our final text
+        suggestionText = responseMessage.content?.trim() || suggestionText;
+        break; 
       }
     }
-  } catch {
-    // Non-critical — continue without past context
+  } catch (openaiErr) {
+    console.error("OpenAI Execution Error in Copilot:", openaiErr);
+    // Silent fail over to default generic text if OpenAI strictly crashes at networking level
+    suggestionText = "A error occurred communicating with AI. Please check settings.";
   }
 
-  // 7. Build system prompt
-  const systemPrompt = customSystemPrompt
-    ? `${customSystemPrompt}${knowledgeContext}${pastConversationsContext}\n\nReply in ${agentLanguage}.`
-    : `You are a helpful hotel customer service agent assistant.
-Based on the conversation history and the hotel knowledge base below, suggest a professional and helpful response.${knowledgeContext}${pastConversationsContext}
-Reply in ${agentLanguage}. Keep it concise and natural.`;
-
-  const response = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...conversationContext,
-    ],
-    temperature,
-    max_tokens: maxTokens,
-  });
-
-  const usage = response.usage;
-  if (usage) {
+  // 9. Log final cumulative token usage
+  if (finalUsage.prompt_tokens > 0) {
     await logAiUsage({
       tenantId,
       service: "copilot_suggestion",
       model,
-      inputTokens: usage.prompt_tokens,
-      outputTokens: usage.completion_tokens,
+      inputTokens: finalUsage.prompt_tokens,
+      outputTokens: finalUsage.completion_tokens,
     });
   }
 
-  const suggestionText =
-    response.choices[0]?.message?.content?.trim() ?? "I'll be happy to help you.";
-
+  // 10. Save the final suggestion to database
   try {
     const suggestion = await prisma.aISuggestion.create({
       data: {
