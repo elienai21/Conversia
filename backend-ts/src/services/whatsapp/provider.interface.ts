@@ -18,6 +18,14 @@ export interface IncomingWhatsappMessage {
   attachments?: MessageAttachmentInput[];
 }
 
+export interface MediaPayload {
+  type: "image" | "video" | "audio" | "document";
+  url: string;
+  caption?: string;
+  fileName?: string;
+  mimeType?: string;
+}
+
 export interface IWhatsAppProvider {
   /**
    * Parse an incoming webhook payload and return any extracted messages.

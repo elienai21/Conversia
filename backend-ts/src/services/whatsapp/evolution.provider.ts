@@ -1,6 +1,7 @@
 import {
   IWhatsAppProvider,
   IncomingWhatsappMessage,
+  type MediaPayload,
   type MessageAttachmentInput,
 } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
