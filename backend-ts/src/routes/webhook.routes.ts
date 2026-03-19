@@ -16,7 +16,7 @@ import {
 } from "../services/conversation.service.js";
 import { saveAttachment, saveMessage, saveTranslation } from "../services/message.service.js";
 import type { MessageAttachmentInput } from "../services/whatsapp/provider.interface.js";
-import { fetchEvolutionProfilePicture } from "../services/whatsapp/evolution.provider.js";
+import { fetchEvolutionProfilePicture, fetchEvolutionMediaBase64 } from "../services/whatsapp/evolution.provider.js";
 import { detectLanguage } from "../services/language.service.js";
 import { detectIntent } from "../services/intent.service.js";
 import { translateText } from "../services/translation.service.js";
@@ -37,8 +37,10 @@ async function processIncomingMessage(params: {
   externalMessageId: string;
   isNewConversation: boolean;
   attachments?: MessageAttachmentInput[];
+  /** Original WhatsApp message key – used for active media download */
+  whatsappMessageKey?: Record<string, unknown>;
 }): Promise<void> {
-  const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [] } = params;
+  const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [], whatsappMessageKey } = params;
 
   // Step 5: Detect language
   const detectedLang = text.startsWith("[") && text.endsWith("]") ? null : detectLanguage(text);
@@ -75,18 +77,38 @@ async function processIncomingMessage(params: {
   console.log(`[Webhook] processIncomingMessage: attachments received=${attachments.length}, types=${attachments.map(a => a.type).join(',')}`);
   const savedAttachments = [];
   for (const attachment of attachments) {
-    console.log(`[Webhook] Saving attachment: type=${attachment.type}, hasSourceUrl=${!!attachment.sourceUrl}, sourceUrlLen=${attachment.sourceUrl?.length ?? 0}, hasProviderMediaId=${!!attachment.providerMediaId}`);
-    const saved = await saveAttachment({
-      messageId: message.id,
-      type: attachment.type,
-      mimeType: attachment.mimeType,
-      fileName: attachment.fileName,
-      fileSizeBytes: attachment.fileSizeBytes,
-      sourceUrl: attachment.sourceUrl,
-      providerMediaId: attachment.providerMediaId,
-    });
-    console.log(`[Webhook] Attachment saved: id=${saved.id}`);
-    savedAttachments.push(saved);
+    let sourceUrl = attachment.sourceUrl;
+    
+    // If no sourceUrl but we have the WhatsApp message key, fetch media actively
+    if (!sourceUrl && whatsappMessageKey) {
+      console.log(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
+      const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
+      if (mediaResult) {
+        sourceUrl = `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+        console.log(`[Webhook] Fetched media successfully: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
+      } else {
+        console.error(`[Webhook] Failed to fetch media from Evolution API`);
+      }
+    }
+    
+    const sourceUrlLen = sourceUrl?.length ?? 0;
+    console.log(`[Webhook] Saving attachment: type=${attachment.type}, hasSourceUrl=${!!sourceUrl}, sourceUrlLen=${sourceUrlLen}`);
+    
+    try {
+      const saved = await saveAttachment({
+        messageId: message.id,
+        type: attachment.type,
+        mimeType: attachment.mimeType,
+        fileName: attachment.fileName,
+        fileSizeBytes: attachment.fileSizeBytes,
+        sourceUrl: sourceUrl,
+        providerMediaId: attachment.providerMediaId,
+      });
+      console.log(`[Webhook] Attachment saved successfully: id=${saved.id}`);
+      savedAttachments.push(saved);
+    } catch (err) {
+      console.error(`[Webhook] FAILED to save attachment: type=${attachment.type}, error=`, err);
+    }
   }
 
   // Emit real-time event for the new message
@@ -218,6 +240,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
   // WhatsApp incoming message
   app.post("/whatsapp", async (request, reply) => {
     const body = request.body as Record<string, unknown>;
+    console.log(`[WhatsApp WEBHOOK] bodyKeys=${Object.keys(body).join(',')}, event=${body.event ?? 'N/A'}`);
 
     // Step 1: Parse incoming message
     const parsed = parseIncomingMessage(body);
@@ -256,6 +279,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         externalMessageId: incoming.messageId,
         isNewConversation: isNew,
         attachments: incoming.attachments,
+        whatsappMessageKey: incoming.whatsappMessageKey,
       });
     }
 
@@ -265,6 +289,14 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
   // ─── Evolution API Webhook ─────────────────────────────
   app.post("/evolution", async (request, reply) => {
     const body = request.body as Record<string, unknown>;
+
+    // === TOP-LEVEL DEBUG: Log EVERY webhook event ===
+    console.log(`[Evolution WEBHOOK] event="${body.event}", instance="${body.instance}", bodyKeys=${Object.keys(body).join(',')}`);
+    if (body.data && typeof body.data === 'object') {
+      const data = body.data as Record<string, unknown>;
+      console.log(`[Evolution WEBHOOK] data.keys=${Object.keys(data).join(',')}`);
+    }
+    // === END TOP-LEVEL DEBUG ===
 
     // Handle message status updates (delivery/read receipts)
     if (body.event === "messages.update") {
@@ -355,6 +387,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         externalMessageId: incoming.messageId,
         isNewConversation: isNew,
         attachments: incoming.attachments,
+        whatsappMessageKey: incoming.whatsappMessageKey,
       });
     }
 

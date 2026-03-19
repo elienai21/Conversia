@@ -75,6 +75,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
           displayName: msgData.pushName as string | undefined,
           providerId: body.instance as string,
           attachments,
+          whatsappMessageKey: key as Record<string, unknown>,
         },
       ];
     } catch (err) {
@@ -250,7 +251,7 @@ function extractEvolutionAttachments(
     let sourceUrl =
       (payload.url as string | undefined) ??
       (payload.mediaUrl as string | undefined) ??
-      (payload.directPath as string | undefined);
+      undefined; // Don't use directPath - it's not a valid URL
 
     // Evolution API may inject base64 natively if configured.
     // Check common paths for base64 injection in the webhook payload.
@@ -264,6 +265,8 @@ function extractEvolutionAttachments(
       sourceUrl = `data:${mimeType};base64,${b64}`;
     }
 
+    console.log(`[Evolution] extractAttachments: found ${mapping.type}, hasSourceUrl=${!!sourceUrl}, hasBase64=${!!b64}, sourceUrlLen=${sourceUrl?.length ?? 0}`);
+
     return [
       {
         type: mapping.type,
@@ -275,4 +278,70 @@ function extractEvolutionAttachments(
   }
 
   return [];
+}
+
+/**
+ * Fetch media content as base64 from Evolution API.
+ * Uses the /chat/getBase64FromMediaMessage/{instance} endpoint.
+ */
+export async function fetchEvolutionMediaBase64(
+  tenantId: string,
+  whatsappMessageKey: Record<string, unknown>,
+): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+
+    const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const instanceName = settings?.evolutionInstanceName;
+    const rawToken = settings?.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+    if (!rawUrl || !instanceName || !apikey) {
+      console.error("[Evolution] Missing config for fetchMediaBase64");
+      return null;
+    }
+
+    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
+    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+      serverUrl = `https://${serverUrl}`;
+    }
+
+    const url = `${serverUrl}/chat/getBase64FromMediaMessage/${instanceName}`;
+    console.log(`[Evolution] Fetching media base64 from: ${url}`);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey,
+      },
+      body: JSON.stringify({
+        message: { key: whatsappMessageKey },
+        convertToMp4: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Evolution] fetchMediaBase64 failed: ${response.status} ${errorText}`);
+      return null;
+    }
+
+    const result = await response.json() as Record<string, unknown>;
+    const b64String = (result.base64 as string) || null;
+    const mimeType = (result.mimetype as string) || "application/octet-stream";
+
+    if (!b64String) {
+      console.error("[Evolution] fetchMediaBase64: no base64 in response");
+      return null;
+    }
+
+    console.log(`[Evolution] fetchMediaBase64 success: mimeType=${mimeType}, base64Len=${b64String.length}`);
+    return { base64: b64String, mimeType };
+  } catch (err) {
+    console.error("[Evolution] fetchMediaBase64 error:", err);
+    return null;
+  }
 }

@@ -16,6 +16,8 @@ export interface IncomingWhatsappMessage {
   displayName?: string;
   providerId: string; // Used to resolve tenant, e.g. phoneNumberId for Official, instanceName for Evolution
   attachments?: MessageAttachmentInput[];
+  /** The original WhatsApp message key object – used for fetching media via getBase64FromMediaMessage */
+  whatsappMessageKey?: Record<string, unknown>;
 }
 
 export interface MediaPayload {
