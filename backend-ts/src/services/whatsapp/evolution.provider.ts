@@ -159,6 +159,50 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
   }
 }
 
+export async function fetchEvolutionProfilePicture(
+  tenantId: string,
+  phone: string,
+): Promise<string | undefined> {
+  try {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+
+    const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const instanceName = settings?.evolutionInstanceName;
+    const rawToken = settings?.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+    if (!rawUrl || !instanceName || !apikey) return undefined;
+
+    let serverUrl = rawUrl.trim().replace(/\/+$/, "");
+    if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
+      serverUrl = `https://${serverUrl}`;
+    }
+
+    const formattedNumber = phone.includes("@") ? phone : `${phone}@s.whatsapp.net`;
+    const url = `${serverUrl}/chat/fetchProfilePictureUrl/${instanceName}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey,
+      },
+      body: JSON.stringify({ number: formattedNumber }),
+    });
+
+    if (!response.ok) return undefined;
+
+    const data = await response.json() as Record<string, unknown>;
+    const pictureUrl = (data.profilePictureUrl ?? data.profilePicUrl ?? data.url ?? data.imgUrl) as string | undefined;
+    return pictureUrl || undefined;
+  } catch (err) {
+    console.warn("[Evolution] Failed to fetch profile picture:", err);
+    return undefined;
+  }
+}
+
 function extractEvolutionAttachments(
   messageContent: Record<string, unknown>,
 ): MessageAttachmentInput[] {

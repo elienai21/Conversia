@@ -16,6 +16,7 @@ import {
 } from "../services/conversation.service.js";
 import { saveAttachment, saveMessage, saveTranslation } from "../services/message.service.js";
 import type { MessageAttachmentInput } from "../services/whatsapp/provider.interface.js";
+import { fetchEvolutionProfilePicture } from "../services/whatsapp/evolution.provider.js";
 import { detectLanguage } from "../services/language.service.js";
 import { detectIntent } from "../services/intent.service.js";
 import { translateText } from "../services/translation.service.js";
@@ -255,11 +256,20 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         continue;
       }
 
+      // Step 2.5: Try to fetch profile picture from Evolution API (non-blocking)
+      let profilePicUrl: string | undefined;
+      try {
+        profilePicUrl = await fetchEvolutionProfilePicture(tenant.id, incoming.from);
+      } catch {
+        // Ignore errors - profile picture is optional
+      }
+
       // Step 3: Find or create customer
       const customer = await findOrCreateCustomer(
         tenant.id,
         incoming.from,
         incoming.displayName,
+        profilePicUrl,
       );
 
       // Step 4: Find or create conversation

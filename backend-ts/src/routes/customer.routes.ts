@@ -53,6 +53,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
           email: c.email,
           social_media: c.socialMedia,
           tag: c.tag,
+          profile_picture_url: c.profilePictureUrl,
           created_at: c.createdAt,
           conversation_count: c.conversations.length,
           active_conversations: activeConvs.length,
@@ -116,6 +117,113 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
     });
   });
 
+  // PATCH /:customerId — Update a customer
+  app.patch<{ Params: { customerId: string } }>(
+    "/:customerId",
+    async (request, reply) => {
+      const tenantId = request.user.tenantId;
+      const { customerId } = request.params;
+      const body = request.body as {
+        name?: string;
+        phone?: string;
+        email?: string | null;
+        social_media?: string | null;
+        tag?: string | null;
+      };
+
+      const customer = await prisma.customer.findFirst({
+        where: { id: customerId, tenantId },
+      });
+
+      if (!customer) {
+        return reply.status(404).send({ detail: "Customer not found" });
+      }
+
+      // If phone is changing, check for duplicates
+      const newPhone = body.phone?.trim();
+      if (newPhone && newPhone !== customer.phone) {
+        const existing = await prisma.customer.findUnique({
+          where: { tenantId_phone: { tenantId, phone: newPhone } },
+        });
+        if (existing) {
+          return reply.status(409).send({ detail: "Another customer with this phone already exists" });
+        }
+      }
+
+      const updated = await prisma.customer.update({
+        where: { id: customerId },
+        data: {
+          ...(body.name !== undefined && { name: body.name?.trim() || null }),
+          ...(newPhone && { phone: newPhone }),
+          ...(body.email !== undefined && { email: body.email?.trim() || null }),
+          ...(body.social_media !== undefined && { socialMedia: body.social_media?.trim() || null }),
+          ...(body.tag !== undefined && { tag: body.tag?.trim() || null }),
+        },
+      });
+
+      return reply.send({
+        id: updated.id,
+        name: updated.name,
+        phone: updated.phone,
+        email: updated.email,
+        social_media: updated.socialMedia,
+        tag: updated.tag,
+        created_at: updated.createdAt,
+      });
+    },
+  );
+
+  // DELETE /:customerId — Delete a customer
+  app.delete<{ Params: { customerId: string } }>(
+    "/:customerId",
+    async (request, reply) => {
+      const tenantId = request.user.tenantId;
+      const { customerId } = request.params;
+
+      const customer = await prisma.customer.findFirst({
+        where: { id: customerId, tenantId },
+      });
+
+      if (!customer) {
+        return reply.status(404).send({ detail: "Customer not found" });
+      }
+
+      // Delete related conversations and their messages first
+      const conversations = await prisma.conversation.findMany({
+        where: { customerId },
+        select: { id: true },
+      });
+
+      const conversationIds = conversations.map((c) => c.id);
+
+      if (conversationIds.length > 0) {
+        // Delete in order: translations -> suggestions -> attachments -> messages -> conversation reads -> conversations
+        await prisma.messageTranslation.deleteMany({
+          where: { message: { conversationId: { in: conversationIds } } },
+        });
+        await prisma.aISuggestion.deleteMany({
+          where: { message: { conversationId: { in: conversationIds } } },
+        });
+        await prisma.messageAttachment.deleteMany({
+          where: { message: { conversationId: { in: conversationIds } } },
+        });
+        await prisma.message.deleteMany({
+          where: { conversationId: { in: conversationIds } },
+        });
+        await prisma.conversationRead.deleteMany({
+          where: { conversationId: { in: conversationIds } },
+        });
+        await prisma.conversation.deleteMany({
+          where: { id: { in: conversationIds } },
+        });
+      }
+
+      await prisma.customer.delete({ where: { id: customerId } });
+
+      return reply.status(204).send();
+    },
+  );
+
   // GET /:customerId — Single customer with conversation history
   app.get<{ Params: { customerId: string } }>(
     "/:customerId",
@@ -158,6 +266,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
         email: customer.email,
         social_media: customer.socialMedia,
         tag: customer.tag,
+        profile_picture_url: customer.profilePictureUrl,
         created_at: customer.createdAt,
         conversations: customer.conversations.map((cv) => ({
           id: cv.id,

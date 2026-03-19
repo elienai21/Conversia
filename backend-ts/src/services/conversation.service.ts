@@ -14,6 +14,7 @@ export async function findOrCreateCustomer(
   tenantId: string,
   phone: string,
   name?: string,
+  profilePictureUrl?: string,
 ) {
   let customer = await prisma.customer.findUnique({
     where: {
@@ -27,7 +28,13 @@ export async function findOrCreateCustomer(
         tenantId,
         phone,
         name: name ?? phone,
+        profilePictureUrl: profilePictureUrl ?? null,
       },
+    });
+  } else if (profilePictureUrl && !customer.profilePictureUrl) {
+    customer = await prisma.customer.update({
+      where: { id: customer.id },
+      data: { profilePictureUrl },
     });
   }
 
