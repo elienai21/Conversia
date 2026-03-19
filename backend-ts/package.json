@@ -7,7 +7,7 @@
     "build": "prisma generate && tsc",
     "start": "prisma db push --skip-generate && node dist/server.js",
     "test": "tsx --test tests/**/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "prisma generate && tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

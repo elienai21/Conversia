@@ -465,6 +465,27 @@ function buildAttachmentSourceUrl(
   return `/api/v1/conversations/${conversationId}/messages/${messageId}/attachments/${attachment.id}`;
 }
 
+function buildAttachmentSourceUrl(
+  _request: unknown,
+  conversationId: string,
+  messageId: string,
+  attachment: {
+    id: string;
+    sourceUrl?: string | null;
+    providerMediaId?: string | null;
+  },
+) {
+  if (attachment.sourceUrl) {
+    return attachment.sourceUrl;
+  }
+
+  if (!attachment.providerMediaId) {
+    return null;
+  }
+
+  return `/api/v1/conversations/${conversationId}/messages/${messageId}/attachments/${attachment.id}`;
+}
+
 async function getAgentConversation(
   prisma: FastifyInstance["deps"]["prisma"],
   conversationId: string,

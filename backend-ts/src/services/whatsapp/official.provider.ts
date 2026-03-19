@@ -211,3 +211,47 @@ function extractOfficialAttachments(
     fileName: typedPayload.filename as string | undefined,
   }];
 }
+
+function extractOfficialText(
+  msg: Record<string, unknown>,
+  type: string,
+  attachments: MessageAttachmentInput[],
+): string {
+  if (type === "text") {
+    const textObj = msg.text as Record<string, unknown> | undefined;
+    return (textObj?.body as string | undefined) ?? "";
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  const caption = typedPayload?.caption as string | undefined;
+  if (caption) {
+    return caption;
+  }
+
+  if (attachments.length > 0) {
+    return `[${attachments[0].type}]`;
+  }
+
+  return "";
+}
+
+function extractOfficialAttachments(
+  msg: Record<string, unknown>,
+  type: string,
+): MessageAttachmentInput[] {
+  if (!["image", "video", "audio", "document"].includes(type)) {
+    return [];
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  if (!typedPayload?.id) {
+    return [];
+  }
+
+  return [{
+    type: type as MessageAttachmentInput["type"],
+    providerMediaId: typedPayload.id as string,
+    mimeType: typedPayload.mime_type as string | undefined,
+    fileName: typedPayload.filename as string | undefined,
+  }];
+}
