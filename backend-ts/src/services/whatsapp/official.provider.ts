@@ -80,6 +80,136 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
       console.error("WhatsApp Official send error:", err);
     }
   }
+
+  async sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void> {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+    const token = settings?.whatsappApiToken || config.WHATSAPP_API_TOKEN;
+    const phoneNumberId = settings?.whatsappPhoneNumberId;
+
+    if (!token || !phoneNumberId) {
+      console.log("[Official WhatsApp] Missing token or phoneNumberId, skipping sendMedia");
+      return;
+    }
+
+    const url = `${config.WHATSAPP_API_URL}/${phoneNumberId}/messages`;
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: media.type,
+          [media.type]: {
+            link: media.url,
+            caption: media.caption || undefined,
+            filename: media.fileName || undefined,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        console.error(`WhatsApp Official sendMedia failed (${response.status}):`, body);
+      }
+    } catch (err) {
+      console.error("WhatsApp Official sendMedia error:", err);
+    }
+  }
+}
+
+function extractOfficialText(
+  msg: Record<string, unknown>,
+  type: string,
+  attachments: MessageAttachmentInput[],
+): string {
+  if (type === "text") {
+    const textObj = msg.text as Record<string, unknown> | undefined;
+    return (textObj?.body as string | undefined) ?? "";
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  const caption = typedPayload?.caption as string | undefined;
+  if (caption) {
+    return caption;
+  }
+
+  if (attachments.length > 0) {
+    return `[${attachments[0].type}]`;
+  }
+
+  return "";
+}
+
+function extractOfficialAttachments(
+  msg: Record<string, unknown>,
+  type: string,
+): MessageAttachmentInput[] {
+  if (!["image", "video", "audio", "document"].includes(type)) {
+    return [];
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  if (!typedPayload?.id) {
+    return [];
+  }
+
+  return [{
+    type: type as MessageAttachmentInput["type"],
+    providerMediaId: typedPayload.id as string,
+    mimeType: typedPayload.mime_type as string | undefined,
+    fileName: typedPayload.filename as string | undefined,
+  }];
+}
+
+function extractOfficialText(
+  msg: Record<string, unknown>,
+  type: string,
+  attachments: MessageAttachmentInput[],
+): string {
+  if (type === "text") {
+    const textObj = msg.text as Record<string, unknown> | undefined;
+    return (textObj?.body as string | undefined) ?? "";
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  const caption = typedPayload?.caption as string | undefined;
+  if (caption) {
+    return caption;
+  }
+
+  if (attachments.length > 0) {
+    return `[${attachments[0].type}]`;
+  }
+
+  return "";
+}
+
+function extractOfficialAttachments(
+  msg: Record<string, unknown>,
+  type: string,
+): MessageAttachmentInput[] {
+  if (!["image", "video", "audio", "document"].includes(type)) {
+    return [];
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  if (!typedPayload?.id) {
+    return [];
+  }
+
+  return [{
+    type: type as MessageAttachmentInput["type"],
+    providerMediaId: typedPayload.id as string,
+    mimeType: typedPayload.mime_type as string | undefined,
+    fileName: typedPayload.filename as string | undefined,
+  }];
 }
 
 function extractOfficialText(

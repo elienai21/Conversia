@@ -10,14 +10,22 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   closed: [],
 };
 
+/** Strip +, spaces, dashes, parens — keep only digits */
+export function normalizePhone(phone: string): string {
+  return phone.replace(/[^\d]/g, "");
+}
+
 export async function findOrCreateCustomer(
   tenantId: string,
   phone: string,
   name?: string,
+  profilePictureUrl?: string,
 ) {
+  const normalized = normalizePhone(phone);
+
   let customer = await prisma.customer.findUnique({
     where: {
-      tenantId_phone: { tenantId, phone },
+      tenantId_phone: { tenantId, phone: normalized },
     },
   });
 
@@ -25,9 +33,15 @@ export async function findOrCreateCustomer(
     customer = await prisma.customer.create({
       data: {
         tenantId,
-        phone,
+        phone: normalized,
         name: name ?? phone,
+        profilePictureUrl: profilePictureUrl ?? null,
       },
+    });
+  } else if (profilePictureUrl && !customer.profilePictureUrl) {
+    customer = await prisma.customer.update({
+      where: { id: customer.id },
+      data: { profilePictureUrl },
     });
   }
 

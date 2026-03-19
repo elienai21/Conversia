@@ -209,4 +209,82 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send({ success: true });
   });
+
+  // 4. Get media content from a message (proxy to Evolution API)
+  app.get<{ Params: { messageId: string } }>(
+    "/media/:messageId",
+    async (request, reply) => {
+      const user = request.user;
+      const { messageId } = request.params;
+
+      // Find the message and its attachment
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, conversation: { tenantId: user.tenantId } },
+        include: { attachments: true, conversation: true },
+      });
+
+      if (!message || !message.externalId) {
+        return reply.status(404).send({ detail: "Message not found" });
+      }
+
+      const settings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: user.tenantId },
+      });
+
+      const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+      const instanceName = settings?.evolutionInstanceName;
+      const rawToken = settings?.evolutionInstanceToken;
+      const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+      if (!rawUrl || !instanceName || !apikey) {
+        return reply.status(400).send({ detail: "Evolution API not configured" });
+      }
+
+      const serverUrl = normalizeUrl(rawUrl);
+
+      try {
+        const res = await fetch(`${serverUrl}/chat/getBase64FromMediaMessage/${instanceName}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey,
+          },
+          body: JSON.stringify({
+            message: {
+              key: { id: message.externalId },
+            },
+            convertToMp4: false,
+          }),
+        });
+
+        if (!res.ok) {
+          const bodyText = await res.text();
+          console.error(`[Evolution] getBase64FromMediaMessage failed (${res.status}):`, bodyText);
+          return reply.status(502).send({ detail: "Failed to fetch media from WhatsApp" });
+        }
+
+        const data = await res.json() as {
+          base64?: string;
+          mimetype?: string;
+          fileName?: string;
+          mediaType?: string;
+        };
+
+        if (!data.base64) {
+          return reply.status(404).send({ detail: "Media not available" });
+        }
+
+        const mimeType = data.mimetype || message.attachments[0]?.mimeType || "application/octet-stream";
+        const buffer = Buffer.from(data.base64, "base64");
+
+        reply.header("Content-Type", mimeType);
+        reply.header("Content-Length", buffer.length);
+        reply.header("Cache-Control", "public, max-age=86400");
+        return reply.send(buffer);
+      } catch (err) {
+        console.error("[Evolution] Media proxy error:", err);
+        return reply.status(502).send({ detail: "Failed to fetch media" });
+      }
+    },
+  );
 }

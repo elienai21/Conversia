@@ -50,18 +50,16 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     // Get unread counts per conversation for this user
     const conversationIds = conversations.map((c) => c.id);
     const unreadCounts = conversationIds.length > 0
-      ? await prisma.$queryRawUnsafe<{ conversation_id: string; count: bigint }[]>(
-          `SELECT m.conversation_id, COUNT(*)::bigint as count
+      ? await prisma.$queryRaw<{ conversation_id: string; count: bigint }[]>(
+          Prisma.sql`SELECT m.conversation_id, COUNT(*)::bigint as count
            FROM messages m
            LEFT JOIN conversation_reads cr
-             ON cr.conversation_id = m.conversation_id AND cr.user_id = $1
-           WHERE m.conversation_id = ANY($2)
+             ON cr.conversation_id = m.conversation_id AND cr.user_id = ${user.id}::uuid
+           WHERE m.conversation_id IN (${Prisma.join(conversationIds.map(id => Prisma.sql`${id}::uuid`))})
              AND m.deleted_at IS NULL
              AND m.sender_type = 'customer'
              AND (cr.last_read_at IS NULL OR m.created_at > cr.last_read_at)
            GROUP BY m.conversation_id`,
-          user.id,
-          conversationIds,
         )
       : [];
 
@@ -203,6 +201,51 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return reply.send(result.value);
+    },
+  );
+
+  // Delete a conversation and all its messages
+  app.delete<{ Params: { conversationId: string } }>(
+    "/:conversationId",
+    async (request, reply) => {
+      const { prisma, socket } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      // Delete in order: translations -> suggestions -> attachments -> messages -> reads -> conversation
+      await prisma.messageTranslation.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.aISuggestion.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.messageAttachment.deleteMany({
+        where: { message: { conversationId } },
+      });
+      await prisma.message.deleteMany({
+        where: { conversationId },
+      });
+      await prisma.conversationRead.deleteMany({
+        where: { conversationId },
+      });
+      await prisma.conversation.delete({
+        where: { id: conversationId },
+      });
+
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "deleted",
+        conversationId,
+      });
+
+      return reply.status(204).send();
     },
   );
 

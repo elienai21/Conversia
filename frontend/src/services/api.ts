@@ -7,7 +7,7 @@ export class ApiService {
     const tenantId = localStorage.getItem("conversia_tenant_id"); // Optional, if using manual header, otherwise JWT holds it
 
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...(options.headers as Record<string, string>),
     };
 
@@ -41,6 +41,10 @@ export class ApiService {
       }
       
       throw new Error(errorDetail);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json();
@@ -107,5 +111,33 @@ export class ApiService {
 
     const data = await response.json();
     return data.text; // Return the transcribed text directly
+  }
+
+  static async uploadFile<T>(endpoint: string, file: File, caption?: string): Promise<T> {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (caption) {
+      formData.append("caption", caption);
+    }
+
+    const token = localStorage.getItem("conversia_token");
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Failed to upload file");
+    }
+
+    return response.json();
   }
 }
