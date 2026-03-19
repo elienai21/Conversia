@@ -20,6 +20,28 @@ export async function saveMessage(params: {
   });
 }
 
+export async function saveAttachment(params: {
+  messageId: string;
+  type: string;
+  mimeType?: string;
+  fileName?: string;
+  fileSizeBytes?: number;
+  sourceUrl?: string;
+  providerMediaId?: string;
+}) {
+  return prisma.messageAttachment.create({
+    data: {
+      messageId: params.messageId,
+      type: params.type,
+      mimeType: params.mimeType ?? null,
+      fileName: params.fileName ?? null,
+      fileSizeBytes: params.fileSizeBytes ?? null,
+      sourceUrl: params.sourceUrl ?? null,
+      providerMediaId: params.providerMediaId ?? null,
+    },
+  });
+}
+
 export async function saveTranslation(params: {
   messageId: string;
   sourceLanguage: string;
@@ -41,7 +63,7 @@ export async function saveTranslation(params: {
 export async function getConversationMessages(conversationId: string) {
   return prisma.message.findMany({
     where: { conversationId, deletedAt: null },
-    include: { translations: true },
+    include: { translations: true, attachments: true },
     orderBy: { createdAt: "asc" },
   });
 }

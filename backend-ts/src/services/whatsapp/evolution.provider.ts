@@ -1,4 +1,8 @@
-import { IWhatsAppProvider, IncomingWhatsappMessage } from "./provider.interface.js";
+import {
+  IWhatsAppProvider,
+  IncomingWhatsappMessage,
+  type MessageAttachmentInput,
+} from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/encryption.js";
 
@@ -33,7 +37,12 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
         text = (messageContent.extendedTextMessage as Record<string, unknown>).text as string;
       }
 
-      if (!text) return []; // If there is no text parsed e.g., an image without caption or audio
+      const attachments = extractEvolutionAttachments(messageContent);
+      if (!text && attachments.length > 0) {
+        text = `[${attachments[0].type}]`;
+      }
+
+      if (!text) return [];
 
       let from = key.remoteJid as string;
       // Strip WhatsApp suffixes
@@ -46,6 +55,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
           text,
           displayName: msgData.pushName as string | undefined,
           providerId: body.instance as string,
+          attachments,
         },
       ];
     } catch (err) {
@@ -98,4 +108,32 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       console.error("Evolution send error:", err);
     }
   }
+}
+
+function extractEvolutionAttachments(
+  messageContent: Record<string, unknown>,
+): MessageAttachmentInput[] {
+  const mappings: Array<{ key: string; type: MessageAttachmentInput["type"] }> = [
+    { key: "imageMessage", type: "image" },
+    { key: "videoMessage", type: "video" },
+    { key: "audioMessage", type: "audio" },
+    { key: "documentMessage", type: "document" },
+  ];
+
+  for (const mapping of mappings) {
+    const payload = messageContent[mapping.key] as Record<string, unknown> | undefined;
+    if (!payload) continue;
+
+    return [{
+      type: mapping.type,
+      mimeType: payload.mimetype as string | undefined,
+      fileName: payload.fileName as string | undefined,
+      sourceUrl:
+        (payload.url as string | undefined)
+        ?? (payload.mediaUrl as string | undefined)
+        ?? (payload.directPath as string | undefined),
+    }];
+  }
+
+  return [];
 }

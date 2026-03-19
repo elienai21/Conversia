@@ -19,6 +19,8 @@ const envSchema = z.object({
   WHATSAPP_PHONE_NUMBER_ID: z.string().default(""),
   INSTAGRAM_VERIFY_TOKEN: z.string().default("conversia-ig-webhook-verify"),
   GOOGLE_CLIENT_ID: z.string().default(""),
+  FRONTEND_URL: z.string().default("http://localhost:5173"),
+  PASSWORD_RESET_EXPIRE_MINUTES: z.coerce.number().default(60),
 });
 
 export const config = envSchema.parse(process.env);

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { prisma } from "../lib/prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   conversationAssignSchema,
@@ -8,16 +7,8 @@ import {
   type ConversationOut,
 } from "../schemas/conversation.schema.js";
 import {
-  findOrCreateConversation,
   updateConversationStatus,
 } from "../services/conversation.service.js";
-import {
-  assignConversationToAgent,
-} from "../services/assignment.service.js";
-import { saveMessage } from "../services/message.service.js";
-import { sendWhatsappMessage } from "../services/whatsapp.service.js";
-import { decrypt } from "../lib/encryption.js";
-import { SocketService } from "../services/socket.service.js";
 
 const startConversationSchema = z.object({
   customer_id: z.string().uuid(),
@@ -30,6 +21,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
   // List conversations (filtered by role)
   app.get("/", async (request, reply) => {
+    const { prisma } = request.server.deps;
     const user = request.user;
 
     const where: Record<string, unknown> = {
@@ -99,6 +91,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { conversationId: string } }>(
     "/:conversationId",
     async (request, reply) => {
+      const { prisma } = request.server.deps;
       const user = request.user;
       const { conversationId } = request.params;
 
@@ -141,6 +134,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   app.patch<{ Params: { conversationId: string } }>(
     "/:conversationId/assign",
     async (request, reply) => {
+      const { prisma, services, socket } = request.server.deps;
       const user = request.user;
       const { conversationId } = request.params;
 
@@ -161,9 +155,9 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Conversation not found" });
       }
 
-      await assignConversationToAgent(conversationId, parsed.data.agent_id);
+      await services.assignConversationToAgent(conversationId, parsed.data.agent_id);
 
-      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
         type: "assigned",
         conversationId: conversationId,
         agentId: parsed.data.agent_id,
@@ -181,6 +175,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
   app.patch<{ Params: { conversationId: string } }>(
     "/:conversationId/status",
     async (request, reply) => {
+      const { services, socket } = request.server.deps;
       const user = request.user;
       const { conversationId } = request.params;
 
@@ -189,7 +184,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(422).send({ detail: "Invalid status" });
       }
 
-      const result = await updateConversationStatus(
+      const result = await services.updateConversationStatus(
         conversationId,
         user.tenantId,
         parsed.data.status,
@@ -201,7 +196,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
         type: "status_changed",
         conversationId: conversationId,
         status: parsed.data.status,
@@ -213,6 +208,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
   // Start a new outbound conversation
   app.post("/", async (request, reply) => {
+    const { prisma, services, socket } = request.server.deps;
     const user = request.user;
 
     const parsed = startConversationSchema.safeParse(request.body);
@@ -229,7 +225,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // Find or create conversation
-    const { conversation, isNew } = await findOrCreateConversation(
+    const { conversation, isNew } = await services.findOrCreateConversation(
       user.tenantId,
       customer.id,
       parsed.data.channel,
@@ -237,7 +233,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     // Assign to current agent and set active
     if (!conversation.assignedAgentId) {
-      await assignConversationToAgent(conversation.id, user.id);
+      await services.assignConversationToAgent(conversation.id, user.id);
     }
     if (conversation.status === "queued") {
       await prisma.conversation.update({
@@ -247,7 +243,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // Save the first message
-    const message = await saveMessage({
+    const message = await services.saveMessage({
       conversationId: conversation.id,
       senderType: "agent",
       senderId: user.id,
@@ -257,16 +253,16 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     // Send via WhatsApp
     if (parsed.data.channel === "whatsapp") {
-      await sendWhatsappMessage(user.tenantId, customer.phone, parsed.data.message);
+      await services.sendWhatsappMessage(user.tenantId, customer.phone, parsed.data.message);
     }
 
     // Emit socket events
-    SocketService.emitToTenant(user.tenantId, "conversation.updated", {
+    socket.emitToTenant(user.tenantId, "conversation.updated", {
       type: isNew ? "new" : "replied",
       conversationId: conversation.id,
     });
 
-    SocketService.emitToConversation(conversation.id, "message.new", {
+    socket.emitToConversation(conversation.id, "message.new", {
       id: message.id,
       conversation_id: message.conversationId,
       sender_type: message.senderType,
