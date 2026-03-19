@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model Tenant {
@@ -29,21 +31,21 @@ model Tenant {
 }
 
 model User {
-  id                         String         @id @default(uuid()) @db.Uuid
-  tenantId                   String         @map("tenant_id") @db.Uuid
-  email                      String         @map("email")
-  passwordHash               String?        @map("password_hash")
-  fullName                   String         @map("full_name")
-  role                       String         @default("agent") @map("role")
-  preferredLanguage          String         @default("en") @map("preferred_language")
-  isOnline                   Boolean        @default(false) @map("is_online")
-  isActive                   Boolean        @default(true) @map("is_active")
-  maxConcurrentConversations Int            @default(5) @map("max_concurrent_conversations")
-  createdAt                  DateTime       @default(now()) @map("created_at")
+  id                         String             @id @default(uuid()) @db.Uuid
+  tenantId                   String             @map("tenant_id") @db.Uuid
+  email                      String             @map("email")
+  passwordHash               String?            @map("password_hash")
+  fullName                   String             @map("full_name")
+  role                       String             @default("agent") @map("role")
+  preferredLanguage          String             @default("en") @map("preferred_language")
+  isOnline                   Boolean            @default(false) @map("is_online")
+  isActive                   Boolean            @default(true) @map("is_active")
+  maxConcurrentConversations Int                @default(5) @map("max_concurrent_conversations")
+  createdAt                  DateTime           @default(now()) @map("created_at")
   suggestions                AISuggestion[]
-  conversations              Conversation[] @relation("AssignedAgent")
+  conversations              Conversation[]     @relation("AssignedAgent")
   conversationReads          ConversationRead[]
-  tenant                     Tenant         @relation(fields: [tenantId], references: [id])
+  tenant                     Tenant             @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, email], map: "ix_users_tenant_email")
   @@index([tenantId], map: "ix_users_tenant")
@@ -69,15 +71,15 @@ model Customer {
 }
 
 model Conversation {
-  id               String    @id @default(uuid()) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  customerId       String    @map("customer_id") @db.Uuid
-  assignedAgentId  String?   @map("assigned_agent_id") @db.Uuid
-  channel          String    @default("whatsapp") @map("channel")
-  status           String    @default("queued") @map("status")
-  detectedLanguage String?   @map("detected_language")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id               String             @id @default(uuid()) @db.Uuid
+  tenantId         String             @map("tenant_id") @db.Uuid
+  customerId       String             @map("customer_id") @db.Uuid
+  assignedAgentId  String?            @map("assigned_agent_id") @db.Uuid
+  channel          String             @default("whatsapp") @map("channel")
+  status           String             @default("queued") @map("status")
+  detectedLanguage String?            @map("detected_language")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
   assignedAgent    User?              @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
   customer         Customer           @relation(fields: [customerId], references: [id])
   tenant           Tenant             @relation(fields: [tenantId], references: [id])
@@ -202,15 +204,16 @@ model TenantSettings {
 }
 
 model KnowledgeBase {
-  id        String   @id @default(uuid()) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  title     String   @map("title")
-  content   String   @map("content")
-  category  String   @default("other") @map("category")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  id        String                       @id @default(uuid()) @db.Uuid
+  tenantId  String                       @map("tenant_id") @db.Uuid
+  title     String                       @map("title")
+  content   String                       @map("content")
+  category  String                       @default("other") @map("category")
+  isActive  Boolean                      @default(true) @map("is_active")
+  createdAt DateTime                     @default(now()) @map("created_at")
+  updatedAt DateTime                     @updatedAt @map("updated_at")
+  tenant    Tenant                       @relation(fields: [tenantId], references: [id])
+  embedding Unsupported("vector(1536)")?
 
   @@index([tenantId, isActive], map: "ix_kb_tenant_active")
   @@map("knowledge_base")

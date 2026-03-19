@@ -12,6 +12,7 @@ import { AppError } from "../lib/errors.js";
 
 import { crmTools } from "./ai-tools.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+import { generateEmbedding } from "./embedding.service.js";
 
 // The public sync function just enqueues the request (Event-Driven AI)
 export async function enqueueSuggestionJob(
@@ -44,15 +45,35 @@ export async function generateSuggestionWorker(
     where: { tenantId },
   });
 
-  // 2. Get active knowledge base entries
-  const kbEntries = await prisma.knowledgeBase.findMany({
-    where: { tenantId, isActive: true },
-    select: { title: true, content: true, category: true },
-  });
+  // 2. Semantic Search (RAG) for KB Context
+  let contextDocs: Array<{ title: string; content: string; category: string }> = [];
+  const queryEmbedding = await generateEmbedding(tenantId, message.originalText);
+
+  if (queryEmbedding && queryEmbedding.length > 0) {
+    // Pinecone/pgvector cosine distance
+    const embeddingString = `[${queryEmbedding.join(",")}]`;
+    const results = await prisma.$queryRaw<
+      Array<{ title: string; content: string; category: string }>
+    >`
+      SELECT title, content, category 
+      FROM knowledge_base 
+      WHERE tenant_id = ${tenantId}::uuid AND is_active = true 
+      ORDER BY embedding <=> ${embeddingString}::vector 
+      LIMIT 5
+    `;
+    contextDocs = results;
+  } else {
+    // Fallback exactly as before if embedding fails
+    contextDocs = await prisma.knowledgeBase.findMany({
+      where: { tenantId, isActive: true },
+      select: { title: true, content: true, category: true },
+      take: 5,
+    });
+  }
 
   // 3. Build knowledge context
-  const knowledgeContext = kbEntries.length > 0
-    ? `\n\nHotel Knowledge Base:\n${kbEntries.map((kb) => `[${kb.category.toUpperCase()}] ${kb.title}:\n${kb.content}`).join("\n\n")}`
+  const knowledgeContext = contextDocs.length > 0
+    ? `\n\nHotel Knowledge Base:\n${contextDocs.map((kb) => `[${kb.category.toUpperCase()}] ${kb.title}:\n${kb.content}`).join("\n\n")}`
     : "";
 
   // 4. Resolve settings (tenant-specific → global fallback)
@@ -79,9 +100,10 @@ export async function generateSuggestionWorker(
   // 7. Build system prompt
   let systemPrompt = customSystemPrompt
     ? `${customSystemPrompt}${knowledgeContext}\n\nReply in ${agentLanguage}.`
-    : `You are a helpful hotel customer service agent assistant.
+    : `You are a helpful customer service agent assistant.
 Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${knowledgeContext}
-Use the available tools to fetch LIVE CRM DATA such as pricing and availability automatically when the customer requests them!
+IMPORTANT INTENT: Se o cliente quiser oferecer um imóvel para sua empresa administrar (Intenção de Parceria), a resposta sempre deve focar em agendar uma reunião comercial de apresentação, solicitando horário.
+Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.
 Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
   // 8. AI Execution Loop (Function Calling)
@@ -136,6 +158,9 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
                 resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
               } else if (fnName === "calculate_price") {
                 const res = await adapter.calculatePrice({ listingIds: args.listingIds, from: args.from, to: args.to, guests: args.guests });
+                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+              } else if (fnName === "get_reservation_details") {
+                const res = await adapter.getReservation(args.reservationCode);
                 resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
               } else {
                 resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });

@@ -8,6 +8,7 @@ import { sendWhatsappMessage } from "./whatsapp.service.js";
 import { sendInstagramMessage } from "./instagram.service.js";
 import { logAiUsage } from "./usage-log.service.js";
 import { SocketService } from "./socket.service.js";
+import { generateEmbedding } from "./embedding.service.js";
 
 /**
  * Attempts to auto-respond to a customer message using the knowledge base.
@@ -37,22 +38,41 @@ export async function tryAutoResponse(params: {
     return false;
   }
 
-  // 3. Find matching KB entries by category ~ intent
-  const kbEntries = await prisma.knowledgeBase.findMany({
-    where: {
-      tenantId,
-      isActive: true,
-      OR: [
-        { category: intent },
-        { category: "general" },
-        { category: "other" },
-      ],
-    },
-    select: { title: true, content: true, category: true },
-    take: 5,
+  // 3. Find matching KB entries via RAG
+  const lastMsg = await prisma.message.findFirst({
+    where: { conversationId, senderType: "customer" },
+    orderBy: { createdAt: "desc" },
+    select: { originalText: true },
   });
 
-  if (kbEntries.length === 0) return false;
+  const queryEmbedding = lastMsg 
+    ? await generateEmbedding(tenantId, lastMsg.originalText) 
+    : null;
+
+  let kbEntries: Array<{ title: string; content: string; category: string }> = [];
+
+  if (queryEmbedding && queryEmbedding.length > 0) {
+    const embeddingString = `[${queryEmbedding.join(",")}]`;
+    kbEntries = await prisma.$queryRaw<
+      Array<{ title: string; content: string; category: string }>
+    >`
+      SELECT title, content, category 
+      FROM knowledge_base 
+      WHERE tenant_id = ${tenantId}::uuid AND is_active = true 
+      ORDER BY embedding <=> ${embeddingString}::vector 
+      LIMIT 5
+    `;
+  } else {
+    kbEntries = await prisma.knowledgeBase.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        OR: [{ category: intent }, { category: "general" }, { category: "outro" }],
+      },
+      select: { title: true, content: true, category: true },
+      take: 5,
+    });
+  }
 
   // 4. Generate short FAQ answer using OpenAI
   const apiKey = settings.openaiApiKey
@@ -75,12 +95,18 @@ export async function tryAutoResponse(params: {
 
   const tenantLang = tenant?.defaultLanguage || "en";
 
+  let systemDirective = `You are an automated FAQ assistant. Based ONLY on the knowledge base below, provide a brief, helpful answer. If the knowledge base doesn't contain relevant information, respond with exactly "NO_MATCH".`;
+  
+  if (intent === "parceria") {
+    systemDirective = `You are an automated relationship assistant. The user wants to offer a property for your company to manage ("parceria"). Be enthusiastic, explain you would love to schedule a presentation meeting, and ask for their availability. Don't return NO_MATCH.`;
+  }
+
   const response = await openai.chat.completions.create({
     model,
     messages: [
       {
         role: "system",
-        content: `You are an automated FAQ assistant. Based ONLY on the knowledge base below, provide a brief, helpful answer. If the knowledge base doesn't contain relevant information, respond with exactly "NO_MATCH".
+        content: `${systemDirective}
 
 Knowledge Base:
 ${kbContext}

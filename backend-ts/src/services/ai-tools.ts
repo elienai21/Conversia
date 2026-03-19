@@ -58,4 +58,21 @@ export const crmTools: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_reservation_details",
+      description: "Consulta os detalhes de uma reserva específica usando o código ou ID da reserva. Use sempre que o hóspede pedir informações sobre a reserva dele (datas, status, valores) e informar o código.",
+      parameters: {
+        type: "object",
+        properties: {
+          reservationCode: {
+            type: "string",
+            description: "O código identificador da reserva informado pelo cliente (ex: RE-12345).",
+          },
+        },
+        required: ["reservationCode"],
+      },
+    },
+  },
 ];

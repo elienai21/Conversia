@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 import { createKBEntrySchema, updateKBEntrySchema } from "../schemas/knowledge-base.schema.js";
+import { generateEmbedding } from "../services/embedding.service.js";
 
 export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -41,6 +42,18 @@ export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
       },
     });
 
+    // Compute embedding asynchronously and inject via raw SQL
+    generateEmbedding(request.user.tenantId, `${parsed.data.title} ${parsed.data.content}`)
+      .then(async (vector) => {
+        if (vector) {
+          const vectorStr = `[${vector.join(",")}]`;
+          await prisma.$executeRawUnsafe(
+            `UPDATE knowledge_base SET embedding = '${vectorStr}'::vector WHERE id = '${entry.id}'`
+          );
+        }
+      })
+      .catch((err) => console.error("Error generating KB embedding:", err));
+
     return reply.status(201).send({
       id: entry.id,
       title: entry.title,
@@ -77,6 +90,19 @@ export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
       where: { id },
       data,
     });
+
+    if (parsed.data.title !== undefined || parsed.data.content !== undefined) {
+      generateEmbedding(request.user.tenantId, `${updated.title} ${updated.content}`)
+        .then(async (vector) => {
+          if (vector) {
+            const vectorStr = `[${vector.join(",")}]`;
+            await prisma.$executeRawUnsafe(
+              `UPDATE knowledge_base SET embedding = '${vectorStr}'::vector WHERE id = '${updated.id}'`
+            );
+          }
+        })
+        .catch((err) => console.error("Error updating KB embedding:", err));
+    }
 
     return {
       id: updated.id,
