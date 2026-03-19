@@ -137,7 +137,14 @@ function normalizeAttachmentUrl(sourceUrl?: string | null) {
   }
 
   if (sourceUrl.startsWith("/")) {
-    return `${API_URL}${sourceUrl}`;
+    const token = localStorage.getItem("conversia_token");
+    
+    const baseUrl = `${API_URL}${sourceUrl}`;
+    if (token) {
+      const sep = baseUrl.includes("?") ? "&" : "?";
+      return `${baseUrl}${sep}token=${token}`;
+    }
+    return baseUrl;
   }
 
   return sourceUrl;

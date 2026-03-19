@@ -478,16 +478,22 @@
   width: 100%;
 }
 
-.chat-input-row input {
+.chat-input-row input,
+.chat-input-row textarea {
   flex: 1;
   background: var(--bg-tertiary);
   border: 1px solid transparent;
   padding: 14px 16px;
-  border-radius: var(--radius-full);
+  border-radius: 20px;
   color: var(--text-primary);
   font-size: 0.95rem;
   outline: none;
   transition: border-color var(--transition-fast);
+}
+
+.chat-input-row input:focus,
+.chat-input-row textarea:focus {
+  border-color: var(--brand-primary);
 }
 
 /* Quick Reply Button */

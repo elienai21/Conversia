@@ -95,11 +95,9 @@ async function processIncomingMessage(params: {
     detected_language: message.detectedLanguage,
     created_at: message.createdAt,
     attachments: savedAttachments.map((saved) => {
-      let finalSourceUrl = null;
-      if (saved.sourceUrl) {
-        if (saved.sourceUrl.startsWith("data:")) finalSourceUrl = saved.sourceUrl;
-        else finalSourceUrl = `/api/v1/conversations/${conversation.id}/messages/${message.id}/attachments/${saved.id}`;
-      } else if (saved.providerMediaId) {
+      let finalSourceUrl: string | null = null;
+      if (saved.sourceUrl || saved.providerMediaId) {
+        // Always use the proxy URL – never send data URIs over the socket
         finalSourceUrl = `/api/v1/conversations/${conversation.id}/messages/${message.id}/attachments/${saved.id}`;
       }
 

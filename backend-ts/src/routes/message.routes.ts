@@ -113,8 +113,19 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
 
       // Special handling for remote sourceUrl (Evolution API)
       if (attachment.sourceUrl) {
+        // Handle base64 data URIs – decode and stream the binary content
         if (attachment.sourceUrl.startsWith("data:")) {
-          return reply.redirect(attachment.sourceUrl);
+          const match = attachment.sourceUrl.match(/^data:([^;]+);base64,(.+)$/);
+          if (match) {
+            const [, dataMime, b64] = match;
+            const buffer = Buffer.from(b64, "base64");
+            reply.header("content-type", attachment.mimeType || dataMime);
+            if (attachment.fileName) {
+              reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
+            }
+            return reply.send(buffer);
+          }
+          return reply.status(404).send({ detail: "Invalid data URI" });
         }
 
         const tokenRaw = settings?.evolutionInstanceToken;
@@ -480,8 +491,10 @@ function buildAttachmentSourceUrl(
     providerMediaId?: string | null;
   },
 ) {
+  // Always use the proxy URL for data URIs – they are too large for JSON responses
+  // and the proxy endpoint will decode and serve the binary content
   if (attachment.sourceUrl && attachment.sourceUrl.startsWith("data:")) {
-    return attachment.sourceUrl;
+    return `/api/v1/conversations/${conversationId}/messages/${messageId}/attachments/${attachment.id}`;
   }
 
   if (!attachment.sourceUrl && !attachment.providerMediaId) {
