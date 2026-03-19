@@ -1,5 +1,9 @@
 import { config } from "../../config.js";
-import { IWhatsAppProvider, IncomingWhatsappMessage } from "./provider.interface.js";
+import {
+  IWhatsAppProvider,
+  IncomingWhatsappMessage,
+  type MessageAttachmentInput,
+} from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 
 export class OfficialWhatsAppProvider implements IWhatsAppProvider {
@@ -18,18 +22,21 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
       const msg = messages[0];
       const contacts = value.contacts as Array<Record<string, unknown>> | undefined;
       const metadata = value.metadata as Record<string, unknown> | undefined;
+      const type = (msg.type as string | undefined) ?? "text";
+      const attachments = extractOfficialAttachments(msg, type);
+      const text = extractOfficialText(msg, type, attachments);
 
-      const textObj = msg.text as Record<string, unknown> | undefined;
-      if (!textObj?.body) return [];
+      if (!text && attachments.length === 0) return [];
 
       return [{
         from: msg.from as string,
         messageId: msg.id as string,
-        text: textObj.body as string,
+        text,
         displayName: contacts?.[0]?.profile
           ? ((contacts[0].profile as Record<string, unknown>).name as string)
           : undefined,
         providerId: (metadata?.phone_number_id as string) ?? "",
+        attachments,
       }];
     } catch {
       return [];
@@ -73,4 +80,48 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
       console.error("WhatsApp Official send error:", err);
     }
   }
+}
+
+function extractOfficialText(
+  msg: Record<string, unknown>,
+  type: string,
+  attachments: MessageAttachmentInput[],
+): string {
+  if (type === "text") {
+    const textObj = msg.text as Record<string, unknown> | undefined;
+    return (textObj?.body as string | undefined) ?? "";
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  const caption = typedPayload?.caption as string | undefined;
+  if (caption) {
+    return caption;
+  }
+
+  if (attachments.length > 0) {
+    return `[${attachments[0].type}]`;
+  }
+
+  return "";
+}
+
+function extractOfficialAttachments(
+  msg: Record<string, unknown>,
+  type: string,
+): MessageAttachmentInput[] {
+  if (!["image", "video", "audio", "document"].includes(type)) {
+    return [];
+  }
+
+  const typedPayload = msg[type] as Record<string, unknown> | undefined;
+  if (!typedPayload?.id) {
+    return [];
+  }
+
+  return [{
+    type: type as MessageAttachmentInput["type"],
+    providerMediaId: typedPayload.id as string,
+    mimeType: typedPayload.mime_type as string | undefined,
+    fileName: typedPayload.filename as string | undefined,
+  }];
 }

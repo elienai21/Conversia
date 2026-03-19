@@ -6,6 +6,16 @@ export const sendMessageRequestSchema = z.object({
   target_language: z.string().optional(),
 });
 
+export interface AttachmentOut {
+  id: string;
+  type: string;
+  mime_type: string | null;
+  file_name: string | null;
+  file_size_bytes: number | null;
+  source_url: string | null;
+  provider_media_id: string | null;
+}
+
 export interface TranslationOut {
   target_language: string;
   translated_text: string;
@@ -21,4 +31,5 @@ export interface MessageOut {
   detected_language: string | null;
   created_at: Date;
   translations: TranslationOut[];
+  attachments?: AttachmentOut[];
 }

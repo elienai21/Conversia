@@ -56,6 +56,17 @@ type TranslationRecord = {
   provider: string;
 };
 
+type AttachmentRecord = {
+  id: string;
+  messageId: string;
+  type: string;
+  mimeType: string | null;
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  sourceUrl: string | null;
+  providerMediaId: string | null;
+};
+
 type SuggestionRecord = {
   id: string;
   agentId: string;
@@ -75,8 +86,14 @@ type Store = {
   conversations: ConversationRecord[];
   messages: MessageRecord[];
   translations: TranslationRecord[];
+  attachments: AttachmentRecord[];
   reads: ReadRecord[];
   suggestions: SuggestionRecord[];
+};
+
+type TestAppOverrides = {
+  users?: UserRecord[];
+  services?: Partial<AppDeps["services"]>;
 };
 
 function matchesWhere<T extends Record<string, unknown>>(record: T, where: Record<string, unknown>) {
@@ -89,7 +106,7 @@ function matchesWhere<T extends Record<string, unknown>>(record: T, where: Recor
   });
 }
 
-function createStore(): Store {
+export function createStore(): Store {
   return {
     users: [
       {
@@ -186,17 +203,34 @@ function createStore(): Store {
         deletedAt: null,
       },
     ],
+    attachments: [
+      {
+        id: "attachment-a-1",
+        messageId: "msg-a-1",
+        type: "image",
+        mimeType: "image/jpeg",
+        fileName: "property-front.jpg",
+        fileSizeBytes: 245678,
+        sourceUrl: "https://files.example.com/property-front.jpg",
+        providerMediaId: "provider-image-1",
+      },
+    ],
     translations: [],
     reads: [],
     suggestions: [],
   };
 }
 
-function createTestDeps(store: Store): AppDeps {
+export function createTestDeps(
+  store: Store,
+  overrides: { services?: Partial<AppDeps["services"]> } = {},
+): AppDeps {
   const prisma = {
     user: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
         store.users.find((user) => matchesWhere(user, where)) ?? null,
+      findMany: async ({ where }: { where: Record<string, unknown> }) =>
+        store.users.filter((user) => matchesWhere(user, where)),
       findUnique: async ({ where }: { where: { id: string } }) =>
         store.users.find((user) => user.id === where.id) ?? null,
     },
@@ -277,6 +311,9 @@ function createTestDeps(store: Store): AppDeps {
 
         return messages.map((message) => ({
           ...message,
+          attachments: include?.attachments
+            ? store.attachments.filter((attachment) => attachment.messageId === message.id)
+            : [],
           translations: include?.translations
             ? store.translations.filter((translation) => translation.messageId === message.id)
             : [],
@@ -318,6 +355,22 @@ function createTestDeps(store: Store): AppDeps {
         };
         store.translations.push(translation);
         return translation;
+      },
+    },
+    messageAttachment: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const attachment: AttachmentRecord = {
+          id: `attachment-${store.attachments.length + 1}`,
+          messageId: String(data.messageId),
+          type: String(data.type),
+          mimeType: data.mimeType ? String(data.mimeType) : null,
+          fileName: data.fileName ? String(data.fileName) : null,
+          fileSizeBytes: typeof data.fileSizeBytes === "number" ? data.fileSizeBytes : null,
+          sourceUrl: data.sourceUrl ? String(data.sourceUrl) : null,
+          providerMediaId: data.providerMediaId ? String(data.providerMediaId) : null,
+        };
+        store.attachments.push(attachment);
+        return attachment;
       },
     },
     conversationRead: {
@@ -362,6 +415,7 @@ function createTestDeps(store: Store): AppDeps {
     auth: {
       verifyPassword: async (password, hash) => hash === `hashed-${password}`,
       createAccessToken: (userId) => `${userId}-generated-token`,
+      createPasswordResetToken: (userId, tenantId) => `reset-${userId}-${tenantId}`,
       decodeAccessToken: (token) => {
         const mapping: Record<string, { sub: string; tenant_id: string }> = {
           "agent-a-token": { sub: "agent-a", tenant_id: "tenant-a" },
@@ -376,6 +430,11 @@ function createTestDeps(store: Store): AppDeps {
 
         return payload;
       },
+      decodePasswordResetToken: () => ({
+        sub: "agent-a",
+        tenant_id: "tenant-a",
+        purpose: "password_reset" as const,
+      }),
     },
     services: {
       findOrCreateConversation: async (tenantId, customerId, channel) => {
@@ -425,7 +484,7 @@ function createTestDeps(store: Store): AppDeps {
       getConversationMessages: async (conversationId) =>
         prisma.message.findMany({
           where: { conversationId, deletedAt: null },
-          include: { translations: true },
+          include: { translations: true, attachments: true },
           orderBy: { createdAt: "asc" },
         }),
       saveTranslation: async (params) =>
@@ -439,6 +498,8 @@ function createTestDeps(store: Store): AppDeps {
       sendWhatsappMessage: async () => undefined,
       sendInstagramMessage: async () => undefined,
       decrypt: (value) => value,
+      sendPasswordResetEmail: async () => undefined,
+      ...overrides.services,
     },
     socket: {
       emitToTenant: () => undefined,
@@ -447,9 +508,12 @@ function createTestDeps(store: Store): AppDeps {
   };
 }
 
-export async function createCriticalRoutesTestApp() {
+export async function createCriticalRoutesTestApp(overrides: TestAppOverrides = {}) {
   const app = Fastify();
-  attachAppDeps(app, createTestDeps(createStore()));
+  attachAppDeps(app, createTestDeps({
+    ...createStore(),
+    ...overrides,
+  }, { services: overrides.services }));
   await app.register(authRoutes, { prefix: "/api/v1/auth" });
   await app.register(conversationRoutes, { prefix: "/api/v1/conversations" });
   await app.register(messageRoutes, { prefix: "/api/v1/conversations" });

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   sendMessageRequestSchema,
+  type AttachmentOut,
   type MessageOut,
   type TranslationOut,
 } from "../schemas/message.schema.js";
@@ -39,7 +40,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
 
       const messages = await services.getConversationMessages(conversationId);
 
-      const result: MessageOut[] = messages.map((m) => ({
+      const result: MessageOut[] = messages.map((m: any) => ({
         id: m.id,
         conversation_id: m.conversationId,
         sender_type: m.senderType,
@@ -47,11 +48,22 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         original_text: m.originalText,
         detected_language: m.detectedLanguage,
         created_at: m.createdAt,
-        translations: m.translations.map(
-          (t): TranslationOut => ({
+        translations: (m.translations ?? []).map(
+          (t: any): TranslationOut => ({
             target_language: t.targetLanguage,
             translated_text: t.translatedText,
             provider: t.provider,
+          }),
+        ),
+        attachments: (m.attachments ?? []).map(
+          (attachment: any): AttachmentOut => ({
+            id: attachment.id,
+            type: attachment.type,
+            mime_type: attachment.mimeType,
+            file_name: attachment.fileName,
+            file_size_bytes: attachment.fileSizeBytes,
+            source_url: attachment.sourceUrl,
+            provider_media_id: attachment.providerMediaId,
           }),
         ),
       }));
@@ -188,6 +200,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         detected_language: message.detectedLanguage,
         created_at: message.createdAt,
         translations,
+        attachments: [],
       };
 
       return reply.send(result);
