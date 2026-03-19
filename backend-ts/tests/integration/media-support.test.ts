@@ -70,3 +70,31 @@ test('message list returns attachment metadata for the inbox', async () => {
   assert.equal(body[0].attachments?.[0]?.type, 'image');
   assert.equal(body[0].attachments?.[0]?.source_url, 'https://files.example.com/property-front.jpg');
 });
+
+test('message list exposes a backend attachment URL when provider media needs proxying', async () => {
+  const app = await createCriticalRoutesTestApp({
+    attachments: [{
+      id: 'attachment-proxy-1',
+      messageId: 'msg-a-1',
+      type: 'image',
+      mimeType: 'image/jpeg',
+      fileName: 'proxy-image.jpg',
+      fileSizeBytes: 245678,
+      sourceUrl: null,
+      providerMediaId: 'provider-media-123',
+    }],
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/v1/conversations/conv-a-1/messages',
+    headers: { authorization: 'Bearer agent-a-token' },
+  });
+
+  assert.equal(response.statusCode, 200);
+  const body = response.json();
+  assert.equal(
+    body[0].attachments?.[0]?.source_url,
+    '/api/v1/conversations/conv-a-1/messages/msg-a-1/attachments/attachment-proxy-1',
+  );
+});

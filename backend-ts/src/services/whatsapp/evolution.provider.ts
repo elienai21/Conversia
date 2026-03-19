@@ -2,7 +2,6 @@ import {
   IWhatsAppProvider,
   IncomingWhatsappMessage,
   type MessageAttachmentInput,
-  type MediaPayload,
 } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/encryption.js";
@@ -210,6 +209,34 @@ export async function fetchEvolutionProfilePicture(
     console.warn("[Evolution] Failed to fetch profile picture:", err);
     return undefined;
   }
+}
+
+function extractEvolutionAttachments(
+  messageContent: Record<string, unknown>,
+): MessageAttachmentInput[] {
+  const mappings: Array<{ key: string; type: MessageAttachmentInput["type"] }> = [
+    { key: "imageMessage", type: "image" },
+    { key: "videoMessage", type: "video" },
+    { key: "audioMessage", type: "audio" },
+    { key: "documentMessage", type: "document" },
+  ];
+
+  for (const mapping of mappings) {
+    const payload = messageContent[mapping.key] as Record<string, unknown> | undefined;
+    if (!payload) continue;
+
+    return [{
+      type: mapping.type,
+      mimeType: payload.mimetype as string | undefined,
+      fileName: payload.fileName as string | undefined,
+      sourceUrl:
+        (payload.url as string | undefined)
+        ?? (payload.mediaUrl as string | undefined)
+        ?? (payload.directPath as string | undefined),
+    }];
+  }
+
+  return [];
 }
 
 function extractEvolutionAttachments(

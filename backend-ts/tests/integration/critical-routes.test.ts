@@ -157,3 +157,26 @@ test('password reset request accepts a known email and triggers reset delivery',
   assert.equal(deliveries[0].email, 'agent@tenant-a.test');
   assert.match(deliveries[0].resetUrl, /reset-password\?token=/);
 });
+
+test('message send keeps original text when auto/original language is selected', async () => {
+  let outboundText = '';
+  const app = await createCriticalRoutesTestApp({
+    services: {
+      sendWhatsappMessage: async (_tenantId, _to, text) => {
+        outboundText = text;
+      },
+    },
+  });
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/v1/conversations/conv-a-1/messages',
+    headers: { authorization: 'Bearer agent-a-token' },
+    payload: { text: 'Mensagem sem tradução automática' },
+  });
+
+  assert.equal(response.statusCode, 200);
+  const body = response.json();
+  assert.equal(body.translations.length, 0);
+  assert.equal(outboundText, 'Mensagem sem tradução automática');
+});

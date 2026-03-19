@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   conversationAssignSchema,

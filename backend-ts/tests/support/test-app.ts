@@ -94,6 +94,7 @@ type Store = {
 type TestAppOverrides = {
   users?: UserRecord[];
   services?: Partial<AppDeps["services"]>;
+  attachments?: AttachmentRecord[];
 };
 
 function matchesWhere<T extends Record<string, unknown>>(record: T, where: Record<string, unknown>) {
@@ -294,8 +295,22 @@ export function createTestDeps(
         store.conversations.filter((conversation) => matchesWhere(conversation, where)).length,
     },
     message: {
-      findFirst: async ({ where }: { where: Record<string, unknown> }) =>
-        store.messages.find((message) => matchesWhere(message, where)) ?? null,
+      findFirst: async ({ where, include }: { where: Record<string, unknown>; include?: Record<string, boolean> }) => {
+        const message = store.messages.find((item) => matchesWhere(item, where));
+        if (!message) {
+          return null;
+        }
+
+        return {
+          ...message,
+          attachments: include?.attachments
+            ? store.attachments.filter((attachment) => attachment.messageId === message.id)
+            : [],
+          translations: include?.translations
+            ? store.translations.filter((translation) => translation.messageId === message.id)
+            : [],
+        };
+      },
       findMany: async ({ where, include, orderBy, take }: { where: Record<string, unknown>; include?: Record<string, boolean>; orderBy?: Record<string, "asc" | "desc">; take?: number }) => {
         let messages = store.messages.filter((message) => matchesWhere(message, where));
 

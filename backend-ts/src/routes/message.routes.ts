@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { config } from "../config.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   sendMessageRequestSchema,
@@ -57,26 +58,101 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           }),
         ),
         attachments: (m.attachments ?? []).map(
-          (attachment: any): AttachmentOut => {
-            let sourceUrl = attachment.sourceUrl;
-            // For customer messages, always use the media proxy since WhatsApp CDN URLs expire
-            if (m.senderType === "customer" && m.externalId) {
-              sourceUrl = `/api/v1/whatsapp/media/${m.id}`;
-            }
-            return {
-              id: attachment.id,
-              type: attachment.type,
-              mime_type: attachment.mimeType,
-              file_name: attachment.fileName,
-              file_size_bytes: attachment.fileSizeBytes,
-              source_url: sourceUrl,
-              provider_media_id: attachment.providerMediaId,
-            };
-          },
+          (attachment: any): AttachmentOut => ({
+            id: attachment.id,
+            type: attachment.type,
+            mime_type: attachment.mimeType,
+            file_name: attachment.fileName,
+            file_size_bytes: attachment.fileSizeBytes,
+            source_url: buildAttachmentSourceUrl(
+              request,
+              conversationId,
+              m.id,
+              attachment,
+            ),
+            provider_media_id: attachment.providerMediaId,
+          }),
         ),
       }));
 
       return reply.send(result);
+    },
+  );
+
+  app.get<{ Params: { conversationId: string; messageId: string; attachmentId: string } }>(
+    "/:conversationId/messages/:messageId/attachments/:attachmentId",
+    async (request, reply) => {
+      const { prisma } = request.server.deps;
+      const user = request.user;
+      const { conversationId, messageId, attachmentId } = request.params;
+
+      const conversation = await getAgentConversation(
+        prisma,
+        conversationId,
+        user.tenantId,
+        user.role === "agent" ? user.id : undefined,
+      );
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, conversationId, deletedAt: null },
+        include: { attachments: true },
+      });
+
+      const attachment = message?.attachments?.find((item: any) => item.id === attachmentId);
+      if (!attachment) {
+        return reply.status(404).send({ detail: "Attachment not found" });
+      }
+
+      if (attachment.sourceUrl) {
+        return reply.redirect(attachment.sourceUrl);
+      }
+
+      if (!attachment.providerMediaId) {
+        return reply.status(404).send({ detail: "Attachment source unavailable" });
+      }
+
+      const settings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: user.tenantId },
+      });
+      const token = settings?.whatsappApiToken || config.WHATSAPP_API_TOKEN;
+
+      if (!token) {
+        return reply.status(404).send({ detail: "Attachment source unavailable" });
+      }
+
+      const metadataResponse = await fetch(
+        `${config.WHATSAPP_API_URL}/${attachment.providerMediaId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!metadataResponse.ok) {
+        return reply.status(404).send({ detail: "Attachment source unavailable" });
+      }
+
+      const metadata = await metadataResponse.json() as { url?: string };
+      if (!metadata.url) {
+        return reply.status(404).send({ detail: "Attachment source unavailable" });
+      }
+
+      const mediaResponse = await fetch(metadata.url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!mediaResponse.ok) {
+        return reply.status(404).send({ detail: "Attachment source unavailable" });
+      }
+
+      const mediaBuffer = Buffer.from(await mediaResponse.arrayBuffer());
+      reply.header("content-type", attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream");
+      if (attachment.fileName) {
+        reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
+      }
+
+      return reply.send(mediaBuffer);
     },
   );
 
@@ -119,8 +195,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       const agentLang = user.preferredLanguage;
       const translations: TranslationOut[] = [];
 
-      // Use explicit target from frontend dropdown, otherwise fall back to auto-detect
-      const effectiveTargetLang = explicitTarget || (customerLang && customerLang !== agentLang ? customerLang : null);
+      // "Auto / Original" should send the typed message without translation.
+      const effectiveTargetLang = explicitTarget ?? null;
 
       let outboundText = parsed.data.text;
 
@@ -366,6 +442,27 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       });
     },
   );
+}
+
+function buildAttachmentSourceUrl(
+  _request: unknown,
+  conversationId: string,
+  messageId: string,
+  attachment: {
+    id: string;
+    sourceUrl?: string | null;
+    providerMediaId?: string | null;
+  },
+) {
+  if (attachment.sourceUrl) {
+    return attachment.sourceUrl;
+  }
+
+  if (!attachment.providerMediaId) {
+    return null;
+  }
+
+  return `/api/v1/conversations/${conversationId}/messages/${messageId}/attachments/${attachment.id}`;
 }
 
 async function getAgentConversation(

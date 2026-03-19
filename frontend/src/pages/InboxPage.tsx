@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, X, MoreVertical, Paperclip } from "lucide-react";
+import { Search, Send, Bot, Check, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 
 // Internal component types (camelCase)
@@ -21,7 +21,6 @@ type Message = {
   senderType: "customer" | "agent" | "system";
   originalText: string;
   createdAt: string;
-  status?: "sent" | "delivered" | "read";
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -67,7 +66,6 @@ type RawMessage = {
   sender_type: "customer" | "agent" | "system";
   original_text: string;
   created_at: string;
-  status?: string;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -119,11 +117,10 @@ function mapMessage(raw: RawMessage): Message {
     senderType: raw.sender_type,
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
-    status: (raw.status as Message["status"]) || "sent",
     attachments: raw.attachments?.map((attachment) => ({
       id: attachment.id,
       type: attachment.type,
-      sourceUrl: attachment.source_url,
+      sourceUrl: normalizeAttachmentUrl(attachment.source_url),
       fileName: attachment.file_name,
       mimeType: attachment.mime_type,
     })),
@@ -131,23 +128,16 @@ function mapMessage(raw: RawMessage): Message {
   };
 }
 
-function resolveMediaUrl(sourceUrl: string | null | undefined): string | null {
-  if (!sourceUrl) return null;
-  // If it's a relative API path (media proxy), prepend the API base URL
-  if (sourceUrl.startsWith("/api/")) {
-    return `${API_URL.replace("/api/v1", "")}${sourceUrl}`;
+function normalizeAttachmentUrl(sourceUrl?: string | null) {
+  if (!sourceUrl) {
+    return sourceUrl;
   }
-  return sourceUrl;
-}
 
-function resolveAttachmentType(attachment: { type: string; mimeType?: string | null }): string {
-  // Use mimeType to correct the type if available (fixes misdetection)
-  if (attachment.mimeType) {
-    if (attachment.mimeType.startsWith("image/")) return "image";
-    if (attachment.mimeType.startsWith("video/")) return "video";
-    if (attachment.mimeType.startsWith("audio/")) return "audio";
+  if (sourceUrl.startsWith("/")) {
+    return `${API_URL}${sourceUrl}`;
   }
-  return attachment.type;
+
+  return sourceUrl;
 }
 
 function renderAttachments(message: Message) {
@@ -155,51 +145,38 @@ function renderAttachments(message: Message) {
     return null;
   }
 
-  // Build auth header for proxy URLs
-  const token = localStorage.getItem("conversia_token");
-
   return (
     <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
       {message.attachments.map((attachment) => {
-        const mediaUrl = resolveMediaUrl(attachment.sourceUrl);
-        const actualType = resolveAttachmentType(attachment);
-        // For proxy URLs, append token as query param for auth
-        const authedUrl = mediaUrl && mediaUrl.includes("/api/") && token
-          ? `${mediaUrl}?token=${token}`
-          : mediaUrl;
-
-        if (actualType === "image" && authedUrl) {
+        if (attachment.type === "image" && attachment.sourceUrl) {
           return (
-            <a key={attachment.id} href={authedUrl} target="_blank" rel="noreferrer">
+            <a key={attachment.id} href={attachment.sourceUrl} target="_blank" rel="noreferrer">
               <img
-                src={authedUrl}
+                src={attachment.sourceUrl}
                 alt={attachment.fileName || "Image attachment"}
                 style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
               />
             </a>
           );
         }
 
-        if (actualType === "video" && authedUrl) {
+        if (attachment.type === "video" && attachment.sourceUrl) {
           return (
             <video
               key={attachment.id}
               controls
-              src={authedUrl}
+              src={attachment.sourceUrl}
               style={{ maxWidth: "260px", borderRadius: "12px" }}
             />
           );
         }
 
-        if (actualType === "audio" && authedUrl) {
+        if (attachment.type === "audio" && attachment.sourceUrl) {
           return (
             <audio
               key={attachment.id}
               controls
-              src={authedUrl}
+              src={attachment.sourceUrl}
               style={{ width: "100%" }}
             />
           );
@@ -208,9 +185,9 @@ function renderAttachments(message: Message) {
         return (
           <a
             key={attachment.id}
-            href={authedUrl || "#"}
-            target={authedUrl ? "_blank" : undefined}
-            rel={authedUrl ? "noreferrer" : undefined}
+            href={attachment.sourceUrl || "#"}
+            target={attachment.sourceUrl ? "_blank" : undefined}
+            rel={attachment.sourceUrl ? "noreferrer" : undefined}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -223,8 +200,8 @@ function renderAttachments(message: Message) {
               textDecoration: "none",
             }}
           >
-            <Camera size={16} />
-            <span>{attachment.fileName || `${actualType} attachment`}</span>
+            <FileText size={16} />
+            <span>{attachment.fileName || `${attachment.type} attachment`}</span>
           </a>
         );
       })}
@@ -685,15 +662,13 @@ export function InboxPage() {
                   className={`message-wrapper ${msg.senderType}`}
                   onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
                 >
-                  <div className="message-bubble-wrapper">
-                    {msg.senderType === 'agent' && (
-                      <button
-                        className="msg-delete-btn"
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        title="Apagar mensagem"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                  <div className="message-bubble">
+                    <p>{msg.originalText}</p>
+                    {renderAttachments(msg)}
+                    {msg.translatedFrom && (
+                      <div className="translation-badge">
+                        <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
+                      </div>
                     )}
                     <div className="message-bubble">
                       <p>{msg.originalText}</p>
@@ -718,6 +693,10 @@ export function InboxPage() {
                               : <Check size={14} className="status-sent" />
                         )}
                       </div>
+                    )}
+                    <div className="message-meta">
+                      <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      {msg.senderType === 'agent' && <Check size={14} />}
                     </div>
                     {msg.senderType === 'customer' && (
                       <button
