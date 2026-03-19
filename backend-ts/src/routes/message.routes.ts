@@ -48,6 +48,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_id: m.senderId,
         original_text: m.originalText,
         detected_language: m.detectedLanguage,
+        status: m.status || "sent",
         created_at: m.createdAt,
         translations: (m.translations ?? []).map(
           (t: any): TranslationOut => ({
@@ -281,6 +282,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_id: message.senderId,
         original_text: message.originalText,
         detected_language: message.detectedLanguage,
+        status: (message as any).status || "sent",
         created_at: message.createdAt,
         translations,
         attachments: [],
@@ -328,6 +330,116 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       });
 
       return reply.status(204).send();
+    },
+  );
+
+  // Send media message
+  app.post<{ Params: { conversationId: string } }>(
+    "/:conversationId/messages/media",
+    async (request, reply) => {
+      const { prisma, services, socket } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+
+      const conversation = await getAgentConversation(
+        prisma,
+        conversationId,
+        user.tenantId,
+        user.role === "agent" ? user.id : undefined,
+      );
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      const data = await request.file();
+      if (!data) {
+        return reply.status(422).send({ detail: "No file uploaded" });
+      }
+
+      const buffer = await data.toBuffer();
+      const base64 = buffer.toString("base64");
+      const mimeType = data.mimetype;
+      const fileName = data.filename;
+      const fileSizeBytes = buffer.length;
+
+      // Determine media type from mime
+      let mediaType: "image" | "video" | "audio" | "document" = "document";
+      if (mimeType.startsWith("image/")) mediaType = "image";
+      else if (mimeType.startsWith("video/")) mediaType = "video";
+      else if (mimeType.startsWith("audio/")) mediaType = "audio";
+
+      const caption = (request.body as any)?.caption || "";
+
+      // Save message in DB
+      const message = await services.saveMessage({
+        conversationId: conversation.id,
+        senderType: "agent",
+        senderId: user.id,
+        text: caption || `[${mediaType}]`,
+        detectedLanguage: user.preferredLanguage,
+      });
+
+      // Save attachment metadata
+      const attachment = await services.saveAttachment({
+        messageId: message.id,
+        type: mediaType,
+        mimeType,
+        fileName,
+        fileSizeBytes,
+        sourceUrl: `data:${mimeType};base64,${base64.substring(0, 100)}...`,
+      });
+
+      // Send via WhatsApp
+      if (conversation.customer && conversation.channel === "whatsapp") {
+        const mediaUrl = `data:${mimeType};base64,${base64}`;
+        await services.sendWhatsappMedia(user.tenantId, conversation.customer.phone, {
+          type: mediaType,
+          url: mediaUrl,
+          caption: caption || undefined,
+          fileName,
+          mimeType,
+        });
+      }
+
+      // Emit socket events
+      socket.emitToConversation(conversation.id, "message.new", {
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_type: message.senderType,
+        original_text: message.originalText,
+        detected_language: message.detectedLanguage,
+        created_at: message.createdAt,
+        translations: [],
+        attachments: [{
+          id: attachment.id,
+          type: attachment.type,
+          mime_type: attachment.mimeType,
+          file_name: attachment.fileName,
+          source_url: attachment.sourceUrl,
+        }],
+      });
+
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "replied",
+        conversationId: conversation.id,
+      });
+
+      return reply.send({
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_type: message.senderType,
+        original_text: message.originalText,
+        created_at: message.createdAt,
+        translations: [],
+        attachments: [{
+          id: attachment.id,
+          type: attachment.type,
+          mime_type: attachment.mimeType,
+          file_name: attachment.fileName,
+          source_url: attachment.sourceUrl,
+        }],
+      });
     },
   );
 }

@@ -1,7 +1,7 @@
 import { config } from "../config.js";
 import { prisma } from "../lib/prisma.js";
 import { WhatsAppProviderFactory } from "./whatsapp/whatsapp.factory.js";
-import type { IncomingWhatsappMessage } from "./whatsapp/provider.interface.js";
+import type { IncomingWhatsappMessage, MediaPayload } from "./whatsapp/provider.interface.js";
 
 // Re-export this so webhook.routes.ts still imports it
 export type { IncomingWhatsappMessage };
@@ -56,4 +56,19 @@ export async function sendWhatsappMessage(
   const provider = WhatsAppProviderFactory.getProvider(providerName);
   
   await provider.sendMessage(tenantId, to, text);
+}
+
+export async function sendWhatsappMedia(
+  tenantId: string,
+  to: string,
+  media: MediaPayload,
+): Promise<void> {
+  const settings = await prisma.tenantSettings.findUnique({
+    where: { tenantId },
+  });
+
+  const providerName = settings?.whatsappProvider || "evolution";
+  const provider = WhatsAppProviderFactory.getProvider(providerName);
+
+  await provider.sendMedia(tenantId, to, media);
 }

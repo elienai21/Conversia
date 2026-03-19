@@ -50,6 +50,18 @@ async function processIncomingMessage(params: {
     });
   }
 
+  // Dedup: skip if a message with this externalId already exists
+  if (externalMessageId) {
+    const dup = await prisma.message.findFirst({
+      where: { externalId: externalMessageId },
+      select: { id: true },
+    });
+    if (dup) {
+      console.log(`[Webhook] Duplicate message ignored: ${externalMessageId}`);
+      return;
+    }
+  }
+
   // Step 7: Save message
   const message = await saveMessage({
     conversationId: conversation.id,
@@ -240,6 +252,49 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
   app.post("/evolution", async (request, reply) => {
     const body = request.body as Record<string, unknown>;
 
+    // Handle message status updates (delivery/read receipts)
+    if (body.event === "messages.update") {
+      const data = body.data as Record<string, unknown> | undefined;
+      if (data) {
+        const key = data.key as Record<string, unknown> | undefined;
+        const update = data.update as Record<string, unknown> | undefined;
+        const externalId = key?.id as string | undefined;
+        const statusCode = update?.status as number | undefined;
+        const instanceName = body.instance as string | undefined;
+
+        if (externalId && statusCode !== undefined && instanceName) {
+          // Evolution status codes: 2 = delivered, 3 = read, 4 = played
+          let newStatus: string | null = null;
+          if (statusCode === 2) newStatus = "delivered";
+          else if (statusCode >= 3) newStatus = "read";
+
+          if (newStatus) {
+            const message = await prisma.message.findFirst({
+              where: { externalId },
+              select: { id: true, conversationId: true, status: true },
+            });
+
+            if (message) {
+              // Only upgrade status (sent -> delivered -> read), never downgrade
+              const statusOrder = ["sent", "delivered", "read"];
+              if (statusOrder.indexOf(newStatus) > statusOrder.indexOf(message.status)) {
+                await prisma.message.update({
+                  where: { id: message.id },
+                  data: { status: newStatus },
+                });
+
+                SocketService.emitToConversation(message.conversationId, "message.status", {
+                  messageId: message.id,
+                  status: newStatus,
+                });
+              }
+            }
+          }
+        }
+      }
+      return reply.send({ status: "processed" });
+    }
+
     // Step 1: Parse incoming message (factory auto-detects Evolution)
     const parsed = parseIncomingMessage(body);
     if (!parsed || parsed.messages.length === 0) {
@@ -255,11 +310,20 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         continue;
       }
 
+      // Step 2.5: Try to fetch profile picture from Evolution API (non-blocking)
+      let profilePicUrl: string | undefined;
+      try {
+        profilePicUrl = await fetchEvolutionProfilePicture(tenant.id, incoming.from);
+      } catch {
+        // Ignore errors - profile picture is optional
+      }
+
       // Step 3: Find or create customer
       const customer = await findOrCreateCustomer(
         tenant.id,
         incoming.from,
         incoming.displayName,
+        profilePicUrl,
       );
 
       // Step 4: Find or create conversation

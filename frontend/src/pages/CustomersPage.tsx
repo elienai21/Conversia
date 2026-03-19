@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
-import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag, Send } from "lucide-react";
+import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag, Send, Pencil, Trash2 } from "lucide-react";
 import { StartConversationModal } from "@/components/StartConversationModal";
+import { EditCustomerModal } from "@/components/EditCustomerModal";
 import "./CustomersPage.css";
 
 type CustomerItem = {
@@ -11,6 +12,7 @@ type CustomerItem = {
   email: string | null;
   social_media: string | null;
   tag: string | null;
+  profile_picture_url: string | null;
   created_at: string;
   conversation_count: number;
   active_conversations: number;
@@ -81,6 +83,30 @@ export function CustomersPage() {
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [msgCustomer, setMsgCustomer] = useState<CustomerItem | null>(null);
+  const [editCustomer, setEditCustomer] = useState<CustomerItem | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteCustomer = async (customer: CustomerItem) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${customer.name || customer.phone}"? This will also delete all their conversations and messages.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(customer.id);
+    try {
+      await ApiService.delete(`/customers/${customer.id}`);
+      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      if (expandedId === customer.id) {
+        setExpandedId(null);
+        setDetail(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Failed to delete customer");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const fetchCustomers = useCallback(() => {
     setIsLoading(true);
@@ -184,7 +210,22 @@ export function CustomersPage() {
               <div className="customer-card-header">
                 <div className="customer-info">
                   <div className="customer-avatar">
-                    {customer.name ? customer.name.charAt(0).toUpperCase() : <User size={20} />}
+                    {customer.profile_picture_url ? (
+                      <img
+                        src={customer.profile_picture_url}
+                        alt={customer.name || ""}
+                        className="customer-avatar-img"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                          (e.target as HTMLImageElement).parentElement!.textContent =
+                            customer.name ? customer.name.charAt(0).toUpperCase() : "";
+                        }}
+                      />
+                    ) : customer.name ? (
+                      customer.name.charAt(0).toUpperCase()
+                    ) : (
+                      <User size={20} />
+                    )}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div className="customer-name">
@@ -200,7 +241,28 @@ export function CustomersPage() {
                 <div className="customer-card-actions">
                   <button
                     className="send-msg-btn"
-                    title="Enviar Mensagem"
+                    title="Edit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditCustomer(customer);
+                    }}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    className="send-msg-btn delete-btn"
+                    title="Delete"
+                    disabled={deletingId === customer.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCustomer(customer);
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                  <button
+                    className="send-msg-btn"
+                    title="Send Message"
                     onClick={(e) => {
                       e.stopPropagation();
                       setMsgCustomer(customer);
@@ -282,6 +344,13 @@ export function CustomersPage() {
         open={!!msgCustomer}
         customer={msgCustomer}
         onClose={() => setMsgCustomer(null)}
+      />
+
+      <EditCustomerModal
+        open={!!editCustomer}
+        customer={editCustomer}
+        onClose={() => setEditCustomer(null)}
+        onUpdated={fetchCustomers}
       />
     </div>
   );

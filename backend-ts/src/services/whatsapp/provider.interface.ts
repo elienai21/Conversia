@@ -29,4 +29,9 @@ export interface IWhatsAppProvider {
    * Send a text message to a recipient.
    */
   sendMessage(tenantId: string, to: string, text: string): Promise<void>;
+
+  /**
+   * Send a media message to a recipient.
+   */
+  sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void>;
 }
