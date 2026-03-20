@@ -147,9 +147,10 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         try {
           const mediaResponse = await fetch(attachment.sourceUrl, { headers });
           if (!mediaResponse.ok) {
-            return reply.redirect(attachment.sourceUrl);
+            request.server.log.warn(`[Proxy] Remote media fetch failed: ${mediaResponse.status} for ${attachment.sourceUrl}`);
+            return reply.status(502).send({ detail: "Could not retrieve media from remote source" });
           }
-          
+
           const mediaBuffer = Buffer.from(await mediaResponse.arrayBuffer());
           reply.header("content-type", attachment.mimeType || mediaResponse.headers.get("content-type") || "application/octet-stream");
           if (attachment.fileName) {
@@ -157,7 +158,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           }
           return reply.send(mediaBuffer);
         } catch (err) {
-          return reply.redirect(attachment.sourceUrl);
+          request.server.log.error(err as Error, `[Proxy] Remote media fetch error for ${attachment.sourceUrl}`);
+          return reply.status(502).send({ detail: "Could not retrieve media from remote source" });
         }
       }
 

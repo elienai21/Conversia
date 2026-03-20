@@ -106,6 +106,40 @@ async function processIncomingMessage(params: {
           sourceUrl = uploadedUrl;
         }
       }
+    } else if (sourceUrl && sourceUrl.startsWith('http')) {
+      // External CDN URL (WhatsApp/Meta CDN) — these expire in minutes.
+      // Download immediately and store permanently.
+      console.log(`[Webhook] Downloading external media URL before it expires...`);
+      try {
+        const mediaResponse = await fetch(sourceUrl);
+        if (mediaResponse.ok) {
+          const arrayBuffer = await mediaResponse.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const contentType = (mediaResponse.headers.get('content-type') || attachment.mimeType || 'application/octet-stream').split(';')[0].trim();
+          const uploadedUrl = await uploadMediaToStorage(base64, contentType, attachment.fileName);
+          if (uploadedUrl) {
+            sourceUrl = uploadedUrl;
+            console.log(`[Webhook] External media uploaded to storage: ${uploadedUrl}`);
+          } else {
+            sourceUrl = `data:${contentType};base64,${base64}`;
+            console.log(`[Webhook] External media stored as data URI: mimeType=${contentType}, len=${base64.length}`);
+          }
+        } else {
+          // URL may already be expired — try fetching via Evolution API as fallback
+          console.warn(`[Webhook] External media fetch failed (${mediaResponse.status}), trying Evolution API...`);
+          if (whatsappMessageKey) {
+            const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
+            if (mediaResult) {
+              const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
+              sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+              console.log(`[Webhook] Fallback media fetched via Evolution API: mimeType=${mediaResult.mimeType}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Webhook] Failed to download external media URL:', err);
+        // Keep original URL as last resort; proxy will try to serve it
+      }
     }
     
     const sourceUrlLen = sourceUrl?.length ?? 0;
