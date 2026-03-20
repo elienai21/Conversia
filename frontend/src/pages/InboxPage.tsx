@@ -137,91 +137,121 @@ function normalizeAttachmentUrl(sourceUrl?: string | null) {
     return sourceUrl;
   }
 
+  // Se for um caminho interno (/api/v1/...), retornamos como está.
+  // O SecureMedia irá processar via ApiService.getBlob(endpoint) com Headers.
   if (sourceUrl.startsWith("/")) {
-    const token = localStorage.getItem("conversia_token");
-    
-    const cleanSourceUrl = sourceUrl.startsWith("/api/v1") ? sourceUrl.replace("/api/v1", "") : sourceUrl;
-    const baseUrl = `${API_URL}${cleanSourceUrl}`;
-    
-    if (token) {
-      const sep = baseUrl.includes("?") ? "&" : "?";
-      return `${baseUrl}${sep}token=${token}`;
-    }
-    return baseUrl;
+    return sourceUrl;
   }
 
   return sourceUrl;
 }
 
-function renderAttachments(message: Message) {
-  if (!message.attachments?.length) {
-    return null;
-  }
+  const handleOpenSecureMedia = async (url: string, fileName?: string | null) => {
+    try {
+      let endpoint = url;
+      if (url.startsWith(API_URL)) {
+        endpoint = url.replace(API_URL, "");
+      } else if (url.startsWith("/api/v1")) {
+        endpoint = url.replace("/api/v1", "");
+      }
+      
+      const blob = await ApiService.getBlob(endpoint);
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Para imagens, podemos apenas abrir em uma nova aba
+      if (blob.type.startsWith("image/")) {
+        window.open(blobUrl, "_blank");
+      } else {
+        // Para outros arquivos, forçamos o download
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = fileName || "attachment";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      
+      // Revogação automática após algum tempo ou manual (complexo em nova aba)
+      // Idealmente o usuário fecha a aba.
+    } catch (err) {
+      console.error("Erro ao abrir mídia segura:", err);
+      alert("Não foi possível abrir o arquivo com segurança.");
+    }
+  };
 
-  return (
-    <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
-      {message.attachments.map((attachment) => {
-        if (attachment.type === "image" && attachment.sourceUrl) {
-          return (
-            <a key={attachment.id} href={attachment.sourceUrl} target="_blank" rel="noreferrer">
+  const renderAttachments = (message: Message) => {
+    if (!message.attachments?.length) {
+      return null;
+    }
+
+    return (
+      <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
+        {message.attachments.map((attachment) => {
+          if (attachment.type === "image" && attachment.sourceUrl) {
+            return (
+              <div 
+                key={attachment.id} 
+                className="media-clickable"
+                onClick={() => handleOpenSecureMedia(attachment.sourceUrl!, attachment.fileName)}
+                style={{ cursor: "pointer" }}
+              >
+                <SecureMedia
+                  src={attachment.sourceUrl}
+                  type="image"
+                  alt={attachment.fileName || "Image attachment"}
+                  style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
+                />
+              </div>
+            );
+          }
+
+          if (attachment.type === "video" && attachment.sourceUrl) {
+            return (
               <SecureMedia
+                key={attachment.id}
+                type="video"
                 src={attachment.sourceUrl}
-                type="image"
-                alt={attachment.fileName || "Image attachment"}
-                style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
+                style={{ maxWidth: "260px", borderRadius: "12px" }}
               />
-            </a>
-          );
-        }
+            );
+          }
 
-        if (attachment.type === "video" && attachment.sourceUrl) {
+          if (attachment.type === "audio" && attachment.sourceUrl) {
+            return (
+              <SecureMedia
+                key={attachment.id}
+                type="audio"
+                src={attachment.sourceUrl}
+              />
+            );
+          }
+
           return (
-            <SecureMedia
+            <button
               key={attachment.id}
-              type="video"
-              src={attachment.sourceUrl}
-              style={{ maxWidth: "260px", borderRadius: "12px" }}
-            />
+              onClick={() => handleOpenSecureMedia(attachment.sourceUrl!, attachment.fileName)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "10px 12px",
+                borderRadius: "12px",
+                border: "1px solid var(--border-color)",
+                background: "var(--surface-secondary)",
+                color: "var(--text-primary)",
+                textDecoration: "none",
+                cursor: "pointer",
+                textAlign: "left"
+              }}
+            >
+              <FileText size={16} />
+              <span>{attachment.fileName || `${attachment.type} attachment`}</span>
+            </button>
           );
-        }
-
-        if (attachment.type === "audio" && attachment.sourceUrl) {
-          return (
-            <audio
-              key={attachment.id}
-              controls
-              src={attachment.sourceUrl}
-              style={{ width: "100%" }}
-            />
-          );
-        }
-
-        return (
-          <a
-            key={attachment.id}
-            href={attachment.sourceUrl || "#"}
-            target={attachment.sourceUrl ? "_blank" : undefined}
-            rel={attachment.sourceUrl ? "noreferrer" : undefined}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 12px",
-              borderRadius: "12px",
-              border: "1px solid var(--border-color)",
-              background: "var(--surface-secondary)",
-              color: "var(--text-primary)",
-              textDecoration: "none",
-            }}
-          >
-            <FileText size={16} />
-            <span>{attachment.fileName || `${attachment.type} attachment`}</span>
-          </a>
-        );
-      })}
-    </div>
-  );
-}
+        })}
+      </div>
+    );
+  }
 
 const MEDIA_PLACEHOLDER_RE = /^\[(image|video|audio|document)\]$/i;
 

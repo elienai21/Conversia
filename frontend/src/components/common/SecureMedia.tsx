@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ApiService } from "../../services/api";
+import { ApiService, API_URL } from "../../services/api";
 
 type SecureMediaProps = {
   src: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   alt?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -29,8 +29,14 @@ export function SecureMedia({ src, type, alt, className, style }: SecureMediaPro
       try {
         setLoading(true);
         setError(false);
-        // Extract the path from /api/v1/conversations/... just in case
-        const endpoint = src.startsWith("/api/v1") ? src.replace("/api/v1", "") : src;
+        // Ensure path is relative for ApiService (which adds API_URL)
+        let endpoint = src;
+        if (src.startsWith(API_URL)) {
+          endpoint = src.replace(API_URL, "");
+        } else if (src.startsWith("/api/v1")) {
+          endpoint = src.replace("/api/v1", "");
+        }
+        
         const blob = await ApiService.getBlob(endpoint);
         
         if (isMounted) {
@@ -102,6 +108,17 @@ export function SecureMedia({ src, type, alt, className, style }: SecureMediaPro
         src={objectUrl}
         className={className}
         style={style}
+      />
+    );
+  }
+
+  if (type === "audio") {
+    return (
+      <audio
+        controls
+        src={objectUrl}
+        className={className}
+        style={{ ...style, width: "100%" }}
       />
     );
   }
