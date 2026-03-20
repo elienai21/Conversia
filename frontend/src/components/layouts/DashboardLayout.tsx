@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -90,6 +90,10 @@ export function DashboardLayout() {
               <MessageSquare size={20} />
               <span>{t("Messages")}</span>
               {openCount > 0 && <span className="nav-badge">{openCount > 99 ? "99+" : openCount}</span>}
+            </NavLink>
+            <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <Target size={20} />
+              <span>{t("Missões Diárias")}</span>
             </NavLink>
             <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <Users size={20} />
