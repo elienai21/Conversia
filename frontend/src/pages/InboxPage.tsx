@@ -140,7 +140,9 @@ function normalizeAttachmentUrl(sourceUrl?: string | null) {
   if (sourceUrl.startsWith("/")) {
     const token = localStorage.getItem("conversia_token");
     
-    const baseUrl = `${API_URL}${sourceUrl}`;
+    const cleanSourceUrl = sourceUrl.startsWith("/api/v1") ? sourceUrl.replace("/api/v1", "") : sourceUrl;
+    const baseUrl = `${API_URL}${cleanSourceUrl}`;
+    
     if (token) {
       const sep = baseUrl.includes("?") ? "&" : "?";
       return `${baseUrl}${sep}token=${token}`;
