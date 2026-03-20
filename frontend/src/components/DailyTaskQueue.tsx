@@ -37,7 +37,20 @@ export function DailyTaskQueue() {
   }, []);
 
   if (!isLoading && tasks.length === 0) {
-    return null;
+    return (
+      <div className="w-full mb-8 animate-fade-in">
+        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
+        </h2>
+        <div className="p-6 rounded-xl border border-dashed flex flex-col items-center justify-center text-center bg-muted/5">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
+            <CheckCircle2 size={24} />
+          </div>
+          <h3 className="text-foreground font-medium mb-1">Tudo limpo por aqui! 🎉</h3>
+          <p className="text-muted text-sm max-w-sm">Nenhuma tarefa diária de atendimento pendente. Nossa Inteligência notificará você amanhã!</p>
+        </div>
+      </div>
+    );
   }
 
   const groupedTasks = tasks.reduce((acc, t) => {
