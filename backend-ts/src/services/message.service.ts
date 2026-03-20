@@ -8,7 +8,7 @@ export async function saveMessage(params: {
   detectedLanguage?: string;
   externalId?: string;
 }) {
-  return prisma.message.create({
+  const message = await prisma.message.create({
     data: {
       conversationId: params.conversationId,
       senderType: params.senderType,
@@ -18,6 +18,14 @@ export async function saveMessage(params: {
       externalId: params.externalId ?? null,
     },
   });
+
+  // Torna a Fila de Chats Orgânica (puxa pro topo ao chegar nova msg)
+  await prisma.conversation.update({
+    where: { id: params.conversationId },
+    data: { updatedAt: new Date() }
+  });
+
+  return message;
 }
 
 export async function saveAttachment(params: {
