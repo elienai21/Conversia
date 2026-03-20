@@ -22,7 +22,9 @@ import { customerRoutes } from "./routes/customer.routes.js";
 import { audioRoutes } from "./routes/audio.routes.js";
 import { evolutionRoutes } from "./routes/evolution.routes.js";
 import { quickReplyRoutes } from "./routes/quick-reply.routes.js";
+import { taskRoutes } from "./routes/task.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
+import { runDailyTaskSync } from "./workers/task.worker.js";
 
 export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: config.DEBUG });
@@ -89,6 +91,18 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(customerRoutes, { prefix: "/api/v1/customers" });
   await app.register(evolutionRoutes, { prefix: "/api/v1/whatsapp" });
   await app.register(quickReplyRoutes, { prefix: "/api/v1/quick-replies" });
+  await app.register(taskRoutes, { prefix: "/api/v1/tasks" });
+
+  // Job Agendador de Missões (CRM Sync) = a cada 1 hora
+  const ONE_HOUR = 60 * 60 * 1000;
+  setInterval(() => {
+    runDailyTaskSync().catch(err => console.error("[CRON] Worker failed", err));
+  }, ONE_HOUR);
+
+  // Executa o primeiro sync no boot do servidor
+  setTimeout(() => {
+    runDailyTaskSync().catch(err => console.error("[CRON] Initial worker failed", err));
+  }, 5000);
 
   return app;
 }

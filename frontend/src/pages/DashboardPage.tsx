@@ -4,6 +4,7 @@ import { ApiService } from "@/services/api";
 import { Link } from "react-router-dom";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTheme } from "@/contexts/ThemeContext";
+import { DailyTaskQueue } from "@/components/DailyTaskQueue";
 import "./DashboardPage.css";
 
 type OverviewMetrics = {
@@ -85,6 +86,8 @@ export function DashboardPage() {
           Open Inbox <ArrowRight size={16} />
         </Link>
       </div>
+
+      <DailyTaskQueue />
 
       {/* Metrics Cards */}
       <div className="metrics-grid mt-8">

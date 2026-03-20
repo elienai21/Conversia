@@ -24,10 +24,31 @@ model Tenant {
   customers                 Customer[]
   knowledgeBase             KnowledgeBase[]
   quickReplies              QuickReply[]
+  taskQueues                TaskQueue[]
   settings                  TenantSettings?
   users                     User[]
 
   @@map("tenants")
+}
+
+model TaskQueue {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  type           String   @map("type") // e.g. 'checkin', 'checkout'
+  status         String   @default("pending") @map("status") // pending, sent, cancelled
+  customerPhone  String   @map("customer_phone")
+  customerName   String   @map("customer_name")
+  reservationId  String   @map("reservation_id")
+  scheduledFor   DateTime @map("scheduled_for")
+  messagePayload String   @map("message_payload") // Text draft
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, reservationId, type], map: "ix_taskqueue_unique_task")
+  @@index([tenantId, status, scheduledFor], map: "ix_taskqueue_filter")
+  @@map("task_queue")
 }
 
 model User {
