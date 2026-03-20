@@ -69,6 +69,7 @@ export function IntegrationsTab() {
   const [showInstagram, setShowInstagram] = useState(false);
 
   // StaysNet CRM
+  const [staysnetClientId, setStaysnetClientId] = useState("");
   const [staysnetSecret, setStaysnetSecret] = useState("");
   const [staysnetDomain, setStaysnetDomain] = useState("www.stays.net");
   const [showStaysnetSecret, setShowStaysnetSecret] = useState(false);
@@ -104,6 +105,7 @@ export function IntegrationsTab() {
       setInstagramPageId(res.instagram.page_id || "");
 
       // StaysNet
+      setStaysnetClientId("");
       setStaysnetSecret("");
       setStaysnetDomain(res.staysnet?.domain || "www.stays.net");
     } catch (error) {
@@ -143,7 +145,12 @@ export function IntegrationsTab() {
       if (instagramPageId) payload.instagram_page_id = instagramPageId;
 
       // StaysNet CRM
-      if (staysnetSecret) payload.staysnet_client_secret = staysnetSecret;
+      if (staysnetClientId && staysnetSecret) {
+        payload.staysnet_client_secret = btoa(`${staysnetClientId}:${staysnetSecret}`);
+      } else if (staysnetSecret && !staysnetClientId) {
+        // Fallback for manual base64 entry if they only type in the secret field
+        payload.staysnet_client_secret = staysnetSecret;
+      }
       if (staysnetDomain) payload.staysnet_domain = staysnetDomain;
 
       await ApiService.patch("/tenants/me/integrations", payload);
@@ -437,14 +444,23 @@ export function IntegrationsTab() {
             </div>
             <p>Integração com o CRM Stays.net para disponibilidade, preços e reservas.</p>
           </div>
+          <div className="form-group">
+            <label>Client ID</label>
+            <input
+              type="text"
+              value={staysnetClientId}
+              onChange={(e) => setStaysnetClientId(e.target.value)}
+              placeholder={data?.staysnet?.client_secret_set ? "••••••••••• (já configurado)" : "ID do Cliente"}
+            />
+          </div>
           <div className="form-group relative-input">
-            <label>Token Stays.net (Base64)</label>
+            <label>Client Secret</label>
             <div className="input-with-icon">
               <input
                 type={showStaysnetSecret ? "text" : "password"}
                 value={staysnetSecret}
                 onChange={(e) => setStaysnetSecret(e.target.value)}
-                placeholder={data?.staysnet?.client_secret_set ? "••••••••••• (já configurado)" : "Token Base64 fornecido pela Stays"}
+                placeholder={data?.staysnet?.client_secret_set ? "••••••••••• (já configurado)" : "Secret do Cliente"}
               />
               <button type="button" className="icon-btn" onClick={() => setShowStaysnetSecret(!showStaysnetSecret)}>
                 {showStaysnetSecret ? <EyeOff size={18} /> : <Eye size={18} />}

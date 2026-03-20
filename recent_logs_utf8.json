@@ -1,0 +1,4120 @@
+﻿[
+  {
+    "insertId": "bdmxwfdblkc",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.ReplaceService",
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-enable-automatic-updates": "false",
+            "run.googleapis.com/build-id": "66be0079-2c40-450c-997a-e9bb8a9a0e49",
+            "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+            "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/66be0079-2c40-450c-997a-e9bb8a9a0e49",
+            "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968499.579373-546d05895d0846e4b834cf00cb3f74c7.zip#1773968500282291",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/operation-id": "e163929c-f7d8-4be1-b9de-11c5b969b64d",
+            "run.googleapis.com/urls": "[\"https://conversia-backend-431576391107.southamerica-east1.run.app\",\"https://conversia-backend-q3jaf6crea-rj.a.run.app\"]",
+            "serving.knative.dev/creator": "admin@vivarestay.com",
+            "serving.knative.dev/lastModifier": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.359351Z",
+          "generation": 2,
+          "labels": {
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true"
+          },
+          "name": "conversia-backend",
+          "namespace": "431576391107",
+          "resourceVersion": "AAZNakXq9wQ",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/services/conversia-backend",
+          "uid": "443d17b9-7411-4e02-b66e-feab53760848"
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "annotations": {
+                "autoscaling.knative.dev/maxScale": "20",
+                "run.googleapis.com/client-name": "gcloud",
+                "run.googleapis.com/client-version": "550.0.0",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              },
+              "labels": {
+                "client.knative.dev/nonce": "gddvgwtdet",
+                "run.googleapis.com/startupProbeType": "Default"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "name": "DEBUG",
+                      "value": "true"
+                    },
+                    {
+                      "name": "SECRET_KEY",
+                      "value": "change-me-in-production"
+                    },
+                    {
+                      "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
+                      "value": "480"
+                    },
+                    {
+                      "name": "DATABASE_URL",
+                      "value": "postgresql://postgres:ConversiaProd2026x@db.pdkoshxuldkvwjhaugss.supabase.co:5432/postgres"
+                    },
+                    {
+                      "name": "REDIS_URL",
+                      "value": "redis://default:YYD88vqZp2PwbRC5jOPHNfDFRERg3eU0@redis-10681.crce196.sa-east-1-2.ec2.cloud.redislabs.com:10681"
+                    },
+                    {
+                      "name": "OPENAI_API_KEY",
+                      "value": "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"
+                    },
+                    {
+                      "name": "OPENAI_MODEL",
+                      "value": "gpt-4.1-mini"
+                    },
+                    {
+                      "name": "DEEPL_API_KEY",
+                      "value": "daade7c7-1cdf-4d34-a6fe-744b76836a44:fx"
+                    },
+                    {
+                      "name": "WHATSAPP_VERIFY_TOKEN",
+                      "value": "conversia-webhook-verify"
+                    },
+                    {
+                      "name": "WHATSAPP_API_TOKEN",
+                      "value": "1588168168778165|M7Sr3B6nO6aoulAXhjuO6jZz-WI"
+                    },
+                    {
+                      "name": "WHATSAPP_API_URL",
+                      "value": "https://graph.facebook.com/v21.0"
+                    },
+                    {
+                      "name": "WHATSAPP_PHONE_NUMBER_ID",
+                      "value": "1588168168778165"
+                    }
+                  ],
+                  "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+                  "ports": [
+                    {
+                      "containerPort": 8080,
+                      "name": "http1"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "512Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "failureThreshold": 1,
+                    "periodSeconds": 240,
+                    "tcpSocket": {
+                      "port": 8080
+                    },
+                    "timeoutSeconds": 240
+                  }
+                }
+              ],
+              "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+              "timeoutSeconds": 300
+            }
+          },
+          "traffic": [
+            {
+              "latestRevision": true,
+              "percent": 100
+            }
+          ]
+        },
+        "status": {
+          "address": {
+            "url": "https://conversia-backend-q3jaf6crea-rj.a.run.app"
+          },
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T01:04:55.162628Z",
+              "status": "True",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:33.061919Z",
+              "status": "True",
+              "type": "ConfigurationsReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:55.118036Z",
+              "status": "True",
+              "type": "RoutesReady"
+            }
+          ],
+          "latestCreatedRevisionName": "conversia-backend-00002-m5l",
+          "latestReadyRevisionName": "conversia-backend-00002-m5l",
+          "observedGeneration": 2,
+          "traffic": [
+            {
+              "latestRevision": true,
+              "percent": 100,
+              "revisionName": "conversia-backend-00002-m5l"
+            }
+          ],
+          "url": "https://conversia-backend-q3jaf6crea-rj.a.run.app"
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Service conversia-backend."
+      }
+    },
+    "receiveTimestamp": "2026-03-20T01:04:56.034985148Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-20T01:04:55.181968Z"
+  },
+  {
+    "insertId": "-f941d3d1cja",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.ReplaceService",
+      "resourceName": "namespaces/momentum-premium/revisions/conversia-backend-00002-m5l",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "metadata": {
+          "annotations": {
+            "autoscaling.knative.dev/maxScale": "20",
+            "run.googleapis.com/build-source-location": "{\"conversia-backend-1\":\"gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968499.579373-546d05895d0846e4b834cf00cb3f74c7.zip#1773968500282291\"}",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/operation-id": "e163929c-f7d8-4be1-b9de-11c5b969b64d",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "serving.knative.dev/creator": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T01:04:13.674675Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "gddvgwtdet",
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true",
+            "run.googleapis.com/startupProbeType": "Default",
+            "serving.knative.dev/configuration": "conversia-backend",
+            "serving.knative.dev/configurationGeneration": "2",
+            "serving.knative.dev/route": "conversia-backend",
+            "serving.knative.dev/service": "conversia-backend",
+            "serving.knative.dev/serviceUid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "name": "conversia-backend-00002-m5l",
+          "namespace": "431576391107",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Configuration",
+              "name": "conversia-backend",
+              "uid": "60f018e4-ebc2-4d13-8da3-e5bac8268fd5"
+            }
+          ],
+          "resourceVersion": "AAZNakXWY4A",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/revisions/conversia-backend-00002-m5l",
+          "uid": "2b88d657-9af4-4104-8c77-d98ecb460627"
+        },
+        "spec": {
+          "containerConcurrency": 80,
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "DEBUG",
+                  "value": "true"
+                },
+                {
+                  "name": "SECRET_KEY",
+                  "value": "change-me-in-production"
+                },
+                {
+                  "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
+                  "value": "480"
+                },
+                {
+                  "name": "DATABASE_URL",
+                  "value": "postgresql://postgres:ConversiaProd2026x@db.pdkoshxuldkvwjhaugss.supabase.co:5432/postgres"
+                },
+                {
+                  "name": "REDIS_URL",
+                  "value": "redis://default:YYD88vqZp2PwbRC5jOPHNfDFRERg3eU0@redis-10681.crce196.sa-east-1-2.ec2.cloud.redislabs.com:10681"
+                },
+                {
+                  "name": "OPENAI_API_KEY",
+                  "value": "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"
+                },
+                {
+                  "name": "OPENAI_MODEL",
+                  "value": "gpt-4.1-mini"
+                },
+                {
+                  "name": "DEEPL_API_KEY",
+                  "value": "daade7c7-1cdf-4d34-a6fe-744b76836a44:fx"
+                },
+                {
+                  "name": "WHATSAPP_VERIFY_TOKEN",
+                  "value": "conversia-webhook-verify"
+                },
+                {
+                  "name": "WHATSAPP_API_TOKEN",
+                  "value": "1588168168778165|M7Sr3B6nO6aoulAXhjuO6jZz-WI"
+                },
+                {
+                  "name": "WHATSAPP_API_URL",
+                  "value": "https://graph.facebook.com/v21.0"
+                },
+                {
+                  "name": "WHATSAPP_PHONE_NUMBER_ID",
+                  "value": "1588168168778165"
+                }
+              ],
+              "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+              "name": "conversia-backend-1",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "name": "http1"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1000m",
+                  "memory": "512Mi"
+                }
+              },
+              "startupProbe": {
+                "failureThreshold": 1,
+                "periodSeconds": 240,
+                "tcpSocket": {
+                  "port": 8080
+                },
+                "timeoutSeconds": 240
+              }
+            }
+          ],
+          "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+          "timeoutSeconds": 300
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T01:04:53.814144Z",
+              "message": "Deploying revision succeeded in 40.14s.",
+              "status": "True",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:53.759942Z",
+              "message": "Containers became healthy in 18.97s.",
+              "status": "True",
+              "type": "ContainerHealthy"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:32.968203Z",
+              "message": "Container image import completed in 18.68s.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:34.436801Z",
+              "message": "Provisioning imported containers completed in 1.47s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "status": "True",
+              "type": "ResourcesAvailable"
+            }
+          ],
+          "containerStatuses": [
+            {
+              "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+              "name": "conversia-backend-1"
+            }
+          ],
+          "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00002-m5l&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00002-m5l%22",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Revision conversia-backend-00002-m5l with message: Deploying revision succeeded in 40.14s."
+      }
+    },
+    "receiveTimestamp": "2026-03-20T01:04:55.197522749Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-20T01:04:53.824637Z"
+  },
+  {
+    "insertId": "69bc9d35000b8b179d48e08c",
+    "jsonPayload": {
+      "hostname": "localhost",
+      "level": 30,
+      "msg": "Server listening at http://169.254.169.1:8080",
+      "pid": 1,
+      "time": 1773968693741
+    },
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "timestamp": "2026-03-20T01:04:53.756503Z"
+  },
+  {
+    "insertId": "69bc9d35000b8b0b739015e2",
+    "jsonPayload": {
+      "hostname": "localhost",
+      "level": 30,
+      "msg": "Server listening at http://169.254.9.1:8080",
+      "pid": 1,
+      "time": 1773968693741
+    },
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "timestamp": "2026-03-20T01:04:53.756491Z"
+  },
+  {
+    "insertId": "69bc9d35000b8af25e5df142",
+    "jsonPayload": {
+      "hostname": "localhost",
+      "level": 30,
+      "msg": "Server listening at http://169.254.8.1:8080",
+      "pid": 1,
+      "time": 1773968693741
+    },
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "timestamp": "2026-03-20T01:04:53.756466Z"
+  },
+  {
+    "insertId": "69bc9d35000b7b3024bd912c",
+    "jsonPayload": {
+      "hostname": "localhost",
+      "level": 30,
+      "msg": "Server listening at http://127.0.0.1:8080",
+      "pid": 1,
+      "time": 1773968693740
+    },
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "timestamp": "2026-03-20T01:04:53.752432Z"
+  },
+  {
+    "insertId": "69bc9d35000b70c0d0bea29c",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T01:04:53.752718829Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"conversia-backend-1\" on port 8080.",
+    "timestamp": "2026-03-20T01:04:53.749760Z"
+  },
+  {
+    "insertId": "69bc9d35000b6ed24db1d9bf",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "WebSocket Server Initialized",
+    "timestamp": "2026-03-20T01:04:53.749266Z"
+  },
+  {
+    "insertId": "69bc9d35000b508ce9d70890",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Server running on http://localhost:8080",
+    "timestamp": "2026-03-20T01:04:53.741516Z"
+  },
+  {
+    "insertId": "69bc9d35000af4275d5c4cab",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "BullMQ Copilot Worker started: copilot-suggestions",
+    "timestamp": "2026-03-20T01:04:53.717863Z"
+  },
+  {
+    "insertId": "69bc9d35000af4023c8ecd2f",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Redis connected",
+    "timestamp": "2026-03-20T01:04:53.717826Z"
+  },
+  {
+    "insertId": "69bc9d35000ac761609c6855",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:53.924587033Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Database connected",
+    "timestamp": "2026-03-20T01:04:53.706401Z"
+  },
+  {
+    "insertId": "69bc9d34000a066ff11ea53b",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:52.967589174Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "IMPORTANT! Eviction policy is volatile-lru. It should be \"noeviction\"",
+    "timestamp": "2026-03-20T01:04:52.657007Z"
+  },
+  {
+    "insertId": "69bc9d340009b488033fe58b",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:52.967589174Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "IMPORTANT! Eviction policy is volatile-lru. It should be \"noeviction\"",
+    "timestamp": "2026-03-20T01:04:52.636040Z"
+  },
+  {
+    "insertId": "69bc9d340009b01ff5d13a26",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:52.967589174Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "IMPORTANT! Eviction policy is volatile-lru. It should be \"noeviction\"",
+    "timestamp": "2026-03-20T01:04:52.634911Z"
+  },
+  {
+    "insertId": "69bc9d340009a66defada950",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:52.924095655Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "prisma:info Starting a postgresql pool with 5 connections.",
+    "timestamp": "2026-03-20T01:04:52.632429Z"
+  },
+  {
+    "insertId": "69bc9d300009a386e8791acc",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "???????????????????????????????????????????????????????????",
+    "timestamp": "2026-03-20T01:04:48.631686Z"
+  },
+  {
+    "insertId": "69bc9d300009a3818df3c8cb",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?    npm i @prisma/client@latest                          ?",
+    "timestamp": "2026-03-20T01:04:48.631681Z"
+  },
+  {
+    "insertId": "69bc9d300009a37ca9250834",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?    npm i --save-dev prisma@latest                       ?",
+    "timestamp": "2026-03-20T01:04:48.631676Z"
+  },
+  {
+    "insertId": "69bc9d300009a37879f184bb",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?  Run the following to update                            ?",
+    "timestamp": "2026-03-20T01:04:48.631672Z"
+  },
+  {
+    "insertId": "69bc9d300009a35fd6c048c4",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?                                                         ?",
+    "timestamp": "2026-03-20T01:04:48.631647Z"
+  },
+  {
+    "insertId": "69bc9d300009a35a4688d65e",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?  https://pris.ly/d/major-version-upgrade                ?",
+    "timestamp": "2026-03-20T01:04:48.631642Z"
+  },
+  {
+    "insertId": "69bc9d300009a356167f1328",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?  This is a major update - please follow the guide at    ?",
+    "timestamp": "2026-03-20T01:04:48.631638Z"
+  },
+  {
+    "insertId": "69bc9d300009a3502b5efc1a",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?                                                         ?",
+    "timestamp": "2026-03-20T01:04:48.631632Z"
+  },
+  {
+    "insertId": "69bc9d300009a34b4124ece8",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?  Update available 6.19.2 -> 7.5.0                       ?",
+    "timestamp": "2026-03-20T01:04:48.631627Z"
+  },
+  {
+    "insertId": "69bc9d300009a323ba5d3e0f",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T01:04:48.641248848Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "???????????????????????????????????????????????????????????",
+    "timestamp": "2026-03-20T01:04:48.631587Z"
+  },
+  {
+    "insertId": "69bc9d3000098afe67b01436",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:48.929609718Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "?  Your database is now in sync with your Prisma schema. Done in 5.35s",
+    "timestamp": "2026-03-20T01:04:48.625406Z"
+  },
+  {
+    "insertId": "69bc9d2900094192bbcb334e",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:41.937296262Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Datasource \"db\": PostgreSQL database \"postgres\", schema \"public\" at \"db.pdkoshxuldkvwjhaugss.supabase.co:5432\"",
+    "timestamp": "2026-03-20T01:04:41.606610Z"
+  },
+  {
+    "insertId": "69bc9d2900091ecb0cb7e8ec",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T01:04:41.600204190Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Prisma schema loaded from prisma/schema.prisma",
+    "timestamp": "2026-03-20T01:04:41.597707Z"
+  },
+  {
+    "insertId": "69bc9d22000a0d4ccbdce379",
+    "labels": {
+      "instanceId": "00da6cd2c4eb13ae71fc748821ad720674e2485961ac06e94c8006c056692c2d595b0a5cb27f847543a58d8267f5175c33fbc64610d702a970017605aadcdd807a7930548c4bb39153309a3620",
+      "scaling_reason": "DEPLOYMENT_ROLLOUT"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T01:04:34.662739915Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "timestamp": "2026-03-20T01:04:34.658764Z"
+  },
+  {
+    "insertId": "-tyita5dhces",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.ReplaceService",
+      "resourceName": "namespaces/momentum-premium/revisions/conversia-backend-00002-m5l",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "metadata": {
+          "annotations": {
+            "autoscaling.knative.dev/maxScale": "20",
+            "run.googleapis.com/build-source-location": "{\"conversia-backend-1\":\"gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968499.579373-546d05895d0846e4b834cf00cb3f74c7.zip#1773968500282291\"}",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/operation-id": "e163929c-f7d8-4be1-b9de-11c5b969b64d",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "serving.knative.dev/creator": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T01:04:13.674675Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "gddvgwtdet",
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true",
+            "run.googleapis.com/startupProbeType": "Default",
+            "serving.knative.dev/configuration": "conversia-backend",
+            "serving.knative.dev/configurationGeneration": "2",
+            "serving.knative.dev/service": "conversia-backend",
+            "serving.knative.dev/serviceUid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "name": "conversia-backend-00002-m5l",
+          "namespace": "431576391107",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Configuration",
+              "name": "conversia-backend",
+              "uid": "60f018e4-ebc2-4d13-8da3-e5bac8268fd5"
+            }
+          ],
+          "resourceVersion": "AAZNakSY/Yo",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/revisions/conversia-backend-00002-m5l",
+          "uid": "2b88d657-9af4-4104-8c77-d98ecb460627"
+        },
+        "spec": {
+          "containerConcurrency": 80,
+          "containers": [
+            {
+              "env": [
+                {
+                  "name": "DEBUG",
+                  "value": "true"
+                },
+                {
+                  "name": "SECRET_KEY",
+                  "value": "change-me-in-production"
+                },
+                {
+                  "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
+                  "value": "480"
+                },
+                {
+                  "name": "DATABASE_URL",
+                  "value": "postgresql://postgres:ConversiaProd2026x@db.pdkoshxuldkvwjhaugss.supabase.co:5432/postgres"
+                },
+                {
+                  "name": "REDIS_URL",
+                  "value": "redis://default:YYD88vqZp2PwbRC5jOPHNfDFRERg3eU0@redis-10681.crce196.sa-east-1-2.ec2.cloud.redislabs.com:10681"
+                },
+                {
+                  "name": "OPENAI_API_KEY",
+                  "value": "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"
+                },
+                {
+                  "name": "OPENAI_MODEL",
+                  "value": "gpt-4.1-mini"
+                },
+                {
+                  "name": "DEEPL_API_KEY",
+                  "value": "daade7c7-1cdf-4d34-a6fe-744b76836a44:fx"
+                },
+                {
+                  "name": "WHATSAPP_VERIFY_TOKEN",
+                  "value": "conversia-webhook-verify"
+                },
+                {
+                  "name": "WHATSAPP_API_TOKEN",
+                  "value": "1588168168778165|M7Sr3B6nO6aoulAXhjuO6jZz-WI"
+                },
+                {
+                  "name": "WHATSAPP_API_URL",
+                  "value": "https://graph.facebook.com/v21.0"
+                },
+                {
+                  "name": "WHATSAPP_PHONE_NUMBER_ID",
+                  "value": "1588168168778165"
+                }
+              ],
+              "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+              "name": "conversia-backend-1",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "name": "http1"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1000m",
+                  "memory": "512Mi"
+                }
+              },
+              "startupProbe": {
+                "failureThreshold": 1,
+                "periodSeconds": 240,
+                "tcpSocket": {
+                  "port": 8080
+                },
+                "timeoutSeconds": 240
+              }
+            }
+          ],
+          "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+          "timeoutSeconds": 300
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T01:04:33.013130Z",
+              "status": "True",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:32.968203Z",
+              "message": "Container image import completed in 18.68s.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T01:04:33.013130Z",
+              "message": "System will retry after 00:05 from lastTransitionTime for attempt 0.",
+              "reason": "WatchWaiting",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "containerStatuses": [
+            {
+              "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+              "name": "conversia-backend-1"
+            }
+          ],
+          "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00002-m5l&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00002-m5l%22",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Revision conversia-backend-00002-m5l."
+      }
+    },
+    "receiveTimestamp": "2026-03-20T01:04:34.108159581Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00002-m5l",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-20T01:04:33.022604Z"
+  },
+  {
+    "insertId": "1xdjlzed6dfr",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.setIamPolicy",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.setIamPolicy",
+          "permissionType": "ADMIN_WRITE",
+          "resourceAttributes": {}
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.SetIamPolicy",
+      "request": {
+        "@type": "type.googleapis.com/google.iam.v1.SetIamPolicyRequest",
+        "policy": {
+          "bindings": [
+            {
+              "members": [
+                "allUsers"
+              ],
+              "role": "roles/run.invoker"
+            }
+          ],
+          "etag": "BwZNai9tQkI="
+        },
+        "resource": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend"
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/be09ce8272314a7487702a9f7da939b8 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T01:04:14.902624Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T01:04:15.326818603Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T01:04:14.467481Z"
+  },
+  {
+    "insertId": "e5ic67dj688",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {
+            "name": "namespaces/momentum-premium/services/conversia-backend",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Service"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.ReplaceService",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.ReplaceServiceRequest",
+        "name": "namespaces/momentum-premium/services/conversia-backend",
+        "service": {
+          "apiVersion": "serving.knative.dev/v1",
+          "kind": "Service",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/build-enable-automatic-updates": "false",
+              "run.googleapis.com/build-id": "66be0079-2c40-450c-997a-e9bb8a9a0e49",
+              "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+              "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/66be0079-2c40-450c-997a-e9bb8a9a0e49",
+              "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968499.579373-546d05895d0846e4b834cf00cb3f74c7.zip#1773968500282291",
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "550.0.0",
+              "run.googleapis.com/ingress": "all",
+              "run.googleapis.com/ingress-status": "all",
+              "run.googleapis.com/maxScale": "20",
+              "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+              "run.googleapis.com/urls": "[\"https://conversia-backend-431576391107.southamerica-east1.run.app\"]",
+              "serving.knative.dev/creator": "admin@vivarestay.com",
+              "serving.knative.dev/lastModifier": "admin@vivarestay.com"
+            },
+            "creationTimestamp": "2026-03-20T00:58:36.359351Z",
+            "generation": 1,
+            "labels": {
+              "cloud.googleapis.com/location": "southamerica-east1",
+              "run.googleapis.com/satisfiesPzs": "true"
+            },
+            "name": "conversia-backend",
+            "namespace": "431576391107",
+            "resourceVersion": "AAZNajEqFBs",
+            "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/services/conversia-backend",
+            "uid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "550.0.0",
+                  "run.googleapis.com/startup-cpu-boost": "true"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "gddvgwtdet",
+                  "run.googleapis.com/startupProbeType": "Default"
+                }
+              },
+              "spec": {
+                "containerConcurrency": 80,
+                "containers": [
+                  {
+                    "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:d139b375d4b44d7c0889db296365ff8ddf56551a815e9a6dcef2b4ddba80a750",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1000m",
+                        "memory": "512Mi"
+                      }
+                    }
+                  }
+                ],
+                "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+                "timeoutSeconds": 300
+              }
+            },
+            "traffic": [
+              {
+                "latestRevision": true,
+                "percent": 100
+              }
+            ]
+          },
+          "status": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.907322Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "Ready"
+              },
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "ConfigurationsReady"
+              },
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.907322Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "RoutesReady"
+              }
+            ],
+            "latestCreatedRevisionName": "conversia-backend-00001-t7x",
+            "observedGeneration": 1
+          }
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/be09ce8272314a7487702a9f7da939b8 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T01:04:13.627299Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T01:04:14.451482263Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T01:04:12.835632Z"
+  },
+  {
+    "insertId": "e5ic67dj5lj",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "cloudbuild.builds.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/momentum-premium/locations/southamerica-east1/builds",
+          "resourceAttributes": {}
+        }
+      ],
+      "methodName": "google.cloud.run.v2.Builds.SubmitBuild",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v2.SubmitBuildRequest",
+        "client": "gcloud",
+        "imageUri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+        "parent": "projects/momentum-premium/locations/southamerica-east1",
+        "storageSource": {
+          "generation": "1773968500282291"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/be09ce8272314a7487702a9f7da939b8 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T01:01:42.696968Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "projects/momentum-premium/locations/southamerica-east1/builds",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T01:01:43.436403212Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T01:01:40.663892Z"
+  },
+  {
+    "insertId": "5k896kdfjse",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.update",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {
+            "name": "namespaces/momentum-premium/services/conversia-backend",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Service"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.ReplaceService",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.ReplaceServiceRequest",
+        "dryRun": "all",
+        "name": "namespaces/momentum-premium/services/conversia-backend",
+        "service": {
+          "apiVersion": "serving.knative.dev/v1",
+          "kind": "Service",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/build-enable-automatic-updates": "false",
+              "run.googleapis.com/build-id": "2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+              "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+              "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+              "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990",
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "550.0.0",
+              "run.googleapis.com/ingress": "all",
+              "run.googleapis.com/ingress-status": "all",
+              "run.googleapis.com/maxScale": "20",
+              "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+              "run.googleapis.com/urls": "[\"https://conversia-backend-431576391107.southamerica-east1.run.app\"]",
+              "serving.knative.dev/creator": "admin@vivarestay.com",
+              "serving.knative.dev/lastModifier": "admin@vivarestay.com"
+            },
+            "creationTimestamp": "2026-03-20T00:58:36.359351Z",
+            "generation": 1,
+            "labels": {
+              "cloud.googleapis.com/location": "southamerica-east1",
+              "run.googleapis.com/satisfiesPzs": "true"
+            },
+            "name": "conversia-backend",
+            "namespace": "431576391107",
+            "resourceVersion": "AAZNajEqFBs",
+            "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/services/conversia-backend",
+            "uid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "550.0.0",
+                  "run.googleapis.com/startup-cpu-boost": "true"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "hiajogrwfz",
+                  "run.googleapis.com/startupProbeType": "Default"
+                }
+              },
+              "spec": {
+                "containerConcurrency": 80,
+                "containers": [
+                  {
+                    "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1000m",
+                        "memory": "512Mi"
+                      }
+                    }
+                  }
+                ],
+                "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+                "timeoutSeconds": 300
+              }
+            },
+            "traffic": [
+              {
+                "latestRevision": true,
+                "percent": 100
+              }
+            ]
+          },
+          "status": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.907322Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "Ready"
+              },
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "ConfigurationsReady"
+              },
+              {
+                "lastTransitionTime": "2026-03-20T00:59:06.907322Z",
+                "reason": "HealthCheckContainerError",
+                "status": "False",
+                "type": "RoutesReady"
+              }
+            ],
+            "latestCreatedRevisionName": "conversia-backend-00001-t7x",
+            "observedGeneration": 1
+          }
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/be09ce8272314a7487702a9f7da939b8 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T01:01:38.820310Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T01:01:39.453536224Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T01:01:38.095161Z"
+  },
+  {
+    "insertId": "fjgb3add8bw",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.CreateService",
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-enable-automatic-updates": "false",
+            "run.googleapis.com/build-id": "2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+            "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+            "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+            "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+            "run.googleapis.com/urls": "[\"https://conversia-backend-431576391107.southamerica-east1.run.app\"]",
+            "serving.knative.dev/creator": "admin@vivarestay.com",
+            "serving.knative.dev/lastModifier": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.359351Z",
+          "generation": 1,
+          "labels": {
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true"
+          },
+          "name": "conversia-backend",
+          "namespace": "431576391107",
+          "resourceVersion": "AAZNajEoSOY",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/services/conversia-backend",
+          "uid": "443d17b9-7411-4e02-b66e-feab53760848"
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "annotations": {
+                "run.googleapis.com/client-name": "gcloud",
+                "run.googleapis.com/client-version": "550.0.0",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              },
+              "labels": {
+                "client.knative.dev/nonce": "aytzpzewus",
+                "run.googleapis.com/startupProbeType": "Default"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "containers": [
+                {
+                  "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+                  "ports": [
+                    {
+                      "containerPort": 8080,
+                      "name": "http1"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "512Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "failureThreshold": 1,
+                    "periodSeconds": 240,
+                    "tcpSocket": {
+                      "port": 8080
+                    },
+                    "timeoutSeconds": 240
+                  }
+                }
+              ],
+              "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+              "timeoutSeconds": 300
+            }
+          },
+          "traffic": [
+            {
+              "latestRevision": true,
+              "percent": 100
+            }
+          ]
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "ConfigurationsReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.299313Z",
+              "message": "Provisioning revision instances to receive traffic.",
+              "status": "Unknown",
+              "type": "RoutesReady"
+            }
+          ],
+          "latestCreatedRevisionName": "conversia-backend-00001-t7x",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 9,
+        "message": "Ready condition status changed to False for Service conversia-backend with message: The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start"
+      }
+    },
+    "receiveTimestamp": "2026-03-20T00:59:07.895331408Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-20T00:59:06.876499Z"
+  },
+  {
+    "insertId": "fjgb3add8bu",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.CreateService",
+      "resourceName": "namespaces/momentum-premium/revisions/conversia-backend-00001-t7x",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-source-location": "{\"conversia-backend-1\":\"gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990\"}",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "serving.knative.dev/creator": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.583560Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "aytzpzewus",
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true",
+            "run.googleapis.com/startupProbeType": "Default",
+            "serving.knative.dev/configuration": "conversia-backend",
+            "serving.knative.dev/configurationGeneration": "1",
+            "serving.knative.dev/route": "conversia-backend",
+            "serving.knative.dev/service": "conversia-backend",
+            "serving.knative.dev/serviceUid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "name": "conversia-backend-00001-t7x",
+          "namespace": "431576391107",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Configuration",
+              "name": "conversia-backend",
+              "uid": "60f018e4-ebc2-4d13-8da3-e5bac8268fd5"
+            }
+          ],
+          "resourceVersion": "AAZNajEnBwQ",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/revisions/conversia-backend-00001-t7x",
+          "uid": "782b1408-2f89-4831-afb6-19a98d41b7cb"
+        },
+        "spec": {
+          "containerConcurrency": 80,
+          "containers": [
+            {
+              "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "name": "http1"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1000m",
+                  "memory": "512Mi"
+                }
+              },
+              "startupProbe": {
+                "failureThreshold": 1,
+                "periodSeconds": 240,
+                "tcpSocket": {
+                  "port": 8080
+                },
+                "timeoutSeconds": 240
+              }
+            }
+          ],
+          "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+          "timeoutSeconds": 300
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.777348Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.777348Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "ContainerHealthy"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.186768Z",
+              "message": "Container image import completed in 20.99s.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:00.305140Z",
+              "message": "Provisioning imported containers completed in 2.12s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "status": "True",
+              "type": "ResourcesAvailable"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:00.305140Z",
+              "message": "System will retry after 00:00 from lastTransitionTime for attempt 0.",
+              "reason": "ImmediateRetry",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "containerStatuses": [
+            {
+              "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1"
+            }
+          ],
+          "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 9,
+        "message": "Ready condition status changed to False for Revision conversia-backend-00001-t7x with message: The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start"
+      }
+    },
+    "receiveTimestamp": "2026-03-20T00:59:07.895331408Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-20T00:59:06.792333Z"
+  },
+  {
+    "insertId": "69bc9bda000bd7b2668f4963",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T00:59:06.868576210Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "Default STARTUP TCP probe failed 1 time consecutively for container \"conversia-backend-1\" on port 8080. The instance was not started.\nConnection failed with status CANCELLED.",
+    "timestamp": "2026-03-20T00:59:06.776114Z"
+  },
+  {
+    "insertId": "69bc9bda0009c86deb19fbf4",
+    "labels": {
+      "container_name": "conversia-backend-1",
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T00:59:06.868576210Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-03-20T00:59:06.641031802Z"
+  },
+  {
+    "insertId": "69bc9bda0004e106f09e2b88",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Prisma CLI Version : 6.19.2",
+    "timestamp": "2026-03-20T00:59:06.319750Z"
+  },
+  {
+    "insertId": "69bc9bda0004e101b8bd2ec1",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "[Context: getConfig]",
+    "timestamp": "2026-03-20T00:59:06.319745Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0fdb3038343",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Validation Error Count: 1",
+    "timestamp": "2026-03-20T00:59:06.319741Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0f44028b65f",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "   | ",
+    "timestamp": "2026-03-20T00:59:06.319732Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0f034977c1a",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": " 8 |   url        = env(\"DATABASE_URL\")",
+    "timestamp": "2026-03-20T00:59:06.319728Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0ecb21bca56",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": " 7 |   provider   = \"postgresql\"",
+    "timestamp": "2026-03-20T00:59:06.319724Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0e85827a64b",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "   | ",
+    "timestamp": "2026-03-20T00:59:06.319720Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0e42ad32592",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  -->  prisma/schema.prisma:8",
+    "timestamp": "2026-03-20T00:59:06.319716Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0de0dedb1d5",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "error: Environment variable not found: DATABASE_URL.",
+    "timestamp": "2026-03-20T00:59:06.319710Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0d7b5731991",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Error code: P1012",
+    "timestamp": "2026-03-20T00:59:06.319703Z"
+  },
+  {
+    "insertId": "69bc9bda0004e0bf683498f2",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-20T00:59:06.324365898Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Error: Prisma schema validation - (get-config wasm)",
+    "timestamp": "2026-03-20T00:59:06.319679Z"
+  },
+  {
+    "insertId": "69bc9bda0004bf2ed87a5e8a",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-20T00:59:06.319628928Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Prisma schema loaded from prisma/schema.prisma",
+    "timestamp": "2026-03-20T00:59:06.311086Z"
+  },
+  {
+    "insertId": "69bc9bd400082397f395fbb3",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d",
+      "scaling_reason": "DEPLOYMENT_ROLLOUT"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T00:59:00.536210958Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "timestamp": "2026-03-20T00:59:00.533399Z"
+  },
+  {
+    "insertId": "6y683kdadw6",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.CreateService",
+      "resourceName": "namespaces/momentum-premium/revisions/conversia-backend-00001-t7x",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-source-location": "{\"conversia-backend-1\":\"gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990\"}",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "serving.knative.dev/creator": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.583560Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "aytzpzewus",
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true",
+            "run.googleapis.com/startupProbeType": "Default",
+            "serving.knative.dev/configuration": "conversia-backend",
+            "serving.knative.dev/configurationGeneration": "1",
+            "serving.knative.dev/service": "conversia-backend",
+            "serving.knative.dev/serviceUid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "name": "conversia-backend-00001-t7x",
+          "namespace": "431576391107",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Configuration",
+              "name": "conversia-backend",
+              "uid": "60f018e4-ebc2-4d13-8da3-e5bac8268fd5"
+            }
+          ],
+          "resourceVersion": "AAZNajCkn7s",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/revisions/conversia-backend-00001-t7x",
+          "uid": "782b1408-2f89-4831-afb6-19a98d41b7cb"
+        },
+        "spec": {
+          "containerConcurrency": 80,
+          "containers": [
+            {
+              "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "name": "http1"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1000m",
+                  "memory": "512Mi"
+                }
+              },
+              "startupProbe": {
+                "failureThreshold": 1,
+                "periodSeconds": 240,
+                "tcpSocket": {
+                  "port": 8080
+                },
+                "timeoutSeconds": 240
+              }
+            }
+          ],
+          "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+          "timeoutSeconds": 300
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.231227Z",
+              "status": "True",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.186768Z",
+              "message": "Container image import completed in 20.99s.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.231227Z",
+              "message": "System will retry after 00:05 from lastTransitionTime for attempt 0.",
+              "reason": "WatchWaiting",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "containerStatuses": [
+            {
+              "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1"
+            }
+          ],
+          "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "message": "Ready condition status changed to True for Revision conversia-backend-00001-t7x."
+      }
+    },
+    "receiveTimestamp": "2026-03-20T00:58:59.383734326Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "timestamp": "2026-03-20T00:58:58.240287Z"
+  },
+  {
+    "insertId": "14im1xadsffa",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.setIamPolicy",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.setIamPolicy",
+          "permissionType": "ADMIN_WRITE",
+          "resourceAttributes": {}
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.SetIamPolicy",
+      "request": {
+        "@type": "type.googleapis.com/google.iam.v1.SetIamPolicyRequest",
+        "policy": {
+          "bindings": [
+            {
+              "members": [
+                "allUsers"
+              ],
+              "role": "roles/run.invoker"
+            }
+          ],
+          "etag": "ACAB"
+        },
+        "resource": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend"
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/02ac3901a92d45fbbaa8e8d96be5aba3 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T00:58:37.914945Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "projects/momentum-premium/locations/southamerica-east1/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T00:58:38.796591788Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T00:58:37.398177Z"
+  },
+  {
+    "insertId": "14im1xadsff1",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {
+            "name": "namespaces/momentum-premium/services/conversia-backend",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Service"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.CreateService",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.CreateServiceRequest",
+        "parent": "namespaces/momentum-premium",
+        "service": {
+          "apiVersion": "serving.knative.dev/v1",
+          "kind": "Service",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/build-enable-automatic-updates": "false",
+              "run.googleapis.com/build-id": "2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+              "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+              "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+              "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990",
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "550.0.0"
+            },
+            "name": "conversia-backend",
+            "namespace": "momentum-premium"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "550.0.0",
+                  "run.googleapis.com/startup-cpu-boost": "True"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "aytzpzewus"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+                    "name": ""
+                  }
+                ]
+              }
+            }
+          },
+          "status": {}
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/02ac3901a92d45fbbaa8e8d96be5aba3 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T00:58:36.536020Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T00:58:36.794813453Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T00:58:36.143602Z"
+  },
+  {
+    "insertId": "yysifidath2",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "cloudbuild.builds.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "projects/momentum-premium/locations/southamerica-east1/builds",
+          "resourceAttributes": {}
+        }
+      ],
+      "methodName": "google.cloud.run.v2.Builds.SubmitBuild",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v2.SubmitBuildRequest",
+        "client": "gcloud",
+        "imageUri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+        "parent": "projects/momentum-premium/locations/southamerica-east1",
+        "storageSource": {
+          "generation": "1773968162130990"
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/02ac3901a92d45fbbaa8e8d96be5aba3 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T00:56:04.052518Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "projects/momentum-premium/locations/southamerica-east1/builds",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T00:56:04.793191754Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": ""
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T00:56:02.372711Z"
+  },
+  {
+    "insertId": "1gq4hedd27ba",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Factivity",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "oauthInfo": {
+          "oauthClientId": "32555940559.apps.googleusercontent.com"
+        },
+        "principalEmail": "admin@vivarestay.com",
+        "principalSubject": "user:admin@vivarestay.com"
+      },
+      "authorizationInfo": [
+        {
+          "granted": true,
+          "permission": "run.services.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {}
+        },
+        {
+          "granted": true,
+          "permission": "run.services.create",
+          "permissionType": "ADMIN_WRITE",
+          "resource": "namespaces/momentum-premium/services/conversia-backend",
+          "resourceAttributes": {
+            "name": "namespaces/momentum-premium/services/conversia-backend",
+            "service": "run.googleapis.com/",
+            "type": "run.googleapis.com/Service"
+          }
+        }
+      ],
+      "methodName": "google.cloud.run.v1.Services.CreateService",
+      "request": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.CreateServiceRequest",
+        "dryRun": "all",
+        "parent": "namespaces/momentum-premium",
+        "service": {
+          "apiVersion": "serving.knative.dev/v1",
+          "kind": "Service",
+          "metadata": {
+            "annotations": {
+              "run.googleapis.com/client-name": "gcloud",
+              "run.googleapis.com/client-version": "550.0.0"
+            },
+            "name": "conversia-backend",
+            "namespace": "momentum-premium"
+          },
+          "spec": {
+            "template": {
+              "metadata": {
+                "annotations": {
+                  "run.googleapis.com/client-name": "gcloud",
+                  "run.googleapis.com/client-version": "550.0.0",
+                  "run.googleapis.com/startup-cpu-boost": "True"
+                },
+                "labels": {
+                  "client.knative.dev/nonce": "pxeqipgysa"
+                }
+              },
+              "spec": {
+                "containers": [
+                  {
+                    "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+                    "name": ""
+                  }
+                ]
+              }
+            }
+          },
+          "status": {}
+        }
+      },
+      "requestMetadata": {
+        "callerIp": "2804:14c:118:82d3:14f4:ea14:a457:ad02",
+        "callerSuppliedUserAgent": "google-cloud-sdk gcloud/550.0.0 command/gcloud.run.deploy invocation-id/02ac3901a92d45fbbaa8e8d96be5aba3 environment/None environment-version/None client-os/WINDOWS client-os-ver/10.0.26200 client-pltf-arch/x86_64 interactive/True from-script/False python/3.13.8 term/  (Windows NT 10.0.26200),gzip(gfe)",
+        "destinationAttributes": {},
+        "requestAttributes": {
+          "auth": {},
+          "time": "2026-03-20T00:55:56.267564Z"
+        }
+      },
+      "resourceLocation": {
+        "currentLocations": [
+          "southamerica-east1"
+        ]
+      },
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "serviceName": "run.googleapis.com",
+      "status": {}
+    },
+    "receiveTimestamp": "2026-03-20T00:55:56.889207081Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "NOTICE",
+    "timestamp": "2026-03-20T00:55:55.874502Z"
+  },
+  {
+    "insertId": "69bbd73a000d6eda453b25cf",
+    "jsonPayload": {
+      "igpm": 0,
+      "ipca": 0,
+      "level": "info",
+      "message": "Market Updater: Successfully updated indicators.",
+      "selic": 0,
+      "updatedAt": "2026-03-19T11:00:08.440Z",
+      "usd": 0
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T11:00:10.990580201Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:10.880346Z"
+  },
+  {
+    "insertId": "69bbd73a000d6e5a04f29330",
+    "jsonPayload": {
+      "date": "2026-03-19",
+      "level": "info",
+      "message": "Market news updated successfully",
+      "news": [
+        {
+          "link": "https://news.google.com/rss/articles/CBMijwFBVV95cUxNWkpYS2w2LU5KQ0Z2Nm14aVZIMzdfT1JEMzlVcmxwTUhSamtEeC1xUjdUbm9kOWRxNlJRdG1OWkpWaWFxeGxRc1VBNHpjZXIwYjJreDk4YzB5NDg5dE8zRk1PeXgxUzRnRnlaTzhjT3RyZnhBSU15SE9vd0g2QjVPeC1DMHgyUm43aXlSSzlxYw?oc=5",
+          "pubDate": "Thu, 19 Mar 2026 10:56:47 GMT",
+          "source": "Google News",
+          "title": "Ibovespa Hoje Ao Vivo: Confira o que movimenta Bolsa, D?lar e Juros nesta quinta - InfoMoney"
+        },
+        {
+          "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQZ2M0RHloZDJLc2pTeldOUXpKNTRFYktzblJWNjVvNVRNSmZPWWw1NGZaY3llUDhyekJ4dXg4aXZrSkJ5MmFsZEFSVkFhVm9qZVRvYmh0akw2SklXSDJ1R2JQU1ZwTnhKOUxadkVXSWhieUFqV1oyOE45ZXZJZjZrODAxTnFFeFUxeFdudlFoRDc0VW1QZzdvM2I3M0Z2b1NsZ2fSAacBQVVfeXFMTm5MWWtfYWpYUEhUT2xhTDkxUVVHUEJsVzJvcVM5WW1SNW9WV2Z3djNCVFpmMHZmbm9QWjhqR09MbXY3ZkpVQUtUVUx2R2wtT1dsZU1fcEJmaXEzdFYwYkhveVB4bl91bnUwZTBRcG1pWUljSC1hSERyQlQ4T2dkWV9kSlVQRmlZd3pCR2FNdjJGRmRITG9kVXZBbVpZd3dVQVZ5NU4tZ0U?oc=5",
+          "pubDate": "Thu, 19 Mar 2026 10:49:01 GMT",
+          "source": "Google News",
+          "title": "TIM (TIMS3) anuncia R$ 390 mi em proventos; veja quem tem direito - InfoMoney"
+        },
+        {
+          "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxQaWY1NmtLbmxsNmJSRW1kZEFQeGpoSVdZRlQwUWk2aWVreHBCMkNSNnFJU0ZEYzIwX0M5dm8tX01zbDRaS1hyM0Z1QjhHcjF6YTc1dUdEeEdBd0ZPVUUwdHVKeHRVSWN6ajdTaFR3SjNRZG1hQU5pZVhkRlludW5HRlRZVklZYlA5ZExyamd30gGTAUFVX3lxTE5CODcxbjU0a0ktckVmeDVXZ1kzS1BxQ05kc3JnTjZIOUdmYUYtZlRfbWc5emxsWmhoeGhGN1FxQl9fUGtoTmRUeHNmYjlZRkt2all0Uks5aUMwaE9xMWtkX3c0UTRJVldoOHNkZEUzcWF3Z0NMeVM0N203UWVTYkoybldpNExNOXptY18wS3pCd1FCSQ?oc=5",
+          "pubDate": "Thu, 19 Mar 2026 10:43:42 GMT",
+          "source": "Google News",
+          "title": "Melnick (MELK3) tem lucro de R$ 34,4 mi no 4T, alta anual de 0,5% - InfoMoney"
+        },
+        {
+          "link": "https://news.google.com/rss/articles/CBMijAFBVV95cUxNb1BkUDF4dWhvaTlFdWxLdzZZWXJXQlB2VUdtVVgzZWdNNnlsUFYwRUdKZWFDWlZEQk91dkN2Rmp2anM1NE5qRXl4SmY3ZHlJcXRfT2RSUUVfdlg4Q0tOZTZXYzQycGREUTljUXhkd092SFlLSlpWRkVpNDFzc0hiQU1lMno3SU5MMFJibNIBkgFBVV95cUxQOHZGWDhzWl9rWTF6a0JjNWlrbzNvQVU5Q09WZ0Z2M2l5Q1ZjaFMzSTVqTjNkUFZBeklsVm9pQ3VqRDdZTmpreWNLcTlJMjV6SU9yT1kwVHdpNkRnWTF4UFY5TDJhWTNhYnp3QW04Ui1OMVVyV3l4N1dwX252RjBjejgwaFNkbFJtS09VbGpkSzM4Zw?oc=5",
+          "pubDate": "Thu, 19 Mar 2026 10:36:53 GMT",
+          "source": "Google News",
+          "title": "M?liuz reverte lucro e tem preju?zo de R$ 32,9 mi com perdas relacionadas ao Bitcoin - InfoMoney"
+        },
+        {
+          "link": "https://news.google.com/rss/articles/CBMiuwFBVV95cUxOUC14aHd3eTYtcVJaLVIwc3pkN2lPV1hVVnVtNmJVUGl5bnlxUGRaTnNtSGJVTUE1Z2p2UDA0N1JBUlc5SkhZNGVlRmJvanVNbFNpRnhBWnk0TDV2TXRNNUdNQUxGeFMxZklzblREbFVYLXZENmRHMkF0aUs5ZVFHTkFyOTRLeDRONTNuQXNJUV9ONnBNVXhneEIwMWRBQl8wYzlUaHZUeU9ISVk5TGVfb2VKOHN1Y0c0YzFJ0gHAAUFVX3lxTE9UZ0RPMjl4MFhVb0R0ZXpHMm1mMnNiQXFSZ1I3VkZUaTFhQVcyc0FHbEt4NGdBSVJDcU1MbURDRllSTkU2NUNTX3Y1UHM4cG9uVVNqMVRBa2owQ0gydktIbDlXRGxGNFRUREdISEs2NTlYcHpZbUZfQVVmTUI1c3E1WVd2VDZBbzVqU1ZqNnJwMkhuTHhzb0t2bjQtZXVSVkhwaVlNZ3hucmt3NmY5YWkyUGRPd1BlVmdaYnpuOXNrZw?oc=5",
+          "pubDate": "Thu, 19 Mar 2026 10:33:34 GMT",
+          "source": "Google News",
+          "title": "No 20? dia da guerra, Ir? intensifica ataques contra infraestrutura do Golfo P?rsico - InfoMoney"
+        }
+      ],
+      "sentiment": "Neutro",
+      "summary": "N?o foi poss?vel gerar an?lise de IA hoje.",
+      "updatedAt": "2026-03-19T11:00:10.717Z"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T11:00:10.990580201Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:10.880218Z"
+  },
+  {
+    "insertId": "69bbd73a000aefe3b45c773a",
+    "jsonPayload": {
+      "error": "Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "level": "error",
+      "message": "AI summarization failed"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T11:00:10.775356593Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:10.716771Z"
+  },
+  {
+    "insertId": "69bbd73a000aef1c3b6c2bdd",
+    "jsonPayload": {
+      "error": "Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latency": 1011,
+      "level": "error",
+      "message": "AI call failed",
+      "modelPreferred": "gemini",
+      "promptKind": "market_news",
+      "provider": "gemini",
+      "tenantId": "system",
+      "userId": "market-agent"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T11:00:10.775356593Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:10.716572Z"
+  },
+  {
+    "insertId": "69bbd738000d1bd71e506db6",
+    "jsonPayload": {
+      "level": "info",
+      "message": "Fetching market news from RSS feeds..."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T11:00:08.990884767Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:08.859095Z"
+  },
+  {
+    "insertId": "69bbd7380006b632ba08ead4",
+    "jsonPayload": {
+      "error": "Request failed with status code 429",
+      "level": "error",
+      "message": "Error fetching economic indicators (returning default 0s)"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T11:00:08.445169052Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:08.439858Z"
+  },
+  {
+    "insertId": "69bbd7380004e35bd416cdba",
+    "jsonPayload": {
+      "level": "info",
+      "message": "Fetching economic indicators..."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T11:00:08.656200227Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:08.320347Z"
+  },
+  {
+    "insertId": "69bbd7380004e0bbcbbc5af5",
+    "jsonPayload": {
+      "level": "info",
+      "message": "Market Updater: Starting daily update..."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "xczbaxigmhoa",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T11:00:08.326305267Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "3086083309660383860",
+    "timestamp": "2026-03-19T11:00:08.319675Z"
+  },
+  {
+    "insertId": "69bbd73800049ca709ab83dc",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T11:00:08.323726920Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "timestamp": "2026-03-19T11:00:08.302247Z"
+  },
+  {
+    "insertId": "69bbd7340004ea4c6e58ea79",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8",
+      "scaling_reason": "AUTOSCALING"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T11:00:04.330112407Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.",
+    "timestamp": "2026-03-19T11:00:04.322124Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "5.617231935s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "35.187.130.96",
+      "requestMethod": "POST",
+      "requestSize": "1369",
+      "requestUrl": "https://southamerica-east1-momentum-premium.cloudfunctions.net/marketUpdater",
+      "responseSize": "97",
+      "serverIp": "216.239.36.54",
+      "status": 200,
+      "userAgent": "Google-Cloud-Scheduler"
+    },
+    "insertId": "69bbd73a000d81e8f1fc0cc5",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "marketupdater",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4bf4189896b9a761744823bf88d9e8668691f6dc8ffe5d88053eef4d02511d9fdb6155b7f62b85649b4ace21764cc75dbb276afea67106ecb0671131e3ac65889238877169b67947fc8"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-19T11:00:10.893597818Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "marketupdater",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "marketupdater-00007-peh",
+        "service_name": "marketupdater"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "2ad3f86b5b91aa74",
+    "timestamp": "2026-03-19T11:00:04.273393Z",
+    "trace": "projects/momentum-premium/traces/f7f206a42f8e84b19f71ce2556e53b6a",
+    "traceSampled": true
+  },
+  {
+    "insertId": "69bb90eb000157104f53b578",
+    "jsonPayload": {
+      "alertsGenerated": 0,
+      "durationMs": 1656,
+      "level": "info",
+      "message": "?? CFO Sentinel: Execution completed.",
+      "processed": 5
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:11.100929389Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:11.087824Z"
+  },
+  {
+    "insertId": "69bb90ea000f2e2611be8d92",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "No transaction data for tenant vivare-oficial. Using UNKNOWN health snapshot."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:11.100929389Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.994854Z"
+  },
+  {
+    "insertId": "69bb90ea000e0277e9aa183c",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "Starting Health Score calculation for tenant: vivare-oficial"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:11.100929389Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.918135Z"
+  },
+  {
+    "insertId": "69bb90ea000c75d235915d0b",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "No transaction data for tenant realEstate_units. Using UNKNOWN health snapshot."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:11.100929389Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.816594Z"
+  },
+  {
+    "insertId": "69bb90ea000b51ccf28a1428",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "Starting Health Score calculation for tenant: realEstate_units"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.766441943Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.741836Z"
+  },
+  {
+    "insertId": "69bb90ea0009ef216c332d2e",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "No transaction data for tenant realEstate_owners. Using UNKNOWN health snapshot."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.766441943Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.651041Z"
+  },
+  {
+    "insertId": "69bb90ea0008aa514d2f11f6",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "Starting Health Score calculation for tenant: realEstate_owners"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.766441943Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.567889Z"
+  },
+  {
+    "insertId": "69bb90ea0008a9d1ada06e1b",
+    "jsonPayload": {
+      "level": "info",
+      "message": "Health Score computed and saved",
+      "score": 82,
+      "status": "EXCELLENT",
+      "tenantId": "demo-tenant-001"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.766441943Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.567761Z"
+  },
+  {
+    "insertId": "69bb90ea000741fce20e3d76",
+    "jsonPayload": {
+      "error": "Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "level": "error",
+      "message": "AI Generation failed for health score",
+      "tenantId": "demo-tenant-001"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T06:00:10.814454831Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.475644Z"
+  },
+  {
+    "insertId": "69bb90ea0007418474d66773",
+    "jsonPayload": {
+      "error": "Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latency": 291,
+      "level": "error",
+      "message": "AI call failed",
+      "modelPreferred": "gemini",
+      "promptKind": "health-score-insight",
+      "provider": "gemini",
+      "tenantId": "demo-tenant-001",
+      "userId": "system-job"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T06:00:10.481137797Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.475524Z"
+  },
+  {
+    "insertId": "69bb90ea000159e9b906a9dd",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "Starting Health Score calculation for tenant: demo-tenant-001"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.103035689Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:10.088553Z"
+  },
+  {
+    "insertId": "69bb90e9000eca3a441b01f8",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "No transaction data for tenant VITE_DEFAULT_TENANT_ID. Using UNKNOWN health snapshot."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.103035689Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:09.969274Z"
+  },
+  {
+    "insertId": "69bb90e9000d57add489f1a0",
+    "jsonPayload": {
+      "executionId": "system-job",
+      "level": "info",
+      "message": "Starting Health Score calculation for tenant: VITE_DEFAULT_TENANT_ID"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.103035689Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:09.874413Z"
+  },
+  {
+    "insertId": "69bb90e9000d549751990b84",
+    "jsonPayload": {
+      "level": "info",
+      "message": "CFO Sentinel: Found 5 tenants to process."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:10.103035689Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:09.873623Z"
+  },
+  {
+    "insertId": "69bb90e9000693b39b4b910e",
+    "jsonPayload": {
+      "level": "info",
+      "message": "?? CFO Sentinel: Starting nightly check..."
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29j9tl52t4k",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:09.434936851Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "826561781584515653",
+    "timestamp": "2026-03-19T06:00:09.431027Z"
+  },
+  {
+    "insertId": "69bb90e900056a860cc6726a",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:09.521310392Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "timestamp": "2026-03-19T06:00:09.354950Z"
+  },
+  {
+    "insertId": "69bb90e8000beb756b1490fc",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "dailyaging",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c46773868842aa935af94ec76d7251efafc84eb706622a3a7ba88da7bb58f82cc3579ca8dd4912a477222e3dd5b8cdf51d293b91d9d7d80521155b94d2bddfef265a91d14748007e00",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:08.994749397Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "dailyaging",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "dailyaging-00011-voc",
+        "service_name": "dailyaging"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "timestamp": "2026-03-19T06:00:08.781173Z"
+  },
+  {
+    "insertId": "69bb90e80008382e5c2dfa78",
+    "jsonPayload": {
+      "dryRun": false,
+      "durationMs": 485,
+      "level": "info",
+      "message": "Expired logs cleanup completed",
+      "results": [
+        {
+          "collection": "advisor_logs",
+          "deleted": 0
+        }
+      ],
+      "totalDeleted": 0
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29i7j769sht",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:08.727143557Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "5715521138259144454",
+    "timestamp": "2026-03-19T06:00:08.538670Z"
+  },
+  {
+    "insertId": "69bb90e80008364414516c64",
+    "jsonPayload": {
+      "collection": "advisor_logs",
+      "error": "9 FAILED_PRECONDITION: ",
+      "level": "error",
+      "message": "Cleanup error"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29i7j769sht",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-03-19T06:00:08.543605505Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "spanId": "5715521138259144454",
+    "timestamp": "2026-03-19T06:00:08.538180Z"
+  },
+  {
+    "insertId": "69bb90e80000d8619deb4b12",
+    "jsonPayload": {
+      "collections": [
+        "advisor_logs"
+      ],
+      "dryRun": false,
+      "level": "info",
+      "message": "Starting expired logs cleanup"
+    },
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29i7j769sht",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:08.059491603Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "5715521138259144454",
+    "timestamp": "2026-03-19T06:00:08.055393Z"
+  },
+  {
+    "insertId": "69bb90e7000e5a90177681d0",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:08.198745704Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "timestamp": "2026-03-19T06:00:07.940688Z"
+  },
+  {
+    "insertId": "69bb90e7000a309be79bc0d5",
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29hi6v3i9ft",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "calculaterealestatefees",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4a6efc3ee65388adc797f985163b4d74e01e661c2b547d8b52935ee16b889bf9a23f95ae595402cedb929459763e65933cf54b0565d776403399c15ee8c1bf90ac0599800ff57d855",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:07.811499395Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "calculaterealestatefees",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "calculaterealestatefees-00011-noh",
+        "service_name": "calculaterealestatefees"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "18186572945332520808",
+    "textPayload": "[CRON] Real Estate fees calculation complete. Processed 0 tenants.\n",
+    "timestamp": "2026-03-19T06:00:07.667803Z"
+  },
+  {
+    "insertId": "69bb90e700021f196894573a",
+    "labels": {
+      "deployment-scheduled": "true",
+      "execution_id": "x29hi6v3i9ft",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "calculaterealestatefees",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4a6efc3ee65388adc797f985163b4d74e01e661c2b547d8b52935ee16b889bf9a23f95ae595402cedb929459763e65933cf54b0565d776403399c15ee8c1bf90ac0599800ff57d855",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-03-19T06:00:07.144708817Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "calculaterealestatefees",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "calculaterealestatefees-00011-noh",
+        "service_name": "calculaterealestatefees"
+      },
+      "type": "cloud_run_revision"
+    },
+    "spanId": "18186572945332520808",
+    "textPayload": "[CRON] Starting Real Estate fees calculation...\n",
+    "timestamp": "2026-03-19T06:00:07.139033Z"
+  },
+  {
+    "insertId": "69bb90e700014bd2b29eb38b",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "calculaterealestatefees",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4a6efc3ee65388adc797f985163b4d74e01e661c2b547d8b52935ee16b889bf9a23f95ae595402cedb929459763e65933cf54b0565d776403399c15ee8c1bf90ac0599800ff57d855",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20260313_20_20_0_RC00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:07.208042781Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "calculaterealestatefees",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "calculaterealestatefees-00011-noh",
+        "service_name": "calculaterealestatefees"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "timestamp": "2026-03-19T06:00:07.084946Z"
+  },
+  {
+    "insertId": "69bb90e4000cf91dbe9b3522",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f",
+      "scaling_reason": "AUTOSCALING"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:04.853249423Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.",
+    "timestamp": "2026-03-19T06:00:04.850205Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "4.693215253s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "35.187.130.164",
+      "requestMethod": "POST",
+      "requestSize": "1358",
+      "requestUrl": "https://southamerica-east1-momentum-premium.cloudfunctions.net/cfoNightly",
+      "responseSize": "97",
+      "serverIp": "216.239.36.54",
+      "status": 200,
+      "userAgent": "Google-Cloud-Scheduler"
+    },
+    "insertId": "69bb90eb000164083e11a582",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cfonightly",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4df4ff4619dd3aa56f7587b1ff70bc6f9d94483bb7564eb7c4d5a5e7c004f3c31d8361370eb50fcd246eb3bb56642e2b74b350d91b577b3bae6f4b86cf2c2a9ecf7594d9e4af722425f"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-19T06:00:11.096219659Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cfonightly",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cfonightly-00036-mac",
+        "service_name": "cfonightly"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "0b78898fa0425245",
+    "timestamp": "2026-03-19T06:00:04.793212Z",
+    "trace": "projects/momentum-premium/traces/47bdd33df8e0b081f5b7568a94b632db",
+    "traceSampled": true
+  },
+  {
+    "insertId": "69bb90e4000500fd373a13a4",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "dailyaging",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c46773868842aa935af94ec76d7251efafc84eb706622a3a7ba88da7bb58f82cc3579ca8dd4912a477222e3dd5b8cdf51d293b91d9d7d80521155b94d2bddfef265a91d14748007e00",
+      "scaling_reason": "AUTOSCALING"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:04.333287873Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "dailyaging",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "dailyaging-00011-voc",
+        "service_name": "dailyaging"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.",
+    "timestamp": "2026-03-19T06:00:04.327933Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "4.427794280s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "35.187.130.33",
+      "requestMethod": "POST",
+      "requestSize": "1268",
+      "requestUrl": "https://dailyaging-q3jaf6crea-rj.a.run.app/",
+      "responseSize": "97",
+      "serverIp": "34.143.79.2",
+      "status": 200,
+      "userAgent": "Google-Cloud-Scheduler"
+    },
+    "insertId": "69bb90e9000d65de5d25fde1",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "dailyaging",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c46773868842aa935af94ec76d7251efafc84eb706622a3a7ba88da7bb58f82cc3579ca8dd4912a477222e3dd5b8cdf51d293b91d9d7d80521155b94d2bddfef265a91d14748007e00"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-19T06:00:09.882438663Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "dailyaging",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "dailyaging-00011-voc",
+        "service_name": "dailyaging"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "6ea20adc28f8e60d",
+    "timestamp": "2026-03-19T06:00:04.272893Z",
+    "trace": "projects/momentum-premium/traces/523e738a6c197c003f75f18e5de1101d",
+    "traceSampled": true
+  },
+  {
+    "insertId": "69bb90e400030889d22c95a2",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c",
+      "scaling_reason": "AUTOSCALING"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:04.203181461Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.",
+    "timestamp": "2026-03-19T06:00:04.198793Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "3.670178035s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "35.187.130.65",
+      "requestMethod": "POST",
+      "requestSize": "1386",
+      "requestUrl": "https://southamerica-east1-momentum-premium.cloudfunctions.net/cleanupExpiredLogs",
+      "responseSize": "97",
+      "serverIp": "216.239.36.54",
+      "status": 200,
+      "userAgent": "Google-Cloud-Scheduler"
+    },
+    "insertId": "69bb90e8000849c036ab85fc",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "cleanupexpiredlogs",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4697e9fc79c277c523f1fd264abace3d0e7fa4aee3dee6c6279d8a94785cdf5058ca9041e5183866c04c6edff1c7a353efe951645aa0401fe03412ec1a0eb1de5dcb0251565bbac0b4c"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-19T06:00:08.547177579Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "cleanupexpiredlogs",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "cleanupexpiredlogs-00013-hup",
+        "service_name": "cleanupexpiredlogs"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "4f519c31702c2f06",
+    "timestamp": "2026-03-19T06:00:04.136528Z",
+    "trace": "projects/momentum-premium/traces/d692472ecd41423d4dc1cace55dd7eca",
+    "traceSampled": true
+  },
+  {
+    "insertId": "69bb90e300032249feace70a",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "calculaterealestatefees",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4a6efc3ee65388adc797f985163b4d74e01e661c2b547d8b52935ee16b889bf9a23f95ae595402cedb929459763e65933cf54b0565d776403399c15ee8c1bf90ac0599800ff57d855",
+      "scaling_reason": "AUTOSCALING"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-19T06:00:03.211489277Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "calculaterealestatefees",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "calculaterealestatefees-00011-noh",
+        "service_name": "calculaterealestatefees"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "textPayload": "Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.",
+    "timestamp": "2026-03-19T06:00:03.205385Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "3.680699561s",
+      "protocol": "HTTP/1.1",
+      "remoteIp": "35.187.130.163",
+      "requestMethod": "POST",
+      "requestSize": "1402",
+      "requestUrl": "https://southamerica-east1-momentum-premium.cloudfunctions.net/calculateRealEstateFees",
+      "responseSize": "97",
+      "serverIp": "216.239.36.54",
+      "status": 200,
+      "userAgent": "Google-Cloud-Scheduler"
+    },
+    "insertId": "69bb90e7000a43dbe8fd8caa",
+    "labels": {
+      "deployment-scheduled": "true",
+      "firebase-functions-hash": "b6c927d7091d9722186c6a9b2483d2c5d966dcc2",
+      "goog-drz-cloudfunctions-id": "calculaterealestatefees",
+      "goog-drz-cloudfunctions-location": "southamerica-east1",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "00da6cd2c4a6efc3ee65388adc797f985163b4d74e01e661c2b547d8b52935ee16b889bf9a23f95ae595402cedb929459763e65933cf54b0565d776403399c15ee8c1bf90ac0599800ff57d855"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-03-19T06:00:07.678097177Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "calculaterealestatefees",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "calculaterealestatefees-00011-noh",
+        "service_name": "calculaterealestatefees"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "fc63afbcb8464768",
+    "timestamp": "2026-03-19T06:00:03.137931Z",
+    "trace": "projects/momentum-premium/traces/a765ddce0b4cc7d4797e8c187961a170",
+    "traceSampled": true
+  }
+]

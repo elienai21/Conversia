@@ -10,6 +10,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().default("postgresql://postgres:postgres@localhost:5432/conversia"),
   REDIS_URL: z.string().default("redis://localhost:6379/0"),
   ALLOWED_ORIGINS: z.string().default("http://localhost:5173"),
+  SUPABASE_URL: z.string().default(""),
+  SUPABASE_KEY: z.string().default(""),
   OPENAI_API_KEY: z.string().default(""),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   DEEPL_API_KEY: z.string().default(""),

@@ -115,15 +115,24 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
       if (attachment.sourceUrl) {
         // Handle base64 data URIs – decode and stream the binary content
         if (attachment.sourceUrl.startsWith("data:")) {
-          const match = attachment.sourceUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (match) {
-            const [, dataMime, b64] = match;
-            const buffer = Buffer.from(b64, "base64");
-            reply.header("content-type", attachment.mimeType || dataMime);
-            if (attachment.fileName) {
-              reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
+          try {
+            const commaIndex = attachment.sourceUrl.indexOf(",");
+            if (commaIndex > -1) {
+              const header = attachment.sourceUrl.substring(0, commaIndex);
+              const b64 = attachment.sourceUrl.substring(commaIndex + 1);
+              const buffer = Buffer.from(b64, "base64");
+              
+              const mimeMatch = header.match(/^data:([^;]+)/);
+              const dataMime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+              
+              reply.header("content-type", attachment.mimeType || dataMime);
+              if (attachment.fileName) {
+                reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
+              }
+              return reply.send(buffer);
             }
-            return reply.send(buffer);
+          } catch (e) {
+            request.server.log.error(e as Error, "Failed to parse data URI");
           }
           return reply.status(404).send({ detail: "Invalid data URI" });
         }

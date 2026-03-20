@@ -19,6 +19,7 @@
     "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^10.3.0",
     "@prisma/client": "^6.19.2",
+    "@supabase/supabase-js": "^2.99.3",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.71.0",
     "deepl-node": "^1.24.0",

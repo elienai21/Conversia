@@ -28,6 +28,7 @@ import {
 import { prisma } from "../lib/prisma.js";
 import { SocketService } from "../services/socket.service.js";
 import { tryAutoResponse } from "../services/auto-response.service.js";
+import { uploadMediaToStorage } from "../lib/storage.js";
 
 // Shared pipeline (steps 5-11) used by both WhatsApp and Instagram
 async function processIncomingMessage(params: {
@@ -84,10 +85,26 @@ async function processIncomingMessage(params: {
       console.log(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
       const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
       if (mediaResult) {
-        sourceUrl = `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+        const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
+        if (uploadedUrl) {
+          sourceUrl = uploadedUrl;
+        } else {
+          sourceUrl = `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+        }
         console.log(`[Webhook] Fetched media successfully: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
       } else {
         console.error(`[Webhook] Failed to fetch media from Evolution API`);
+      }
+    } else if (sourceUrl && sourceUrl.startsWith('data:')) {
+      // If the webhook payload already came with base64, also upload it to storage
+      const match = sourceUrl.match(/^data:(.*?);base64,(.*)$/);
+      if (match) {
+        const mimeType = match[1];
+        const base64 = match[2];
+        const uploadedUrl = await uploadMediaToStorage(base64, mimeType, attachment.fileName);
+        if (uploadedUrl) {
+          sourceUrl = uploadedUrl;
+        }
       }
     }
     

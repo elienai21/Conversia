@@ -1,0 +1,309 @@
+﻿[
+  {
+    "insertId": "fjgb3add8bw",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.CreateService",
+      "resourceName": "namespaces/momentum-premium/services/conversia-backend",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-enable-automatic-updates": "false",
+            "run.googleapis.com/build-id": "2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+            "run.googleapis.com/build-image-uri": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend",
+            "run.googleapis.com/build-name": "projects/431576391107/locations/southamerica-east1/builds/2bbcfde7-4bb7-4c90-80de-08b1871f9097",
+            "run.googleapis.com/build-source-location": "gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+            "run.googleapis.com/urls": "[\"https://conversia-backend-431576391107.southamerica-east1.run.app\"]",
+            "serving.knative.dev/creator": "admin@vivarestay.com",
+            "serving.knative.dev/lastModifier": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.359351Z",
+          "generation": 1,
+          "labels": {
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true"
+          },
+          "name": "conversia-backend",
+          "namespace": "431576391107",
+          "resourceVersion": "AAZNajEoSOY",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/services/conversia-backend",
+          "uid": "443d17b9-7411-4e02-b66e-feab53760848"
+        },
+        "spec": {
+          "template": {
+            "metadata": {
+              "annotations": {
+                "run.googleapis.com/client-name": "gcloud",
+                "run.googleapis.com/client-version": "550.0.0",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              },
+              "labels": {
+                "client.knative.dev/nonce": "aytzpzewus",
+                "run.googleapis.com/startupProbeType": "Default"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "containers": [
+                {
+                  "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+                  "ports": [
+                    {
+                      "containerPort": 8080,
+                      "name": "http1"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1000m",
+                      "memory": "512Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "failureThreshold": 1,
+                    "periodSeconds": 240,
+                    "tcpSocket": {
+                      "port": 8080
+                    },
+                    "timeoutSeconds": 240
+                  }
+                }
+              ],
+              "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+              "timeoutSeconds": 300
+            }
+          },
+          "traffic": [
+            {
+              "latestRevision": true,
+              "percent": 100
+            }
+          ]
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.823937Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "ConfigurationsReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.299313Z",
+              "message": "Provisioning revision instances to receive traffic.",
+              "status": "Unknown",
+              "type": "RoutesReady"
+            }
+          ],
+          "latestCreatedRevisionName": "conversia-backend-00001-t7x",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 9,
+        "message": "Ready condition status changed to False for Service conversia-backend with message: The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start"
+      }
+    },
+    "receiveTimestamp": "2026-03-20T00:59:07.895331408Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-20T00:59:06.876499Z"
+  },
+  {
+    "insertId": "fjgb3add8bu",
+    "logName": "projects/momentum-premium/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "methodName": "/Services.CreateService",
+      "resourceName": "namespaces/momentum-premium/revisions/conversia-backend-00001-t7x",
+      "response": {
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision",
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "metadata": {
+          "annotations": {
+            "run.googleapis.com/build-source-location": "{\"conversia-backend-1\":\"gs://run-sources-momentum-premium-southamerica-east1/services/conversia-backend/1773968161.265416-d0d8743b8c01484b83859193035b5d8e.zip#1773968162130990\"}",
+            "run.googleapis.com/client-name": "gcloud",
+            "run.googleapis.com/client-version": "550.0.0",
+            "run.googleapis.com/operation-id": "8ed160d3-607d-4fb3-8089-bfe464bd8282",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "serving.knative.dev/creator": "admin@vivarestay.com"
+          },
+          "creationTimestamp": "2026-03-20T00:58:36.583560Z",
+          "generation": 1,
+          "labels": {
+            "client.knative.dev/nonce": "aytzpzewus",
+            "cloud.googleapis.com/location": "southamerica-east1",
+            "run.googleapis.com/satisfiesPzs": "true",
+            "run.googleapis.com/startupProbeType": "Default",
+            "serving.knative.dev/configuration": "conversia-backend",
+            "serving.knative.dev/configurationGeneration": "1",
+            "serving.knative.dev/route": "conversia-backend",
+            "serving.knative.dev/service": "conversia-backend",
+            "serving.knative.dev/serviceUid": "443d17b9-7411-4e02-b66e-feab53760848"
+          },
+          "name": "conversia-backend-00001-t7x",
+          "namespace": "431576391107",
+          "ownerReferences": [
+            {
+              "apiVersion": "serving.knative.dev/v1",
+              "blockOwnerDeletion": true,
+              "controller": true,
+              "kind": "Configuration",
+              "name": "conversia-backend",
+              "uid": "60f018e4-ebc2-4d13-8da3-e5bac8268fd5"
+            }
+          ],
+          "resourceVersion": "AAZNajEnBwQ",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/431576391107/revisions/conversia-backend-00001-t7x",
+          "uid": "782b1408-2f89-4831-afb6-19a98d41b7cb"
+        },
+        "spec": {
+          "containerConcurrency": 80,
+          "containers": [
+            {
+              "image": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1",
+              "ports": [
+                {
+                  "containerPort": 8080,
+                  "name": "http1"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1000m",
+                  "memory": "512Mi"
+                }
+              },
+              "startupProbe": {
+                "failureThreshold": 1,
+                "periodSeconds": 240,
+                "tcpSocket": {
+                  "port": 8080
+                },
+                "timeoutSeconds": 240
+              }
+            }
+          ],
+          "serviceAccountName": "431576391107-compute@developer.gserviceaccount.com",
+          "timeoutSeconds": 300
+        },
+        "status": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.777348Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "Ready"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:06.777348Z",
+              "message": "The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start",
+              "reason": "HealthCheckContainerError",
+              "status": "False",
+              "type": "ContainerHealthy"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:58:58.186768Z",
+              "message": "Container image import completed in 20.99s.",
+              "status": "True",
+              "type": "ContainerReady"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:00.305140Z",
+              "message": "Provisioning imported containers completed in 2.12s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "status": "True",
+              "type": "ResourcesAvailable"
+            },
+            {
+              "lastTransitionTime": "2026-03-20T00:59:00.305140Z",
+              "message": "System will retry after 00:00 from lastTransitionTime for attempt 0.",
+              "reason": "ImmediateRetry",
+              "severity": "Info",
+              "status": "True",
+              "type": "Retry"
+            }
+          ],
+          "containerStatuses": [
+            {
+              "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+              "name": "conversia-backend-1"
+            }
+          ],
+          "imageDigest": "southamerica-east1-docker.pkg.dev/momentum-premium/cloud-run-source-deploy/conversia-backend@sha256:6bda732cda3e54be965a16e7e87b8166c7c7a73e50116824cfd51f9c2a716a22",
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22",
+          "observedGeneration": 1
+        }
+      },
+      "serviceName": "run.googleapis.com",
+      "status": {
+        "code": 9,
+        "message": "Ready condition status changed to False for Revision conversia-backend-00001-t7x with message: The user-provided container failed to start and listen on the port defined provided by the PORT=8080 environment variable within the allocated timeout. This can happen when the container port is misconfigured or if the timeout is too short. The health check timeout can be extended. Logs for this revision might contain more information.\n\nLogs URL: https://console.cloud.google.com/logs/viewer?project=momentum-premium&resource=cloud_run_revision/service_name/conversia-backend/revision_name/conversia-backend-00001-t7x&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22conversia-backend%22%0Aresource.labels.revision_name%3D%22conversia-backend-00001-t7x%22 \nFor more troubleshooting guidance, see https://cloud.google.com/run/docs/troubleshooting#container-failed-to-start"
+      }
+    },
+    "receiveTimestamp": "2026-03-20T00:59:07.895331408Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "timestamp": "2026-03-20T00:59:06.792333Z"
+  },
+  {
+    "insertId": "69bc9bda000bd7b2668f4963",
+    "labels": {
+      "instanceId": "00da6cd2c4858abb7ffe75bd10d15ef8e613bd4e88e84e794f46a303cb306f0b521d91567748e4e531bdea4c65c4cea0725949eb74259d5e4be6804438454f2e98901150c4c89963fe08d1ecb28d"
+    },
+    "logName": "projects/momentum-premium/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-03-20T00:59:06.868576210Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "conversia-backend",
+        "location": "southamerica-east1",
+        "project_id": "momentum-premium",
+        "revision_name": "conversia-backend-00001-t7x",
+        "service_name": "conversia-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "Default STARTUP TCP probe failed 1 time consecutively for container \"conversia-backend-1\" on port 8080. The instance was not started.\nConnection failed with status CANCELLED.",
+    "timestamp": "2026-03-20T00:59:06.776114Z"
+  }
+]

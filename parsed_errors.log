@@ -1,0 +1,14 @@
+[2026-03-20T00:59:06.876499Z] ERROR: undefined
+[2026-03-20T00:59:06.792333Z] ERROR: undefined
+[2026-03-20T00:59:06.776114Z] ERROR: Default STARTUP TCP probe failed 1 time consecutively for container "conversia-backend-1" on port 8080. The instance was not started.
+Connection failed with status CANCELLED.
+[2026-03-20T00:59:06.319741Z] INFO: Validation Error Count: 1
+[2026-03-20T00:59:06.319710Z] INFO: error: Environment variable not found: DATABASE_URL.
+[2026-03-20T00:59:06.319703Z] INFO: Error code: P1012
+[2026-03-20T00:59:06.319679Z] INFO: Error: Prisma schema validation - (get-config wasm)
+[2026-03-19T11:00:10.716771Z] ERROR: {"error":"Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","level":"error","message":"AI summarization failed"}
+[2026-03-19T11:00:10.716572Z] ERROR: {"error":"Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","latency":1011,"level":"error","message":"AI call failed","modelPreferred":"gemini","promptKind":"market_news","provider":"gemini","tenantId":"system","userId":"market-agent"}
+[2026-03-19T11:00:08.439858Z] ERROR: {"error":"Request failed with status code 429","level":"error","message":"Error fetching economic indicators (returning default 0s)"}
+[2026-03-19T06:00:10.475644Z] ERROR: {"error":"Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","level":"error","message":"AI Generation failed for health score","tenantId":"demo-tenant-001"}
+[2026-03-19T06:00:10.475524Z] ERROR: {"error":"Gemini API error: 404 Not Found - models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","latency":291,"level":"error","message":"AI call failed","modelPreferred":"gemini","promptKind":"health-score-insight","provider":"gemini","tenantId":"demo-tenant-001","userId":"system-job"}
+[2026-03-19T06:00:08.538180Z] ERROR: {"collection":"advisor_logs","error":"9 FAILED_PRECONDITION: ","level":"error","message":"Cleanup error"}
