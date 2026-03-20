@@ -591,13 +591,15 @@ export function InboxPage() {
     setContextMenu({ x: e.clientX, y: e.clientY, messageId });
   };
 
-  const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const name = conv.customer?.name?.toLowerCase() || "";
-    const phone = conv.customer?.phone?.toLowerCase() || "";
-    return name.includes(q) || phone.includes(q);
-  });
+  const filteredConversations = conversations
+    .filter((conv) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const name = conv.customer?.name?.toLowerCase() || "";
+      const phone = conv.customer?.phone?.toLowerCase() || "";
+      return name.includes(q) || phone.includes(q);
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   const activeConv = conversations.find(c => c.id === activeConversation);
 
