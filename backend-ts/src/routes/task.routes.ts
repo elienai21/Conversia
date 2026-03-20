@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth.middleware.js";
+import { runDailyTaskSync } from "../workers/task.worker.js";
 
 const approveTasksSchema = z.object({
   taskIds: z.array(z.string().uuid()),
@@ -8,6 +9,16 @@ const approveTasksSchema = z.object({
 
 export async function taskRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
+
+  app.post("/sync", async (request, reply) => {
+    // Força a execução do Crawler no CRM manualmente
+    try {
+      await runDailyTaskSync();
+      return reply.send({ success: true, message: "Sync executado com sucesso" });
+    } catch (err) {
+      return reply.status(500).send({ detail: "Falha ao forçar sincronização" });
+    }
+  });
 
   app.get("/daily", async (request, reply) => {
     const { prisma } = request.server.deps;

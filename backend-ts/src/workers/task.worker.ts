@@ -50,30 +50,39 @@ export async function runDailyTaskSync() {
         const primaryGuest = guestsList.find((g: any) => g.primary) || guestsList[0];
         
         if (!primaryGuest) continue;
-        
+
         const name = primaryGuest.name || "Hóspede";
-        // Telefone padrao +55...
         const phones = primaryGuest.phones || [];
         let phoneStr = "";
         if (phones.length > 0) {
            phoneStr = phones[0].iso || phones[0].value || "";
-           phoneStr = phoneStr.replace(/\D/g, ""); // Apenas digitos
+           phoneStr = phoneStr.replace(/\D/g, ""); 
         }
         
+        if (!phoneStr) continue;
+        
         // Verifica Trigger de Check-in (Faltam 24h)
-        if (checkIn === dateTomorrowStr && phoneStr) {
+        if (checkIn === dateTomorrowStr) {
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Confira o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
-          
-          await persistTask(tenant.id, resId, "checkin", pendingDate(today), name, phoneStr, payload);
-          continue;
+          await persistTask(tenant.id, resId, "checkin_amanha", pendingDate(today), name, phoneStr, payload);
+        }
+
+        // Verifica Trigger de Check-in Hoje
+        if (checkIn === dateTodayStr) {
+          const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Estamos ansiosos para te receber. Aqui está a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
+          await persistTask(tenant.id, resId, "checkin_hoje", pendingDate(today), name, phoneStr, payload);
+        }
+
+        // Verifica Trigger de Check-out Amanhã
+        if (checkOut === dateTomorrowStr) {
+          const payload = `Olá ${name}! Passando pra lembrar que seu Check-out é amanhã até as 11h. Esperamos que esteja aproveitando muito a estadia! Por favor, lembre-se de conferir seus pertences antes de sair.`;
+          await persistTask(tenant.id, resId, "checkout_amanha", pendingDate(today), name, phoneStr, payload);
         }
 
         // Verifica Trigger de Check-out (Hoje)
-        if (checkOut === dateTodayStr && phoneStr) {
-          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como vc fez seu checkout hoje, gostaríamos de avaliação (NPS).\nComo mimo, oferecemos 10% de desconto na sua próxima viagem conosco usando o cupom RETURN10!`;
-          
-          await persistTask(tenant.id, resId, "checkout", pendingDate(today), name, phoneStr, payload);
-          continue;
+        if (checkOut === dateTodayStr) {
+          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como vc fez seu checkout hoje, gostaríamos de sua avaliação (NPS).\nComo mimo, oferecemos 10% de desconto na sua próxima viagem conosco usando o cupom RETURN10!`;
+          await persistTask(tenant.id, resId, "checkout_hoje", pendingDate(today), name, phoneStr, payload);
         }
       }
     }

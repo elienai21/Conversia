@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, ChevronRight, Key, Sparkles, Send, X } from "lucide-react";
+import { CheckCircle2, ChevronRight, Key, Sparkles, Send, X, RefreshCw } from "lucide-react";
 import { ApiService } from "@/services/api";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -16,9 +16,22 @@ interface TaskItem {
 export function DailyTaskQueue() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const { theme } = useTheme();
+
+  const handleForceSync = async () => {
+    setIsSyncing(true);
+    try {
+      await ApiService.post("/tasks/sync", {});
+      await fetchTasks();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -39,9 +52,19 @@ export function DailyTaskQueue() {
   if (!isLoading && tasks.length === 0) {
     return (
       <div className="w-full mb-8 animate-fade-in">
-        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-          <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
+          </h2>
+          <button 
+            onClick={handleForceSync}
+            disabled={isSyncing}
+            className="text-muted hover:text-foreground text-sm flex items-center gap-2 transition-colors bg-muted/10 hover:bg-muted/20 px-3 py-1.5 rounded-md"
+          >
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> 
+            {isSyncing ? "Buscando..." : "Atualizar na Stays"}
+          </button>
+        </div>
         <div className="p-6 rounded-xl border border-dashed flex flex-col items-center justify-center text-center bg-muted/5">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
             <CheckCircle2 size={24} />
@@ -84,9 +107,19 @@ export function DailyTaskQueue() {
   return (
     <>
       <div className="w-full mb-8 animate-fade-in">
-        <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-          <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
+          </h2>
+          <button 
+            onClick={handleForceSync}
+            disabled={isSyncing}
+            className="text-muted hover:text-foreground text-sm flex items-center gap-2 transition-colors bg-muted/10 hover:bg-muted/20 px-3 py-1.5 rounded-md"
+          >
+            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> 
+            {isSyncing ? "Buscando..." : "Atualizar na Stays"}
+          </button>
+        </div>
         
         <div className="flex gap-4 flex-wrap">
           {Object.entries(groupedTasks).map(([type, list]) => {
