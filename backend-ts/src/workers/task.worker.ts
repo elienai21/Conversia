@@ -9,6 +9,12 @@ export async function runDailyTaskSync() {
   const today = new Date();
   const dateTodayStr = today.toISOString().split("T")[0];
 
+  // Buscamos um range um pouco maior (ex: próximos 4 dias) para garantir que
+  // a API da Stays não omita reservas que iniciam no limite do range (exclusive rule).
+  const future = new Date(today);
+  future.setDate(future.getDate() + 3); 
+  const dateLimitStr = future.toISOString().split("T")[0];
+
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateTomorrowStr = tomorrow.toISOString().split("T")[0];
@@ -18,19 +24,15 @@ export async function runDailyTaskSync() {
 
     for (const tenant of tenants) {
       const adapterRes = await CrmAdapterFactory.getAdapter(tenant.id);
-      if (!adapterRes.ok) {
-        // Ignora tenant se não tiver Integração Stays/CRM
-        continue;
-      }
+      if (!adapterRes.ok) continue;
       
       const crm = adapterRes.value;
-
-      console.log(`[TaskWorker] Escaneando reservas para Tenant ${tenant.id}`);
+      console.log(`[TaskWorker] Escaneando reservas para Tenant ${tenant.id} no range ${dateTodayStr} ate ${dateLimitStr}`);
       
-      // Busca reservas que cobrem HOJE e AMANHÃ para avaliarmos os check-ins e check-outs.
       const searchRes = await crm.searchActiveReservations({
         from: dateTodayStr,
-        to: dateTomorrowStr,
+        to: dateLimitStr,
+        status: "confirmed" // Recomendado para evitar rascunhos ou canceladas na fila
       });
 
       if (!searchRes.ok) {
@@ -39,13 +41,18 @@ export async function runDailyTaskSync() {
       }
 
       const activeReservations = searchRes.value;
-      console.log(`[TaskWorker] Tenant ${tenant.id} tem ${activeReservations.length} reservas no range.`);
+      console.log(`[TaskWorker] Tenant ${tenant.id}: Recebeu ${activeReservations.length} reservas da Stays.`);
 
       for (const res of activeReservations) {
         // Estrutura Reservation da Stays:
         const checkIn = (res as any).checkInDate; // "YYYY-MM-DD"
         const checkOut = (res as any).checkOutDate;
         const resId = (res as any).id || (res as any)._id;
+        const status = (res as any).status;
+
+        // Log interno opcional para bater as datas se necessário
+        // console.log(`[TaskWorker] Analisando Res ${resId}: In=${checkIn}, Out=${checkOut}, Status=${status}`);
+
         const guestsList = (res as any).guestsDetails?.list || [];
         const primaryGuest = guestsList.find((g: any) => g.primary) || guestsList[0];
         
