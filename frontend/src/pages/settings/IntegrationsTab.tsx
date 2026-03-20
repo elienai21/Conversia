@@ -472,9 +472,10 @@ export function IntegrationsTab() {
             <input
               type="text"
               value={staysnetDomain}
-              onChange={(e) => setStaysnetDomain(e.target.value)}
-              placeholder="www.stays.net"
+              onChange={(e) => setStaysnetDomain(e.target.value.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}
+              placeholder="vivare.stays.net"
             />
+            <p className="text-xs text-[var(--text-muted)] mt-1">Insira apenas o domínio do sistema de vendas, sem https://</p>
           </div>
           {data?.staysnet?.client_secret_set && (
             <button
@@ -483,10 +484,16 @@ export function IntegrationsTab() {
               onClick={async () => {
                 setIsTestingCrm(true);
                 try {
-                  const res = await ApiService.get<{ ok: boolean }>("/staysnet/test");
-                  showToast(res.ok ? "success" : "error", res.ok ? "Conexão com Stays.net OK!" : "Falha na conexão");
-                } catch {
-                  showToast("error", "Erro ao testar conexão com Stays.net");
+                  const res = await ApiService.get<{ connected: boolean; detail: string; error?: string }>("/tenants/me/integrations/crm-test");
+                  if (res.connected) {
+                    showToast("success", "Conexão com Stays.net OK!");
+                  } else {
+                    showToast("error", res.detail || "Erro nas credenciais.");
+                    console.error("CRM Test Error:", res.error);
+                  }
+                } catch (e: any) {
+                  showToast("error", "Erro ao testar conexão com Stays.net. Salve as alterações primeiro.");
+                  console.error(e);
                 } finally {
                   setIsTestingCrm(false);
                 }
