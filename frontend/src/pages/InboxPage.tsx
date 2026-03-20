@@ -298,6 +298,9 @@ export function InboxPage() {
   }, []);
 
   useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
     fetchConversations();
     // Load quick replies
     ApiService.get<QuickReply[]>("/quick-replies")
@@ -351,12 +354,31 @@ export function InboxPage() {
       );
     };
 
-    const handleMessageNew = (data: RawMessage & { conversation_id: string }) => {
+    const handleMessageNew = (data: RawMessage & { conversation_id: string; contact?: any }) => {
       // Play notification sound for customer messages not in the active conversation
       if (data.sender_type === "customer") {
         if (data.conversation_id !== activeConversation) {
           notificationSound?.play().catch(() => {});
         }
+        
+        // Show Push Notification if document is hidden or it's a different conversation
+        if ("Notification" in window && Notification.permission === "granted") {
+          if (document.hidden || data.conversation_id !== activeConversation) {
+            const contactName = data.contact?.name || data.contact?.phone || "Novo Cliente";
+            let previewText = data.original_text || "";
+            if (!previewText && data.attachments?.length) {
+              previewText = `[${data.attachments[0].type.toUpperCase()}] recebido`;
+            }
+            if (!previewText) previewText = "Nova mensagem recebida";
+            
+            new Notification(`Mensagem de ${contactName}`, {
+              body: previewText,
+              icon: "/favicon.ico",
+              tag: `nova-mensagem-${data.conversation_id}`,
+            });
+          }
+        }
+
         // Update unread counts in sidebar
         fetchConversations();
       }
