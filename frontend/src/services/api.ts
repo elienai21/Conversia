@@ -1,5 +1,6 @@
 // src/services/api.ts
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+const base_url = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+export const API_URL = base_url.endsWith("/") ? base_url.slice(0, -1) : base_url;
 
 export class ApiService {
   static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

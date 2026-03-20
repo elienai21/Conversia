@@ -15,8 +15,10 @@ export function SecureMedia({ src, type, alt, className, style }: SecureMediaPro
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    // If it's an absolute URL (external) or data URI, use it directly
-    if (src.startsWith("http") || src.startsWith("data:")) {
+    // If it's an external absolute URL (different origin) or data URI, use it directly.
+    // However, if it's an absolute URL pointing to our own API, we MUST still use the secure loader.
+    const isInternalAbsolute = src.startsWith(API_URL);
+    if ((src.startsWith("http") && !isInternalAbsolute) || src.startsWith("data:")) {
       setObjectUrl(src);
       setLoading(false);
       return;
@@ -29,14 +31,22 @@ export function SecureMedia({ src, type, alt, className, style }: SecureMediaPro
       try {
         setLoading(true);
         setError(false);
-        // Ensure path is relative for ApiService (which adds API_URL)
+        
+        // Determinar endpoint relativo à API_URL
         let endpoint = src;
+        
+        // Se for URL absoluta que aponta para nossa API, extraímos o path
         if (src.startsWith(API_URL)) {
-          endpoint = src.replace(API_URL, "");
+          endpoint = src.substring(API_URL.length);
         } else if (src.startsWith("/api/v1")) {
-          endpoint = src.replace("/api/v1", "");
+          endpoint = src.substring(7);
         }
         
+        // Garantir que comece com barra
+        if (!endpoint.startsWith("/")) {
+          endpoint = "/" + endpoint;
+        }
+
         const blob = await ApiService.getBlob(endpoint);
         
         if (isMounted) {

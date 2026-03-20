@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { config } from "../config.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
+import { uploadMediaToStorage } from "../lib/storage.js";
 import {
   sendMessageRequestSchema,
   type AttachmentOut,
@@ -426,6 +427,15 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         detectedLanguage: user.preferredLanguage,
       });
 
+      // Try to upload to Supabase storage; fall back to full data URI
+      let mediaSourceUrl: string;
+      const storageUrl = await uploadMediaToStorage(base64, mimeType, fileName);
+      if (storageUrl) {
+        mediaSourceUrl = storageUrl;
+      } else {
+        mediaSourceUrl = `data:${mimeType};base64,${base64}`;
+      }
+
       // Save attachment metadata
       const attachment = await services.saveAttachment({
         messageId: message.id,
@@ -433,7 +443,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         mimeType,
         fileName,
         fileSizeBytes,
-        sourceUrl: `data:${mimeType};base64,${base64.substring(0, 100)}...`,
+        sourceUrl: mediaSourceUrl,
       });
 
       // Send via WhatsApp
@@ -447,6 +457,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           mimeType,
         });
       }
+
+      const attachmentProxyUrl = `/api/v1/conversations/${conversationId}/messages/${message.id}/attachments/${attachment.id}`;
 
       // Emit socket events
       socket.emitToConversation(conversation.id, "message.new", {
@@ -462,7 +474,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           type: attachment.type,
           mime_type: attachment.mimeType,
           file_name: attachment.fileName,
-          source_url: attachment.sourceUrl,
+          source_url: attachmentProxyUrl,
         }],
       });
 
@@ -483,7 +495,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           type: attachment.type,
           mime_type: attachment.mimeType,
           file_name: attachment.fileName,
-          source_url: attachment.sourceUrl,
+          source_url: attachmentProxyUrl,
         }],
       });
     },
