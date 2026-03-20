@@ -24,7 +24,7 @@ export const updateIntegrationsSchema = z.object({
 export const updateAISettingsSchema = z.object({
   openai_model: z.string().optional(),
   ai_temperature: z.number().min(0).max(2).optional(),
-  ai_system_prompt: z.string().max(4000).optional(),
+  ai_system_prompt: z.string().max(4000).nullable().optional(),
   ai_max_tokens: z.number().int().min(50).max(2000).optional(),
   enable_auto_response: z.boolean().optional(),
   auto_response_intents: z.array(z.string()).optional(),

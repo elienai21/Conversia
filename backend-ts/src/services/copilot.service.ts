@@ -6,7 +6,7 @@ import { getRecentMessages } from "./message.service.js";
 import { logAiUsage } from "./usage-log.service.js";
 import { SocketService } from "./socket.service.js";
 
-import { copilotQueue, type CopilotJobData } from "../lib/queue.js";
+import { copilotQueue, isRedisAvailable, type CopilotJobData } from "../lib/queue.js";
 import { type Result, ok, fail } from "../lib/result.js";
 import { AppError } from "../lib/errors.js";
 
@@ -21,17 +21,30 @@ export async function enqueueSuggestionJob(
   agentId: string,
   agentLanguage: string,
 ): Promise<Result<{ jobId: string }>> {
-  try {
-    const job = await copilotQueue.add("generate", {
-      tenantId,
-      message,
-      agentId,
-      agentLanguage,
-    });
-    return ok({ jobId: job.id! });
-  } catch (error) {
-    return fail(new AppError("Failed to queue AI job", 500));
+  const jobData: CopilotJobData = { tenantId, message, agentId, agentLanguage };
+
+  // If Redis is available, use the BullMQ queue (Event-Driven pattern)
+  if (isRedisAvailable()) {
+    try {
+      const job = await copilotQueue.add("generate", jobData);
+      console.log(`[Copilot] Job ${job.id} enqueued via Redis`);
+      return ok({ jobId: job.id! });
+    } catch (error) {
+      console.warn("[Copilot] Redis enqueue failed, falling back to sync:", error);
+    }
   }
+
+  // Fallback: execute directly (fire-and-forget) when Redis is unavailable
+  const fallbackJobId = `sync-${Date.now()}`;
+  console.log(`[Copilot] Redis unavailable — executing job ${fallbackJobId} synchronously`);
+
+  // Fire-and-forget: don't await, let it run in background
+  generateSuggestionWorker(jobData).then(
+    () => console.log(`[Copilot] Sync job ${fallbackJobId} completed`),
+    (err) => console.error(`[Copilot] Sync job ${fallbackJobId} failed:`, err),
+  );
+
+  return ok({ jobId: fallbackJobId });
 }
 
 // The background WebWorker process actually runs the AI prompt

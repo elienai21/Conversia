@@ -53,7 +53,7 @@ export function AISettingsTab() {
       await ApiService.patch("/tenants/me/ai-settings", {
         openai_model: model,
         ai_temperature: temperature,
-        ai_system_prompt: systemPrompt || null,
+        ai_system_prompt: systemPrompt,
         ai_max_tokens: maxTokens,
         enable_auto_response: enableAutoResponse,
         auto_response_intents: autoResponseIntents,

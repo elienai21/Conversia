@@ -67,7 +67,10 @@ export async function tryAutoResponse(params: {
     where: { tenantId },
   });
 
-  if (!settings?.enableAutoResponse) return false;
+  if (!settings?.enableAutoResponse) {
+    console.log(`[AutoResponse] Disabled for tenant ${tenantId} (enableAutoResponse=${settings?.enableAutoResponse})`);
+    return false;
+  }
 
   // 2. Check if intent is in the allowed list
   const allowedIntents: string[] = settings.autoResponseIntents
@@ -75,6 +78,7 @@ export async function tryAutoResponse(params: {
     : [];
 
   if (allowedIntents.length > 0 && !allowedIntents.includes(intent)) {
+    console.log(`[AutoResponse] Intent "${intent}" not in allowed list [${allowedIntents.join(", ")}] for tenant ${tenantId}`);
     return false;
   }
 
@@ -119,7 +123,10 @@ export async function tryAutoResponse(params: {
     ? decrypt(settings.openaiApiKey)
     : config.OPENAI_API_KEY;
 
-  if (!apiKey) return false;
+  if (!apiKey) {
+    console.warn(`[AutoResponse] No OpenAI API key available for tenant ${tenantId}`);
+    return false;
+  }
 
   const openai = new OpenAI({ apiKey });
   const model = settings.openaiModel || config.OPENAI_MODEL;
@@ -166,6 +173,7 @@ ${kbContext}`;
   // Check if CRM is configured to decide whether to use tools
   const crmResult = await CrmAdapterFactory.getAdapter(tenantId);
   const hasCrm = crmResult.ok;
+  console.log(`[AutoResponse] CRM configured: ${hasCrm} for tenant ${tenantId}`);
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemDirective },
@@ -238,7 +246,10 @@ ${kbContext}`;
     });
   }
 
-  if (!answerText || answerText === "NO_MATCH") return false;
+  if (!answerText || answerText === "NO_MATCH") {
+    console.log(`[AutoResponse] No suitable answer for tenant ${tenantId} (answer="${answerText || "empty"}")`);
+    return false;
+  }
 
   // 5. Save as system message
   const message = await saveMessage({

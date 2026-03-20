@@ -159,6 +159,45 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
+  // GET /me/integrations/crm-test — test CRM connection
+  app.get("/me/integrations/crm-test", async (request, reply) => {
+    try {
+      const { CrmAdapterFactory } = await import("../adapters/crm/crm.factory.js");
+      const adapterResult = await CrmAdapterFactory.getAdapter(request.user.tenantId);
+      
+      if (!adapterResult.ok) {
+        return reply.send({
+          connected: false,
+          error: adapterResult.error.message,
+          detail: "CRM adapter could not be initialized. Check your Client ID, Secret and Domain in Integrations.",
+        });
+      }
+
+      const adapter = adapterResult.value;
+      const testResult = await adapter.testConnection();
+
+      if (!testResult.ok) {
+        return reply.send({
+          connected: false,
+          error: testResult.error.message,
+          detail: "CRM adapter initialized but API request failed. Verify your credentials and domain.",
+        });
+      }
+
+      return reply.send({
+        connected: true,
+        detail: "CRM connection successful! The API responded correctly.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      return reply.status(500).send({
+        connected: false,
+        error: msg,
+        detail: "Unexpected error testing CRM connection.",
+      });
+    }
+  });
+
   // GET /me/ai-settings
   app.get("/me/ai-settings", async (request) => {
     const settings = await prisma.tenantSettings.findUnique({
@@ -186,7 +225,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     const data: Record<string, unknown> = {};
     if (parsed.data.openai_model !== undefined) data.openaiModel = parsed.data.openai_model;
     if (parsed.data.ai_temperature !== undefined) data.aiTemperature = parsed.data.ai_temperature;
-    if (parsed.data.ai_system_prompt !== undefined) data.aiSystemPrompt = parsed.data.ai_system_prompt;
+    if (parsed.data.ai_system_prompt !== undefined) data.aiSystemPrompt = parsed.data.ai_system_prompt ?? "";
     if (parsed.data.ai_max_tokens !== undefined) data.aiMaxTokens = parsed.data.ai_max_tokens;
     if (parsed.data.enable_auto_response !== undefined) data.enableAutoResponse = parsed.data.enable_auto_response;
     if (parsed.data.auto_response_intents !== undefined) data.autoResponseIntents = JSON.stringify(parsed.data.auto_response_intents);
