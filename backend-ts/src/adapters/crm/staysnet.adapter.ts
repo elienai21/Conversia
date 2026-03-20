@@ -53,12 +53,35 @@ export class StaysNetAdapter implements ICrmAdapter {
     return response.json() as Promise<T>;
   }
 
-  private async wrapRequest<T>(requestFn: () => Promise<T>): Promise<Result<T, AppError>> {
+  private async wrapRequest<T>(requestFn: () => Promise<T>, sanitizePII = true): Promise<Result<T, AppError>> {
     try {
       const data = await requestFn();
+      
+      // Privacy Filter (PII): Remove exact address details from any nested Stays.net models returned
+      const sanitizeAddress = (item: any) => {
+        if (item && typeof item === 'object' && item.address) {
+          delete item.address.street;
+          delete item.address.number;
+          delete item.address.complement;
+          delete item.address.zipCode;
+        }
+      };
+
+      if (sanitizePII) {
+        if (Array.isArray(data)) {
+          data.forEach(sanitizeAddress);
+        } else if (typeof data === 'object' && data !== null) {
+          sanitizeAddress(data);
+        }
+      }
+
       return ok(data);
     } catch (err: unknown) {
       if (err instanceof AppError) {
+        // Translation for 404 -> Not Available semantics instead of generic API Error
+        if (err.statusCode === 404) {
+          return fail(new AppError("Imóvel ocupado ou indisponível (regras de noites mínimas) para este período.", 404));
+        }
         return fail(err);
       }
       return fail(new AppError(err instanceof Error ? err.message : "Unknown error connecting to CRM"));
@@ -124,6 +147,31 @@ export class StaysNetAdapter implements ICrmAdapter {
     const qs = query.toString();
     
     return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations/search${qs ? `?${qs}` : ""}`));
+  }
+
+  async getCheckinDetails(reservationCode: string): Promise<Result<unknown, AppError>> {
+    const resResult = await this.getReservation(reservationCode);
+    if (!resResult.ok) return resResult;
+
+    const reservation = resResult.value as any;
+    const listingId = reservation._idlisting;
+
+    let listingDetails = null;
+    let houseRules = null;
+
+    if (listingId) {
+      const listingRes = await this.wrapRequest(() => this.apiRequest<PropertyListing>("GET", `/content/listings/${listingId}`), false); // FALSE for bypassing PII filter 
+      if (listingRes.ok) listingDetails = listingRes.value;
+
+      const rulesRes = await this.getHouseRules(listingId);
+      if (rulesRes.ok) houseRules = rulesRes.value;
+    }
+
+    return ok({
+      reservation,
+      listingDetails,
+      houseRules
+    });
   }
 
   // --- Extras / Settings ---

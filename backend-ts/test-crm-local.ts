@@ -13,10 +13,18 @@ async function run() {
   const { StaysNetAdapter } = await import("./src/adapters/crm/staysnet.adapter.js");
   const adapter = new StaysNetAdapter(credentials);
   
-  console.log("Teste conexão direto com as chaves: ", base64);
   try {
-    const res = await adapter.testConnection();
-    console.log("Result:", res);
+    console.log("Buscando Reserva Completa HV03J");
+    const reservationRes = await adapter.getReservation("HV03J");
+    
+    console.log("Reservation Result:");
+    if (!reservationRes.ok) {
+       console.log("HTTP Erro Status code: ", reservationRes.error.statusCode);
+       console.log(reservationRes.error.message);
+    } else {
+       console.log("RESERVA ENCONTRADA!");
+       console.log(JSON.stringify(reservationRes.value, null, 2));
+    }
   } catch(e) {
     console.error("Error manual:", e);
   }

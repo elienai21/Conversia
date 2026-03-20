@@ -71,6 +71,7 @@ export interface ICrmAdapter {
   // Reservations
   getReservation(reservationId: string): Promise<Result<Reservation, AppError>>;
   searchActiveReservations(params?: ReservationSearchParams): Promise<Result<Reservation[], AppError>>;
+  getCheckinDetails(reservationCode: string): Promise<Result<unknown, AppError>>;
 
   // Settings & Others
   getBookingSettings(listingId: string): Promise<Result<unknown, AppError>>;
