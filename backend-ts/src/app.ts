@@ -29,7 +29,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
 
   attachAppDeps(app, deps);
 
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet);
 
   await app.register(rateLimit, {
     max: 100,

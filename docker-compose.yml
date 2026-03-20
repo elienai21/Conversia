@@ -9,8 +9,8 @@ services:
       - redis
     environment:
       PORT: 8000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/conversia
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/conversia}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       ALLOWED_ORIGINS: http://localhost:5173
     ports:
       - "8000:8000"
@@ -19,8 +19,8 @@ services:
     image: postgres:16-alpine
     container_name: conversia-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: conversia
     ports:
       - "5432:5432"
