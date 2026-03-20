@@ -23,6 +23,12 @@ type IntegrationsInfo = {
     api_key_set: boolean;
     api_key_preview: string | null;
   };
+  staysnet: {
+    client_id_set: boolean;
+    client_id_preview: string | null;
+    client_secret_set: boolean;
+    domain: string | null;
+  };
   instagram: {
     page_id: string | null;
     page_access_token_set: boolean;
@@ -62,6 +68,12 @@ export function IntegrationsTab() {
   const [showDeepl, setShowDeepl] = useState(false);
   const [showInstagram, setShowInstagram] = useState(false);
 
+  // StaysNet CRM
+  const [staysnetSecret, setStaysnetSecret] = useState("");
+  const [staysnetDomain, setStaysnetDomain] = useState("www.stays.net");
+  const [showStaysnetSecret, setShowStaysnetSecret] = useState(false);
+  const [isTestingCrm, setIsTestingCrm] = useState(false);
+
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -90,6 +102,10 @@ export function IntegrationsTab() {
       setDeeplKey(res.deepl.api_key_preview || "");
       setInstagramToken("");
       setInstagramPageId(res.instagram.page_id || "");
+
+      // StaysNet
+      setStaysnetSecret("");
+      setStaysnetDomain(res.staysnet?.domain || "www.stays.net");
     } catch (error) {
       console.error(error);
     } finally {
@@ -125,6 +141,10 @@ export function IntegrationsTab() {
       if (deeplKey && !deeplKey.includes("...")) payload.deepl_api_key = deeplKey;
       if (instagramToken) payload.instagram_page_access_token = instagramToken;
       if (instagramPageId) payload.instagram_page_id = instagramPageId;
+
+      // StaysNet CRM
+      if (staysnetSecret) payload.staysnet_client_secret = staysnetSecret;
+      if (staysnetDomain) payload.staysnet_domain = staysnetDomain;
 
       await ApiService.patch("/tenants/me/integrations", payload);
       showToast("success", "Integrações salvas com sucesso!");
@@ -402,6 +422,64 @@ export function IntegrationsTab() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* StaysNet CRM Card */}
+        <div className="integration-card glass-panel">
+          <div className="integration-header">
+            <div className="integration-title">
+              <h3>Stays.net (CRM)</h3>
+              {data?.staysnet?.client_secret_set ? (
+                <span className="status-badge connected"><CheckCircle2 size={14} /> Configurado</span>
+              ) : (
+                <span className="status-badge disconnected"><XCircle size={14} /> Não configurado</span>
+              )}
+            </div>
+            <p>Integração com o CRM Stays.net para disponibilidade, preços e reservas.</p>
+          </div>
+          <div className="form-group relative-input">
+            <label>Token Stays.net (Base64)</label>
+            <div className="input-with-icon">
+              <input
+                type={showStaysnetSecret ? "text" : "password"}
+                value={staysnetSecret}
+                onChange={(e) => setStaysnetSecret(e.target.value)}
+                placeholder={data?.staysnet?.client_secret_set ? "••••••••••• (já configurado)" : "Token Base64 fornecido pela Stays"}
+              />
+              <button type="button" className="icon-btn" onClick={() => setShowStaysnetSecret(!showStaysnetSecret)}>
+                {showStaysnetSecret ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+          <div className="form-group">
+            <label>Domínio</label>
+            <input
+              type="text"
+              value={staysnetDomain}
+              onChange={(e) => setStaysnetDomain(e.target.value)}
+              placeholder="www.stays.net"
+            />
+          </div>
+          {data?.staysnet?.client_secret_set && (
+            <button
+              type="button"
+              className="btn-connect"
+              onClick={async () => {
+                setIsTestingCrm(true);
+                try {
+                  const res = await ApiService.get<{ ok: boolean }>("/staysnet/test");
+                  showToast(res.ok ? "success" : "error", res.ok ? "Conexão com Stays.net OK!" : "Falha na conexão");
+                } catch {
+                  showToast("error", "Erro ao testar conexão com Stays.net");
+                } finally {
+                  setIsTestingCrm(false);
+                }
+              }}
+              disabled={isTestingCrm}
+            >
+              {isTestingCrm ? <><Loader2 size={16} className="animate-spin" /> Testando...</> : "Testar Conexão"}
+            </button>
+          )}
         </div>
 
         {/* Instagram DM Card */}

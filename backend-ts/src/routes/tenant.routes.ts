@@ -75,8 +75,6 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         api_key_preview: settings?.deeplApiKey ? maskApiKey(decrypt(settings.deeplApiKey)) : null,
       },
       staysnet: {
-        client_id_set: !!settings?.staysnetClientId,
-        client_id_preview: settings?.staysnetClientId ? maskApiKey(decrypt(settings.staysnetClientId)) : null,
         client_secret_set: !!settings?.staysnetClientSecret,
         domain: settings?.staysnetDomain || null,
       },
@@ -104,7 +102,6 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.evolution_instance_token) data.evolutionInstanceToken = encrypt(parsed.data.evolution_instance_token);
     if (parsed.data.openai_api_key) data.openaiApiKey = encrypt(parsed.data.openai_api_key);
     if (parsed.data.deepl_api_key) data.deeplApiKey = encrypt(parsed.data.deepl_api_key);
-    if (parsed.data.staysnet_client_id) data.staysnetClientId = encrypt(parsed.data.staysnet_client_id);
     if (parsed.data.staysnet_client_secret) data.staysnetClientSecret = encrypt(parsed.data.staysnet_client_secret);
     if (parsed.data.staysnet_domain) data.staysnetDomain = parsed.data.staysnet_domain;
     if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
@@ -152,8 +149,6 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         api_key_preview: settings.deeplApiKey ? maskApiKey(decrypt(settings.deeplApiKey)) : null,
       },
       staysnet: {
-        client_id_set: !!settings.staysnetClientId,
-        client_id_preview: settings.staysnetClientId ? maskApiKey(decrypt(settings.staysnetClientId)) : null,
         client_secret_set: !!settings.staysnetClientSecret,
         domain: settings.staysnetDomain || null,
       },

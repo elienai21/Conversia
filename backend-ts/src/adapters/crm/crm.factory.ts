@@ -19,13 +19,11 @@ export class CrmAdapterFactory {
       return fail(new AppError("Tenant settings not found"));
     }
 
-    // Determine which CRM to use based on configured credentials.
-    // In the future, this could be a specific field like "preferredCrm".
-    if (settings.staysnetClientId && settings.staysnetClientSecret) {
+    // O campo staysnetClientSecret armazena o token Base64 (encriptado).
+    if (settings.staysnetClientSecret) {
       try {
         const credentials = {
-          clientId: decrypt(settings.staysnetClientId),
-          clientSecret: decrypt(settings.staysnetClientSecret),
+          base64Token: decrypt(settings.staysnetClientSecret),
           domain: settings.staysnetDomain || "www.stays.net",
         };
         return ok(new StaysNetAdapter(credentials));

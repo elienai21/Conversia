@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
+import { SecureMedia } from "@/components/common/SecureMedia";
 
 // Internal component types (camelCase)
 type Conversation = {
@@ -161,8 +162,9 @@ function renderAttachments(message: Message) {
         if (attachment.type === "image" && attachment.sourceUrl) {
           return (
             <a key={attachment.id} href={attachment.sourceUrl} target="_blank" rel="noreferrer">
-              <img
+              <SecureMedia
                 src={attachment.sourceUrl}
+                type="image"
                 alt={attachment.fileName || "Image attachment"}
                 style={{ maxWidth: "220px", borderRadius: "12px", display: "block" }}
               />
@@ -172,9 +174,9 @@ function renderAttachments(message: Message) {
 
         if (attachment.type === "video" && attachment.sourceUrl) {
           return (
-            <video
+            <SecureMedia
               key={attachment.id}
-              controls
+              type="video"
               src={attachment.sourceUrl}
               style={{ maxWidth: "260px", borderRadius: "12px" }}
             />

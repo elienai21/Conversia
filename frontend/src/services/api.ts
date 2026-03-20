@@ -84,6 +84,21 @@ export class ApiService {
     });
   }
 
+  static async getBlob(endpoint: string): Promise<Blob> {
+    const token = localStorage.getItem("conversia_token");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      headers,
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch media: ${response.statusText}`);
+    }
+    return response.blob();
+  }
+
   static async uploadAudio(endpoint: string, audioBlob: Blob): Promise<string> {
     const formData = new FormData();
     // Send it as a file named "audio.webm"

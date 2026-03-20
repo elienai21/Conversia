@@ -15,7 +15,6 @@ export const updateIntegrationsSchema = z.object({
   evolution_instance_token: z.string().optional(),
   openai_api_key: z.string().optional(),
   deepl_api_key: z.string().optional(),
-  staysnet_client_id: z.string().optional(),
   staysnet_client_secret: z.string().optional(),
   staysnet_domain: z.string().optional(),
   instagram_page_access_token: z.string().optional(),

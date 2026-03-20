@@ -14,8 +14,7 @@ import type {
 } from "./crm.interface.js";
 
 export interface StaysNetCredentials {
-  clientId: string;
-  clientSecret: string;
+  base64Token: string;
   domain: string;
 }
 
@@ -23,8 +22,8 @@ export class StaysNetAdapter implements ICrmAdapter {
   constructor(private readonly credentials: StaysNetCredentials) {}
 
   private buildAuthHeader(): string {
-    const raw = `${this.credentials.clientId}:${this.credentials.clientSecret}`;
-    return "Basic " + Buffer.from(raw).toString("base64");
+    // O token já vem em Base64 diretamente do painel Stays.net
+    return "Basic " + this.credentials.base64Token;
   }
 
   private async apiRequest<T = unknown>(
