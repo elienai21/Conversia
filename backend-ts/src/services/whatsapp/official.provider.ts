@@ -58,27 +58,23 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
 
     const url = `${config.WHATSAPP_API_URL}/${phoneNumberId}/messages`;
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          type: "text",
-          text: { body: text },
-        }),
-      });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body: text },
+      }),
+    });
 
-      if (!response.ok) {
-        const body = await response.text();
-        console.error(`WhatsApp Official send failed (${response.status}):`, body);
-      }
-    } catch (err) {
-      console.error("WhatsApp Official send error:", err);
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`WhatsApp Official send failed (${response.status}): ${body}`);
     }
   }
 

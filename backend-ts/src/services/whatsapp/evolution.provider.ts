@@ -107,25 +107,21 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
     const url = `${serverUrl}/message/sendText/${instanceName}`;
     const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: apikey,
-        },
-        body: JSON.stringify({
-          number: formattedTo,
-          text: text,
-        }),
-      });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: apikey,
+      },
+      body: JSON.stringify({
+        number: formattedTo,
+        text: text,
+      }),
+    });
 
-      if (!response.ok) {
-        const bodyText = await response.text();
-        console.error(`Evolution send failed (${response.status}):`, bodyText);
-      }
-    } catch (err) {
-      console.error("Evolution send error:", err);
+    if (!response.ok) {
+      const bodyText = await response.text();
+      throw new Error(`Evolution send failed (${response.status}): ${bodyText}`);
     }
   }
 
@@ -158,31 +154,27 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       mediaData = mediaData.split(",")[1] || mediaData;
     }
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: apikey,
-        },
-        body: JSON.stringify({
-          number: formattedTo,
-          mediatype: media.type,
-          mimetype: media.mimeType || undefined,
-          media: mediaData,
-          caption: media.caption || "",
-          fileName: media.fileName || undefined,
-        }),
-      });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: apikey,
+      },
+      body: JSON.stringify({
+        number: formattedTo,
+        mediatype: media.type,
+        mimetype: media.mimeType || undefined,
+        media: mediaData,
+        caption: media.caption || "",
+        fileName: media.fileName || undefined,
+      }),
+    });
 
-      if (!response.ok) {
-        const bodyText = await response.text();
-        console.error(`Evolution sendMedia failed (${response.status}):`, bodyText);
-      } else {
-        console.log(`[Evolution] Media sent successfully (${media.type}) to ${to}`);
-      }
-    } catch (err) {
-      console.error("Evolution sendMedia error:", err);
+    if (!response.ok) {
+      const bodyText = await response.text();
+      throw new Error(`Evolution sendMedia failed (${response.status}): ${bodyText}`);
+    } else {
+      console.log(`[Evolution] Media sent successfully (${media.type}) to ${to}`);
     }
   }
 }

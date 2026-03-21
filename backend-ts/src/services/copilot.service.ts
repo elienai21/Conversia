@@ -250,6 +250,16 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
     return ok(suggestion);
   } catch (dbError) {
-    return fail(new AppError("Failed to persist suggestion", 500));
+    console.error(`[Copilot] DB Persistence Error:`, dbError);
+    // Even if DB fails, we emit the event so the UI stops loading and shows the error text we have
+    SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
+      messageId: message.id,
+      suggestion: {
+        id: `err-${Date.now()}`,
+        suggestionText,
+        wasUsed: false,
+      },
+    });
+    return ok({ id: "error", suggestionText } as any);
   }
 }
