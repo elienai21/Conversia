@@ -96,9 +96,29 @@ export async function generateSuggestionWorker(
   const customSystemPrompt = tenantSettings?.aiSystemPrompt;
 
   // 5. Resolve API key (tenant-specific encrypted → global env)
-  const apiKey = tenantSettings?.openaiApiKey
-    ? decrypt(tenantSettings.openaiApiKey)
-    : config.OPENAI_API_KEY;
+  let apiKey = config.OPENAI_API_KEY;
+  if (tenantSettings?.openaiApiKey) {
+    try {
+      apiKey = decrypt(tenantSettings.openaiApiKey);
+    } catch (decryptErr) {
+      console.error("[Copilot] Failed to decrypt OpenAI API key — falling back to global env key. Please re-save the key in Settings.", decryptErr);
+      // Fallback to global key already set above
+    }
+  }
+
+  if (!apiKey) {
+    console.error("[Copilot] No OpenAI API key available. Aborting suggestion.");
+    SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
+      messageId: message.id,
+      suggestion: {
+        id: `err-${Date.now()}`,
+        suggestionText: "⚠️ Chave da OpenAI não configurada. Acesse Configurações → Integrações para salvar sua chave.",
+        wasUsed: false,
+      },
+    });
+    return fail(new AppError("OpenAI API key not configured", 400));
+  }
+
   const openai = new OpenAI({ apiKey });
 
   // 6. Get last 10 messages for context
