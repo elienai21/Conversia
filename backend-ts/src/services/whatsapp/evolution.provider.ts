@@ -7,6 +7,18 @@ import {
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/encryption.js";
 
+/** Always forces HTTPS for non-localhost URLs (Railway redirects http→https losing POST body) */
+function normalizeEvolutionUrl(rawUrl: string): string {
+  let url = rawUrl.trim().replace(/\/+$/, "");
+  const isLocal = url.includes("localhost") || url.includes("127.0.0.1");
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  } else if (url.startsWith("http://") && !isLocal) {
+    url = url.replace("http://", "https://");
+  }
+  return url;
+}
+
 export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
   parseWebhooks(body: Record<string, unknown>): IncomingWhatsappMessage[] {
     try {
@@ -99,10 +111,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       return;
     }
 
-    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
-    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = `https://${serverUrl}`;
-    }
+    const serverUrl = normalizeEvolutionUrl(rawUrl);
 
     const url = `${serverUrl}/message/sendText/${instanceName}`;
     const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
@@ -140,10 +149,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       return;
     }
 
-    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
-    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = `https://${serverUrl}`;
-    }
+    const serverUrl = normalizeEvolutionUrl(rawUrl);
 
     const formattedTo = to.includes("@") ? to : `${to}@s.whatsapp.net`;
     const url = `${serverUrl}/message/sendMedia/${instanceName}`;
