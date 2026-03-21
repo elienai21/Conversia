@@ -543,7 +543,16 @@ export function InboxPage() {
           replyText.trim() || undefined,
         );
         const newMsg = mapMessage(raw);
-        setMessages((prev) => [...prev, newMsg]);
+        setMessages((prev) => {
+          // Upsert: se o socket já adicionou antes do retorno HTTP, atualiza em vez de duplicar
+          const idx = prev.findIndex((m) => m.id === newMsg.id);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = newMsg;
+            return updated;
+          }
+          return [...prev, newMsg];
+        });
         setReplyText("");
         setPendingFile(null);
       } catch (error: any) {
