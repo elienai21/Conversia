@@ -7,19 +7,21 @@ export class ApiService {
     const token = localStorage.getItem("conversia_token");
     const tenantId = localStorage.getItem("conversia_tenant_id"); // Optional, if using manual header, otherwise JWT holds it
 
-    const headers: Record<string, string> = {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-      ...(options.headers as Record<string, string>),
-    };
+    const headers = new Headers(options.headers);
+    
+    if (options.body && !headers.has("Content-Type")) {
+      // Se o corpo for string, assumimos JSON. Se for FormData, o fetch deve cuidar do boundary.
+      if (typeof options.body === "string") {
+        headers.set("Content-Type", "application/json");
+      }
+    }
 
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers.set("Authorization", `Bearer ${token}`);
     }
     
-    // As noted by the user, the Fastify backend extracts from JWT, 
-    // but if an explicit manual header is needed in the future, we send it here:
     if (tenantId) {
-      headers["x-tenant-id"] = tenantId;
+      headers.set("x-tenant-id", tenantId);
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -37,7 +39,7 @@ export class ApiService {
       try {
         const errorData = await response.json();
         errorDetail = errorData.detail || errorData.message || response.statusText;
-      } catch (e) {
+      } catch (e: any) { // Changed 'e' to 'e: any' for consistency with user's snippet
         errorDetail = response.statusText;
       }
       

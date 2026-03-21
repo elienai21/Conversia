@@ -475,8 +475,9 @@ export function InboxPage() {
         { message_id: messageId }
       );
       console.log("Copilot job enqueued:", res.job_id);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      alert(`Erro ao solicitar sugestão: ${error.message}`);
       setPendingCopilotIds((prev) => {
         const next = new Set(prev);
         next.delete(messageId);
@@ -545,8 +546,9 @@ export function InboxPage() {
         setMessages((prev) => [...prev, newMsg]);
         setReplyText("");
         setPendingFile(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        alert(`Erro ao enviar arquivo: ${error.message}`);
       } finally {
         setIsSending(false);
       }
@@ -585,8 +587,9 @@ export function InboxPage() {
       setReplyText("");
       setUsedSuggestionId(null);
       setShowQuickReplies(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      alert(`Erro ao enviar mensagem: ${error.message}`);
     } finally {
       setIsSending(false);
     }
