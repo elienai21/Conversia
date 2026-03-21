@@ -54,6 +54,26 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       where: { id: request.user.tenantId },
     });
 
+    const safeDecryptMask = (value: string | null | undefined): string | null => {
+      if (!value) return null;
+      try { return maskApiKey(decrypt(value)); } catch { return "****"; }
+    };
+
+    const safeDecrypt = (value: string | null | undefined): string => {
+      if (!value) return "";
+      try { return decrypt(value); } catch { return ""; }
+    };
+
+    let evoTokenPreview: string | null = null;
+    let evoTokenSet = !!settings?.evolutionInstanceToken;
+    if (settings?.evolutionInstanceToken) {
+      try {
+        evoTokenPreview = maskApiKey(decrypt(settings.evolutionInstanceToken));
+      } catch {
+        evoTokenPreview = "****";
+      }
+    }
+
     return {
       whatsapp: {
         provider: settings?.whatsappProvider || "evolution",
@@ -62,17 +82,17 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         api_token_set: !!settings?.whatsappApiToken,
         verify_token: settings?.whatsappVerifyToken || null,
         evolution_server_url: settings?.evolutionServerUrl || null,
-        evolution_instance_token_set: !!settings?.evolutionInstanceToken,
-        evolution_instance_token_preview: settings?.evolutionInstanceToken ? maskApiKey(decrypt(settings.evolutionInstanceToken)) : null,
+        evolution_instance_token_set: evoTokenSet,
+        evolution_instance_token_preview: evoTokenPreview,
         connected: settings?.whatsappConnected || false,
       },
       openai: {
         api_key_set: !!settings?.openaiApiKey,
-        api_key_preview: settings?.openaiApiKey ? maskApiKey(decrypt(settings.openaiApiKey)) : null,
+        api_key_preview: safeDecryptMask(settings?.openaiApiKey),
       },
       deepl: {
         api_key_set: !!settings?.deeplApiKey,
-        api_key_preview: settings?.deeplApiKey ? maskApiKey(decrypt(settings.deeplApiKey)) : null,
+        api_key_preview: safeDecryptMask(settings?.deeplApiKey),
       },
       staysnet: {
         client_secret_set: !!settings?.staysnetClientSecret,
