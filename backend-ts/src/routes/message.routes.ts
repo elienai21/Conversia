@@ -299,8 +299,19 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           where: { id: user.tenantId },
         });
 
+        request.server.log.info(
+          `[MSG_SEND] channel="${conversation.channel}" phone="${conversation.customer?.phone}" tenantId="${user.tenantId}" whatsappProvider="${settings?.whatsappProvider}" evolutionInstance="${settings?.evolutionInstanceName}"`
+        );
+
         if (conversation.channel === "whatsapp") {
-          await services.sendWhatsappMessage(user.tenantId, conversation.customer.phone, outboundText);
+          try {
+            await services.sendWhatsappMessage(user.tenantId, conversation.customer.phone, outboundText);
+            request.server.log.info(`[MSG_SEND] ✅ WhatsApp delivered to "${conversation.customer.phone}"`);
+          } catch (sendErr: any) {
+            request.server.log.error(`[MSG_SEND] ❌ WhatsApp FAILED to "${conversation.customer.phone}": ${sendErr.message}`);
+            // Rethrow to surface the error to the frontend
+            throw sendErr;
+          }
         } else if (conversation.channel === "instagram") {
           if (settings?.instagramPageAccessToken) {
             const igToken = services.decrypt(settings.instagramPageAccessToken);
