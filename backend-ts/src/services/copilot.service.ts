@@ -121,8 +121,8 @@ export async function generateSuggestionWorker(
 
   const openai = new OpenAI({ apiKey });
 
-  // Vision is only supported by gpt-4o, gpt-4-turbo and gpt-4-vision models
-  const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision/.test(model);
+  // Vision is supported by gpt-4o, gpt-4-turbo, gpt-4-vision, and gpt-4.1 family
+  const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision|gpt-4\.1/.test(model);
 
   // 6. Get last 10 messages for context (with attachments)
   const recentMessages = await getRecentMessages(message.conversationId, 10);
