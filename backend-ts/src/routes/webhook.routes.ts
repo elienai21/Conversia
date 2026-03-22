@@ -115,7 +115,17 @@ async function processIncomingMessage(params: {
         if (mediaResponse.ok) {
           const arrayBuffer = await mediaResponse.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
-          const contentType = (mediaResponse.headers.get('content-type') || attachment.mimeType || 'application/octet-stream').split(';')[0].trim();
+          // Prefer known mimeType from attachment > CDN header > guess from type > fallback
+          const cdnMime = mediaResponse.headers.get('content-type')?.split(';')[0].trim() || '';
+          const typeFallback = attachment.type === 'image' ? 'image/jpeg'
+            : attachment.type === 'video' ? 'video/mp4'
+            : attachment.type === 'audio' ? 'audio/mpeg'
+            : 'application/octet-stream';
+          const contentType = (attachment.mimeType && attachment.mimeType !== 'application/octet-stream')
+            ? attachment.mimeType
+            : (cdnMime && cdnMime !== 'application/octet-stream')
+              ? cdnMime
+              : typeFallback;
           const uploadedUrl = await uploadMediaToStorage(base64, contentType, attachment.fileName);
           if (uploadedUrl) {
             sourceUrl = uploadedUrl;

@@ -125,8 +125,16 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
               
               const mimeMatch = header.match(/^data:([^;]+)/);
               const dataMime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
-              
-              reply.header("content-type", attachment.mimeType || dataMime);
+
+              // Guess MIME from attachment type when CDN returned application/octet-stream
+              const typeFallback = attachment.type === "image" ? "image/jpeg"
+                : attachment.type === "video" ? "video/mp4"
+                : attachment.type === "audio" ? "audio/mpeg"
+                : "application/octet-stream";
+              const effectiveMime = [attachment.mimeType, dataMime]
+                .find(m => m && m !== "application/octet-stream") || typeFallback;
+
+              reply.header("content-type", effectiveMime);
               if (attachment.fileName) {
                 reply.header("content-disposition", `inline; filename="${attachment.fileName}"`);
               }
