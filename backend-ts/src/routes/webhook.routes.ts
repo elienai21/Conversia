@@ -107,48 +107,57 @@ async function processIncomingMessage(params: {
         }
       }
     } else if (sourceUrl && sourceUrl.startsWith('http')) {
-      // External CDN URL (WhatsApp/Meta CDN) — these expire in minutes.
-      // Download immediately and store permanently.
-      console.log(`[Webhook] Downloading external media URL before it expires...`);
-      try {
-        const mediaResponse = await fetch(sourceUrl);
-        if (mediaResponse.ok) {
-          const arrayBuffer = await mediaResponse.arrayBuffer();
-          const base64 = Buffer.from(arrayBuffer).toString('base64');
-          // Prefer known mimeType from attachment > CDN header > guess from type > fallback
-          const cdnMime = mediaResponse.headers.get('content-type')?.split(';')[0].trim() || '';
-          const typeFallback = attachment.type === 'image' ? 'image/jpeg'
-            : attachment.type === 'video' ? 'video/mp4'
-            : attachment.type === 'audio' ? 'audio/mpeg'
-            : 'application/octet-stream';
-          const contentType = (attachment.mimeType && attachment.mimeType !== 'application/octet-stream')
-            ? attachment.mimeType
-            : (cdnMime && cdnMime !== 'application/octet-stream')
-              ? cdnMime
-              : typeFallback;
-          const uploadedUrl = await uploadMediaToStorage(base64, contentType, attachment.fileName);
-          if (uploadedUrl) {
-            sourceUrl = uploadedUrl;
-            console.log(`[Webhook] External media uploaded to storage: ${uploadedUrl}`);
+      // WhatsApp CDN serves ENCRYPTED bytes — must use Evolution API first to get decrypted media.
+      // Only fall back to direct CDN download if Evolution API is unavailable.
+      let fetchedViaEvolution = false;
+      if (whatsappMessageKey) {
+        console.log(`[Webhook] Fetching media via Evolution API (decrypted)...`);
+        try {
+          const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
+          if (mediaResult) {
+            const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
+            sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+            fetchedViaEvolution = true;
+            console.log(`[Webhook] Evolution API media fetched: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
           } else {
-            sourceUrl = `data:${contentType};base64,${base64}`;
-            console.log(`[Webhook] External media stored as data URI: mimeType=${contentType}, len=${base64.length}`);
+            console.warn(`[Webhook] Evolution API returned null, falling back to direct CDN download...`);
           }
-        } else {
-          // URL may already be expired — try fetching via Evolution API as fallback
-          console.warn(`[Webhook] External media fetch failed (${mediaResponse.status}), trying Evolution API...`);
-          if (whatsappMessageKey) {
-            const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
-            if (mediaResult) {
-              const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
-              sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
-              console.log(`[Webhook] Fallback media fetched via Evolution API: mimeType=${mediaResult.mimeType}`);
-            }
-          }
+        } catch (err) {
+          console.error('[Webhook] Evolution API fetch error, falling back to CDN:', err);
         }
-      } catch (err) {
-        console.error('[Webhook] Failed to download external media URL:', err);
-        // Keep original URL as last resort; proxy will try to serve it
+      }
+
+      // Fallback: direct CDN download (encrypted bytes — last resort only)
+      if (!fetchedViaEvolution && sourceUrl && sourceUrl.startsWith('http')) {
+        console.log(`[Webhook] Attempting direct CDN download as last resort...`);
+        try {
+          const mediaResponse = await fetch(sourceUrl);
+          if (mediaResponse.ok) {
+            const arrayBuffer = await mediaResponse.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString('base64');
+            const cdnMime = mediaResponse.headers.get('content-type')?.split(';')[0].trim() || '';
+            const typeFallback = attachment.type === 'image' ? 'image/jpeg'
+              : attachment.type === 'video' ? 'video/mp4'
+              : attachment.type === 'audio' ? 'audio/mpeg'
+              : 'application/octet-stream';
+            const contentType = (attachment.mimeType && attachment.mimeType !== 'application/octet-stream')
+              ? attachment.mimeType
+              : (cdnMime && cdnMime !== 'application/octet-stream')
+                ? cdnMime
+                : typeFallback;
+            const uploadedUrl = await uploadMediaToStorage(base64, contentType, attachment.fileName);
+            if (uploadedUrl) {
+              sourceUrl = uploadedUrl;
+            } else {
+              sourceUrl = `data:${contentType};base64,${base64}`;
+            }
+            console.log(`[Webhook] CDN fallback stored: mimeType=${contentType}, len=${base64.length}`);
+          } else {
+            console.warn(`[Webhook] CDN download failed (${mediaResponse.status}), keeping original URL`);
+          }
+        } catch (err) {
+          console.error('[Webhook] CDN fallback download error:', err);
+        }
       }
     }
     
