@@ -139,6 +139,7 @@ export function SecureMedia({ src, type, alt, className, style }: SecureMediaPro
       alt={alt || "Media attachment"}
       className={className}
       style={style}
+      onError={() => setError(true)}
     />
   );
 }

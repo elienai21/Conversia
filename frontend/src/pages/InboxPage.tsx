@@ -147,22 +147,12 @@ function normalizeAttachmentUrl(sourceUrl?: string | null) {
 }
 
   const handleOpenSecureMedia = async (url: string, fileName?: string | null) => {
-    try {
-      let endpoint = url;
-      if (url.startsWith(API_URL)) {
-        endpoint = url.replace(API_URL, "");
-      } else if (url.startsWith("/api/v1")) {
-        endpoint = url.replace("/api/v1", "");
-      }
-      
-      const blob = await ApiService.getBlob(endpoint);
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Para imagens, podemos apenas abrir em uma nova aba
-      if (blob.type.startsWith("image/")) {
+    if (!url) return;
+
+    const openBlobOrDownload = (blobUrl: string, type: string) => {
+      if (type.startsWith("image/") || type.startsWith("video/")) {
         window.open(blobUrl, "_blank");
       } else {
-        // Para outros arquivos, forçamos o download
         const a = document.createElement("a");
         a.href = blobUrl;
         a.download = fileName || "attachment";
@@ -170,9 +160,27 @@ function normalizeAttachmentUrl(sourceUrl?: string | null) {
         a.click();
         document.body.removeChild(a);
       }
-      
-      // Revogação automática após algum tempo ou manual (complexo em nova aba)
-      // Idealmente o usuário fecha a aba.
+    };
+
+    try {
+      // data URI: use directly (works for non-truncated URIs)
+      if (url.startsWith("data:")) {
+        const mimeMatch = url.match(/^data:([^;]+)/);
+        const mime = mimeMatch?.[1] || "application/octet-stream";
+        openBlobOrDownload(url, mime);
+        return;
+      }
+
+      let endpoint = url;
+      if (url.startsWith(API_URL)) {
+        endpoint = url.replace(API_URL, "");
+      } else if (url.startsWith("/api/v1")) {
+        endpoint = url.replace("/api/v1", "");
+      }
+
+      const blob = await ApiService.getBlob(endpoint);
+      const blobUrl = URL.createObjectURL(blob);
+      openBlobOrDownload(blobUrl, blob.type);
     } catch (err) {
       console.error("Erro ao abrir mídia segura:", err);
       alert("Não foi possível abrir o arquivo com segurança.");

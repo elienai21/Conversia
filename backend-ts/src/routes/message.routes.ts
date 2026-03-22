@@ -459,16 +459,22 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sourceUrl: mediaSourceUrl,
       });
 
-      // Send via WhatsApp
+      // Send via WhatsApp (non-blocking: save succeeds even if Evolution rejects the media)
       if (conversation.customer && conversation.channel === "whatsapp") {
         const mediaUrl = `data:${mimeType};base64,${base64}`;
-        await services.sendWhatsappMedia(user.tenantId, conversation.customer.phone, {
-          type: mediaType,
-          url: mediaUrl,
-          caption: caption || undefined,
-          fileName,
-          mimeType,
-        });
+        try {
+          await services.sendWhatsappMedia(user.tenantId, conversation.customer.phone, {
+            type: mediaType,
+            url: mediaUrl,
+            caption: caption || undefined,
+            fileName,
+            mimeType,
+          });
+          request.server.log.info(`[MEDIA_SEND] ✅ WhatsApp media sent (${mediaType}) to "${conversation.customer.phone}"`);
+        } catch (mediaErr: any) {
+          request.server.log.error(`[MEDIA_SEND] ❌ WhatsApp media FAILED to "${conversation.customer.phone}": ${mediaErr.message}`);
+          // Continue – attachment is saved in DB, frontend will receive a successful response
+        }
       }
 
       const attachmentProxyUrl = `/api/v1/conversations/${conversationId}/messages/${message.id}/attachments/${attachment.id}`;
