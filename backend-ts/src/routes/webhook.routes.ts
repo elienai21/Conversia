@@ -40,8 +40,10 @@ async function processIncomingMessage(params: {
   attachments?: MessageAttachmentInput[];
   /** Original WhatsApp message key – used for active media download */
   whatsappMessageKey?: Record<string, unknown>;
+  /** Full WhatsApp message data object – used by Evolution API for media decryption */
+  whatsappMessageData?: Record<string, unknown>;
 }): Promise<void> {
-  const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [], whatsappMessageKey } = params;
+  const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [], whatsappMessageKey, whatsappMessageData } = params;
 
   // Step 5: Detect language
   const detectedLang = text.startsWith("[") && text.endsWith("]") ? null : detectLanguage(text);
@@ -83,7 +85,7 @@ async function processIncomingMessage(params: {
     // If no sourceUrl but we have the WhatsApp message key, fetch media actively
     if (!sourceUrl && whatsappMessageKey) {
       console.log(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
-      const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
+      const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
       if (mediaResult) {
         const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
         if (uploadedUrl) {
@@ -113,7 +115,7 @@ async function processIncomingMessage(params: {
       if (whatsappMessageKey) {
         console.log(`[Webhook] Fetching media via Evolution API (decrypted)...`);
         try {
-          const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey);
+          const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
           if (mediaResult) {
             const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
             sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
@@ -350,6 +352,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         isNewConversation: isNew,
         attachments: incoming.attachments,
         whatsappMessageKey: incoming.whatsappMessageKey,
+        whatsappMessageData: incoming.whatsappMessageData,
       });
     }
 
@@ -458,6 +461,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         isNewConversation: isNew,
         attachments: incoming.attachments,
         whatsappMessageKey: incoming.whatsappMessageKey,
+        whatsappMessageData: incoming.whatsappMessageData,
       });
     }
 

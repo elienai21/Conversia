@@ -88,6 +88,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
           providerId: body.instance as string,
           attachments,
           whatsappMessageKey: key as Record<string, unknown>,
+          whatsappMessageData: msgData as Record<string, unknown>,
         },
       ];
     } catch (err) {
@@ -282,6 +283,7 @@ function extractEvolutionAttachments(
 export async function fetchEvolutionMediaBase64(
   tenantId: string,
   whatsappMessageKey: Record<string, unknown>,
+  whatsappMessageData?: Record<string, unknown>,
 ): Promise<{ base64: string; mimeType: string } | null> {
   try {
     const settings = await prisma.tenantSettings.findUnique({
@@ -310,7 +312,8 @@ export async function fetchEvolutionMediaBase64(
         apikey,
       },
       body: JSON.stringify({
-        key: whatsappMessageKey,
+        // Evolution API expects the full WAMessage object in "message" field
+        message: whatsappMessageData || { key: whatsappMessageKey },
         convertToMp4: false,
       }),
     });
