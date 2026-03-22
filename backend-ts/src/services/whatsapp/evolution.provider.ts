@@ -201,10 +201,7 @@ export async function fetchEvolutionProfilePicture(
 
     if (!rawUrl || !instanceName || !apikey) return undefined;
 
-    let serverUrl = rawUrl.trim().replace(/\/+$/, "");
-    if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
-      serverUrl = `https://${serverUrl}`;
-    }
+    const serverUrl = normalizeEvolutionUrl(rawUrl);
 
     const formattedNumber = phone.includes("@") ? phone : `${phone}@s.whatsapp.net`;
     const url = `${serverUrl}/chat/fetchProfilePictureUrl/${instanceName}`;
@@ -301,10 +298,7 @@ export async function fetchEvolutionMediaBase64(
       return null;
     }
 
-    let serverUrl = rawUrl.trim().replace(/\/+$/, '');
-    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
-      serverUrl = `https://${serverUrl}`;
-    }
+    const serverUrl = normalizeEvolutionUrl(rawUrl);
 
     const url = `${serverUrl}/chat/getBase64FromMediaMessage/${instanceName}`;
     console.log(`[Evolution] Fetching media base64 from: ${url}`);
