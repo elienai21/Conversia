@@ -121,6 +121,9 @@ export async function generateSuggestionWorker(
 
   const openai = new OpenAI({ apiKey });
 
+  // Vision is only supported by gpt-4o, gpt-4-turbo and gpt-4-vision models
+  const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision/.test(model);
+
   // 6. Get last 10 messages for context (with attachments)
   const recentMessages = await getRecentMessages(message.conversationId, 10);
 
@@ -136,15 +139,20 @@ export async function generateSuggestionWorker(
     // Process attachments for vision/audio
     for (const att of m.attachments ?? []) {
       if (!att.sourceUrl) continue;
-      const dataMatch = att.sourceUrl.match(/^data:([^;]+);base64,(.+)$/);
+      const dataMatch = att.sourceUrl.match(/^data:([^;]+);base64,(.+)$/s);
       if (!dataMatch) continue;
       const [, mimeType, b64] = dataMatch;
 
       if (att.type === "image") {
-        contentParts.push({
-          type: "image_url",
-          image_url: { url: `data:${mimeType};base64,${b64}`, detail: "low" },
-        });
+        if (visionEnabled) {
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${b64}`, detail: "low" },
+          });
+        } else {
+          // Non-vision model: describe as text so the AI knows an image arrived
+          contentParts.push({ type: "text", text: "[O cliente enviou uma imagem]" });
+        }
       } else if (att.type === "audio") {
         try {
           const ext = mimeType.split("/")[1]?.split(";")[0] || "ogg";
@@ -163,7 +171,7 @@ export async function generateSuggestionWorker(
     if (contentParts.length === 0) contentParts.push({ type: "text", text: m.originalText || "" });
 
     // Assistant messages only support string content in OpenAI SDK
-    const hasMedia = contentParts.some((p) => p.type !== "text");
+    const hasMedia = contentParts.some((p) => p.type === "image_url");
     if (role === "assistant" || !hasMedia) {
       const text = contentParts.filter((p) => p.type === "text").map((p) => (p as OpenAI.ChatCompletionContentPartText).text).join(" ");
       conversationContext.push({ role, content: text });
