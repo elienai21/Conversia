@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import fastifyMultipart from "@fastify/multipart";
+import jwt from "jsonwebtoken";
 import { config, allowedOrigins } from "./config.js";
 import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
@@ -25,6 +26,7 @@ import { quickReplyRoutes } from "./routes/quick-reply.routes.js";
 import { taskRoutes } from "./routes/task.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
 import { runDailyTaskSync } from "./workers/task.worker.js";
+import { scheduleTaskSync } from "./lib/queue.js";
 
 export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: config.DEBUG });
@@ -36,6 +38,21 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: "1 minute",
+    // Webhooks externos (Evolution, Instagram) ficam isentos do rate limit
+    allowList: (request) => request.url.startsWith("/api/v1/webhook"),
+    // Por tenant autenticado; fallback para IP
+    keyGenerator: (request) => {
+      const auth = request.headers.authorization;
+      if (auth?.startsWith("Bearer ")) {
+        try {
+          const decoded = jwt.decode(auth.slice(7)) as { tenant_id?: string } | null;
+          if (decoded?.tenant_id) return `tenant:${decoded.tenant_id}`;
+        } catch {
+          // fallback to IP
+        }
+      }
+      return request.ip;
+    },
   });
 
   await app.register(cors, {
@@ -93,13 +110,10 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(quickReplyRoutes, { prefix: "/api/v1/quick-replies" });
   await app.register(taskRoutes, { prefix: "/api/v1/tasks" });
 
-  // Job Agendador de Missões (CRM Sync) = a cada 1 hora
-  const ONE_HOUR = 60 * 60 * 1000;
-  setInterval(() => {
-    runDailyTaskSync().catch(err => console.error("[CRON] Worker failed", err));
-  }, ONE_HOUR);
+  // Job Agendador de Missões (CRM Sync) = a cada 1 hora via BullMQ
+  await scheduleTaskSync();
 
-  // Executa o primeiro sync no boot do servidor
+  // Executa sync inicial no boot (com delay para o DB estar pronto)
   setTimeout(() => {
     runDailyTaskSync().catch(err => console.error("[CRON] Initial worker failed", err));
   }, 5000);

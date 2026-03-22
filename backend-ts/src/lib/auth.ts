@@ -54,3 +54,22 @@ export function createPasswordResetToken(
 export function decodePasswordResetToken(token: string): PasswordResetTokenPayload {
   return jwt.verify(token, config.SECRET_KEY) as PasswordResetTokenPayload;
 }
+
+export interface RefreshTokenPayload extends TokenPayload {
+  purpose: "refresh";
+}
+
+export function createRefreshToken(userId: string, tenantId: string): string {
+  const payload: RefreshTokenPayload = { sub: userId, tenant_id: tenantId, purpose: "refresh" };
+  return jwt.sign(payload, config.SECRET_KEY, {
+    expiresIn: `${config.REFRESH_TOKEN_EXPIRE_DAYS}d`,
+  });
+}
+
+export function decodeRefreshToken(token: string): RefreshTokenPayload {
+  const decoded = jwt.verify(token, config.SECRET_KEY) as RefreshTokenPayload;
+  if (decoded.purpose !== "refresh") {
+    throw new Error("Invalid token purpose");
+  }
+  return decoded;
+}

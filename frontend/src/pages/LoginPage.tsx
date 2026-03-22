@@ -29,10 +29,11 @@ export function LoginPage() {
     try {
       const result = await ApiService.post<{
         access_token: string;
+        refresh_token?: string;
         user: { id: string; name: string; email: string; role: string; tenantId: string };
       }>("/auth/google", { credential: response.credential });
 
-      login(result.access_token, { ...result.user, isOnline: true });
+      login(result.access_token, { ...result.user, isOnline: true }, result.refresh_token);
       navigate("/inbox");
     } catch (err: any) {
       setError(err.message || "Google authentication failed");
@@ -50,16 +51,14 @@ export function LoginPage() {
     try {
       const response = await ApiService.post<{
         access_token: string;
+        refresh_token?: string;
         user: { id: string; name: string; email: string; role: string; tenantId: string };
       }>("/auth/login", {
         email,
         password,
       });
 
-      login(response.access_token, {
-        ...response.user,
-        isOnline: true,
-      });
+      login(response.access_token, { ...response.user, isOnline: true }, response.refresh_token);
       navigate("/inbox");
     } catch (err: any) {
       setError(err.message || "Failed to authenticate");

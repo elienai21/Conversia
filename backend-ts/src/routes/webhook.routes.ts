@@ -325,43 +325,32 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       return reply.send({ status: "ignored" });
     }
 
-    // Process each message (usually only 1)
-    for (const incoming of parsed.messages) {
-      // Step 2: Resolve tenant by providerId
-      const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
-      if (!tenant) {
-        console.warn(`No tenant for providerId: ${incoming.providerId}`);
-        continue;
+    // Respond imediatamente para evitar timeout do webhook
+    void reply.send({ status: "accepted" });
+
+    // Processar em background (não bloqueia o webhook)
+    void (async () => {
+      for (const incoming of parsed.messages) {
+        try {
+          const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
+          if (!tenant) {
+            console.warn(`No tenant for providerId: ${incoming.providerId}`);
+            continue;
+          }
+          const customer = await findOrCreateCustomer(tenant.id, incoming.from, incoming.displayName);
+          const { conversation, isNew } = await findOrCreateConversation(tenant.id, customer.id, "whatsapp");
+          await processIncomingMessage({
+            tenant, conversation, text: incoming.text,
+            externalMessageId: incoming.messageId, isNewConversation: isNew,
+            attachments: incoming.attachments,
+            whatsappMessageKey: incoming.whatsappMessageKey,
+            whatsappMessageData: incoming.whatsappMessageData,
+          });
+        } catch (err) {
+          request.server.log.error(err, "[WhatsApp Webhook] Background processing error");
+        }
       }
-
-      // Step 3: Find or create customer
-      const customer = await findOrCreateCustomer(
-        tenant.id,
-        incoming.from,
-        incoming.displayName,
-      );
-
-      // Step 4: Find or create conversation
-      const { conversation, isNew } = await findOrCreateConversation(
-        tenant.id,
-        customer.id,
-        "whatsapp",
-      );
-
-      // Steps 5-11: Shared pipeline
-      await processIncomingMessage({
-        tenant,
-        conversation,
-        text: incoming.text,
-        externalMessageId: incoming.messageId,
-        isNewConversation: isNew,
-        attachments: incoming.attachments,
-        whatsappMessageKey: incoming.whatsappMessageKey,
-        whatsappMessageData: incoming.whatsappMessageData,
-      });
-    }
-
-    return reply.send({ status: "processed" });
+    })();
   });
 
   // ─── Evolution API Webhook ─────────────────────────────
@@ -425,52 +414,40 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       return reply.send({ status: "ignored" });
     }
 
-    // Process each message
-    for (const incoming of parsed.messages) {
-      // Step 2: Resolve tenant by instance name
-      const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
-      if (!tenant) {
-        console.warn(`[Evolution Webhook] No tenant for instance: ${incoming.providerId}`);
-        continue;
+    // Responde imediatamente à Evolution para evitar timeout do webhook
+    void reply.send({ status: "accepted" });
+
+    // Processar em background (Evolution API + OpenAI podem demorar)
+    void (async () => {
+      for (const incoming of parsed.messages) {
+        try {
+          const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
+          if (!tenant) {
+            console.warn(`[Evolution Webhook] No tenant for instance: ${incoming.providerId}`);
+            continue;
+          }
+
+          let profilePicUrl: string | undefined;
+          try {
+            profilePicUrl = await fetchEvolutionProfilePicture(tenant.id, incoming.from);
+          } catch {
+            // Ignore – profile picture é opcional
+          }
+
+          const customer = await findOrCreateCustomer(tenant.id, incoming.from, incoming.displayName, profilePicUrl);
+          const { conversation, isNew } = await findOrCreateConversation(tenant.id, customer.id, "whatsapp");
+          await processIncomingMessage({
+            tenant, conversation, text: incoming.text,
+            externalMessageId: incoming.messageId, isNewConversation: isNew,
+            attachments: incoming.attachments,
+            whatsappMessageKey: incoming.whatsappMessageKey,
+            whatsappMessageData: incoming.whatsappMessageData,
+          });
+        } catch (err) {
+          request.server.log.error(err, "[Evolution Webhook] Background processing error");
+        }
       }
-
-      // Step 2.5: Try to fetch profile picture from Evolution API (non-blocking)
-      let profilePicUrl: string | undefined;
-      try {
-        profilePicUrl = await fetchEvolutionProfilePicture(tenant.id, incoming.from);
-      } catch {
-        // Ignore errors - profile picture is optional
-      }
-
-      // Step 3: Find or create customer
-      const customer = await findOrCreateCustomer(
-        tenant.id,
-        incoming.from,
-        incoming.displayName,
-        profilePicUrl,
-      );
-
-      // Step 4: Find or create conversation
-      const { conversation, isNew } = await findOrCreateConversation(
-        tenant.id,
-        customer.id,
-        "whatsapp",
-      );
-
-      // Steps 5-11: Shared pipeline
-      await processIncomingMessage({
-        tenant,
-        conversation,
-        text: incoming.text,
-        externalMessageId: incoming.messageId,
-        isNewConversation: isNew,
-        attachments: incoming.attachments,
-        whatsappMessageKey: incoming.whatsappMessageKey,
-        whatsappMessageData: incoming.whatsappMessageData,
-      });
-    }
-
-    return reply.send({ status: "processed" });
+    })();
   });
 
   // ─── Instagram DM ──────────────────────────────────────
@@ -525,16 +502,18 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       "instagram",
     );
 
-    // Steps 5-11: Shared pipeline
-    await processIncomingMessage({
-      tenant,
-      conversation,
+    // Responde imediatamente ao Instagram
+    void reply.send({ status: "accepted" });
+
+    // Processar em background
+    void processIncomingMessage({
+      tenant, conversation,
       text: incoming.text,
       externalMessageId: incoming.messageId,
       isNewConversation: isNew,
       attachments: incoming.attachments,
+    }).catch((err) => {
+      request.server.log.error(err, "[Instagram Webhook] Background processing error");
     });
-
-    return reply.send({ status: "processed" });
   });
 }

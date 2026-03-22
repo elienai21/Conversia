@@ -15,7 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string, userData: User) => void;
+  login: (token: string, userData: User, refreshToken?: string) => void;
   logout: () => void;
 }
 
@@ -27,14 +27,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("conversia_token");
+    localStorage.removeItem("conversia_refresh_token");
     localStorage.removeItem("conversia_tenant_id");
     setUser(null);
+  };
+
+  /** Tenta renovar o access token usando o refresh token armazenado.
+   *  Retorna true se conseguiu, false se deve fazer logout. */
+  const tryRefresh = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem("conversia_refresh_token");
+    if (!refreshToken) return false;
+
+    try {
+      const result = await ApiService.post<{
+        access_token: string;
+        refresh_token: string;
+        user: { id: string; name: string; email: string; role: string; tenantId: string };
+      }>("/auth/refresh", { refresh_token: refreshToken });
+
+      localStorage.setItem("conversia_token", result.access_token);
+      localStorage.setItem("conversia_refresh_token", result.refresh_token);
+      setUser({ ...result.user, isOnline: true });
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem("conversia_token");
       if (!token) {
+        // Tenta refresh mesmo sem token de acesso (sessão expirada)
+        const refreshed = await tryRefresh();
+        if (!refreshed) {
+          setIsLoading(false);
+          return;
+        }
         setIsLoading(false);
         return;
       }
@@ -57,9 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           tenantId: raw.tenant_id,
           isOnline: raw.is_online,
         });
-      } catch (error) {
-        console.error("Session expired or invalid token");
-        logout();
+      } catch {
+        // Access token inválido — tenta refresh antes de fazer logout
+        const refreshed = await tryRefresh();
+        if (!refreshed) {
+          logout();
+        }
       } finally {
         setIsLoading(false);
       }
@@ -67,17 +99,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // Listen to 401 Unauthorized API responses
-    const handleUnauthorized = () => logout();
+    // Listen to 401 Unauthorized API responses — tenta refresh primeiro
+    const handleUnauthorized = async () => {
+      const refreshed = await tryRefresh();
+      if (!refreshed) logout();
+    };
     window.addEventListener("unauthorized_api_call", handleUnauthorized);
     return () => {
       window.removeEventListener("unauthorized_api_call", handleUnauthorized);
     };
   }, []);
 
-  const login = (token: string, userData: User) => {
+  const login = (token: string, userData: User, refreshToken?: string) => {
     localStorage.setItem("conversia_token", token);
     localStorage.setItem("conversia_tenant_id", userData.tenantId);
+    if (refreshToken) {
+      localStorage.setItem("conversia_refresh_token", refreshToken);
+    }
     setUser(userData);
   };
 

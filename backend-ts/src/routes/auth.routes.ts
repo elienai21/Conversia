@@ -5,6 +5,7 @@ import {
   loginRequestSchema,
   passwordResetRequestSchema,
   googleLoginRequestSchema,
+  refreshTokenRequestSchema,
   type LoginResponse,
 } from "../schemas/auth.schema.js";
 
@@ -43,9 +44,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const token = auth.createAccessToken(user.id, user.tenantId);
+    const refreshToken = auth.createRefreshToken(user.id, user.tenantId);
 
     const result: LoginResponse = {
       access_token: token,
+      refresh_token: refreshToken,
       token_type: "bearer",
       user: {
         id: user.id,
@@ -100,9 +103,11 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const token = auth.createAccessToken(user.id, user.tenantId);
+    const refreshToken = auth.createRefreshToken(user.id, user.tenantId);
 
     const result: LoginResponse = {
       access_token: token,
+      refresh_token: refreshToken,
       token_type: "bearer",
       user: {
         id: user.id,
@@ -114,6 +119,47 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     };
 
     return reply.send(result);
+  });
+
+  // ─── Refresh Token ───────────────────────────────────────
+  app.post("/refresh", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
+    const parsed = refreshTokenRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Invalid request format" });
+    }
+
+    let payload;
+    try {
+      payload = auth.decodeRefreshToken(parsed.data.refresh_token);
+    } catch {
+      return reply.status(401).send({ detail: "Invalid or expired refresh token" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, tenantId: true, fullName: true, email: true, role: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      return reply.status(401).send({ detail: "User not found or deactivated" });
+    }
+
+    const newAccessToken = auth.createAccessToken(user.id, user.tenantId);
+    const newRefreshToken = auth.createRefreshToken(user.id, user.tenantId);
+
+    return reply.send({
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
+      token_type: "bearer",
+      user: {
+        id: user.id,
+        name: user.fullName,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+      },
+    });
   });
 
   app.post("/password-reset/request", async (request, reply) => {

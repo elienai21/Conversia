@@ -6,6 +6,8 @@ import {
   decodePasswordResetToken,
   decodeAccessToken,
   verifyPassword,
+  createRefreshToken,
+  decodeRefreshToken,
 } from "./lib/auth.js";
 import { findOrCreateConversation, updateConversationStatus } from "./services/conversation.service.js";
 import { assignConversationToAgent } from "./services/assignment.service.js";
@@ -26,6 +28,8 @@ export interface AppDeps {
   auth: {
     verifyPassword: typeof verifyPassword;
     createAccessToken: typeof createAccessToken;
+    createRefreshToken: typeof createRefreshToken;
+    decodeRefreshToken: typeof decodeRefreshToken;
     createPasswordResetToken: typeof createPasswordResetToken;
     decodeAccessToken: typeof decodeAccessToken;
     decodePasswordResetToken: typeof decodePasswordResetToken;
@@ -59,6 +63,8 @@ export const defaultAppDeps: AppDeps = {
   auth: {
     verifyPassword,
     createAccessToken,
+    createRefreshToken,
+    decodeRefreshToken,
     createPasswordResetToken,
     decodeAccessToken,
     decodePasswordResetToken,
