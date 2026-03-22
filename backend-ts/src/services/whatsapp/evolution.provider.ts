@@ -316,7 +316,7 @@ export async function fetchEvolutionMediaBase64(
         apikey,
       },
       body: JSON.stringify({
-        message: { key: whatsappMessageKey },
+        key: whatsappMessageKey,
         convertToMp4: false,
       }),
     });
