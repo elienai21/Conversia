@@ -326,7 +326,9 @@ export async function fetchEvolutionMediaBase64(
 
     const result = await response.json() as Record<string, unknown>;
     const b64String = (result.base64 as string) || null;
-    const mimeType = (result.mimetype as string) || "application/octet-stream";
+    // Normalize MIME type: strip codec params like "audio/ogg; codecs=opus" → "audio/ogg"
+    const rawMime = (result.mimetype as string) || "application/octet-stream";
+    const mimeType = rawMime.split(";")[0].trim();
 
     if (!b64String) {
       console.error("[Evolution] fetchMediaBase64: no base64 in response");

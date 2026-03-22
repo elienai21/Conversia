@@ -30,6 +30,11 @@ import { SocketService } from "../services/socket.service.js";
 import { tryAutoResponse } from "../services/auto-response.service.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
 
+/** Strip codec/parameter info from MIME types like "audio/ogg; codecs=opus" → "audio/ogg" */
+function normalizeMime(mime: string): string {
+  return mime.split(";")[0].trim();
+}
+
 // Shared pipeline (steps 5-11) used by both WhatsApp and Instagram
 async function processIncomingMessage(params: {
   tenant: { id: string; defaultLanguage: string };
@@ -87,11 +92,11 @@ async function processIncomingMessage(params: {
       console.log(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
       const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
       if (mediaResult) {
-        const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
+        const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, normalizeMime(mediaResult.mimeType), attachment.fileName);
         if (uploadedUrl) {
           sourceUrl = uploadedUrl;
         } else {
-          sourceUrl = `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
+          sourceUrl = `data:${normalizeMime(mediaResult.mimeType)};base64,${mediaResult.base64}`;
         }
         console.log(`[Webhook] Fetched media successfully: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
       } else {
@@ -117,7 +122,7 @@ async function processIncomingMessage(params: {
         try {
           const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
           if (mediaResult) {
-            const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, mediaResult.mimeType, attachment.fileName);
+            const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, normalizeMime(mediaResult.mimeType), attachment.fileName);
             sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
             fetchedViaEvolution = true;
             console.log(`[Webhook] Evolution API media fetched: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
