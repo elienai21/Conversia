@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import { config } from "../config.js";
 import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/encryption.js";
@@ -121,14 +121,56 @@ export async function generateSuggestionWorker(
 
   const openai = new OpenAI({ apiKey });
 
-  // 6. Get last 10 messages for context
+  // 6. Get last 10 messages for context (with attachments)
   const recentMessages = await getRecentMessages(message.conversationId, 10);
-  const conversationContext = recentMessages
-    .reverse()
-    .map((m) => ({
-      role: m.senderType === "customer" ? ("user" as const) : ("assistant" as const),
-      content: m.originalText,
-    }));
+
+  const conversationContext: OpenAI.ChatCompletionMessageParam[] = [];
+  for (const m of recentMessages.reverse()) {
+    const role = m.senderType === "customer" ? ("user" as const) : ("assistant" as const);
+    const contentParts: OpenAI.ChatCompletionContentPart[] = [];
+
+    // Base text (skip placeholder tags like [image])
+    const baseText = m.originalText?.match(/^\[(image|video|audio|document)\]$/) ? "" : m.originalText;
+    if (baseText) contentParts.push({ type: "text", text: baseText });
+
+    // Process attachments for vision/audio
+    for (const att of m.attachments ?? []) {
+      if (!att.sourceUrl) continue;
+      const dataMatch = att.sourceUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!dataMatch) continue;
+      const [, mimeType, b64] = dataMatch;
+
+      if (att.type === "image") {
+        contentParts.push({
+          type: "image_url",
+          image_url: { url: `data:${mimeType};base64,${b64}`, detail: "low" },
+        });
+      } else if (att.type === "audio") {
+        try {
+          const ext = mimeType.split("/")[1]?.split(";")[0] || "ogg";
+          const audioFile = await toFile(Buffer.from(b64, "base64"), att.fileName || `audio.${ext}`, { type: mimeType });
+          const transcription = await openai.audio.transcriptions.create({ file: audioFile, model: "whisper-1" });
+          if (transcription.text) {
+            contentParts.push({ type: "text", text: `[Áudio transcrito: "${transcription.text}"]` });
+          }
+        } catch (whisperErr) {
+          console.error("[Copilot] Whisper transcription failed:", whisperErr);
+          contentParts.push({ type: "text", text: "[Áudio não transcrito]" });
+        }
+      }
+    }
+
+    if (contentParts.length === 0) contentParts.push({ type: "text", text: m.originalText || "" });
+
+    // Assistant messages only support string content in OpenAI SDK
+    const hasMedia = contentParts.some((p) => p.type !== "text");
+    if (role === "assistant" || !hasMedia) {
+      const text = contentParts.filter((p) => p.type === "text").map((p) => (p as OpenAI.ChatCompletionContentPartText).text).join(" ");
+      conversationContext.push({ role, content: text });
+    } else {
+      conversationContext.push({ role: "user", content: contentParts });
+    }
+  }
 
   // 7. Build system prompt
   let systemPrompt = customSystemPrompt

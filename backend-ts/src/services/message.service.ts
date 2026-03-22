@@ -84,5 +84,6 @@ export async function getRecentMessages(
     where: { conversationId },
     orderBy: { createdAt: "desc" },
     take: limit,
+    include: { attachments: true },
   });
 }
