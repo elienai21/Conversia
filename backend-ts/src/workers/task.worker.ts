@@ -119,6 +119,12 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 
         logger.info({ resId, checkIn, checkOut }, "[TaskWorker] Reserva RELEVANTE encontrada — verificando hóspede");
 
+        // Diagnostic: log raw guestsDetails from reservation
+        const rawGuestsDetails = r["guestsDetails"] ?? r["_guestsDetails"];
+        logger.info(
+          `[TaskWorker] guestsDetails raw: ${JSON.stringify(rawGuestsDetails)}`
+        );
+
         // --- Guests: try inline structures first ---
         let guest = extractPrimaryGuest(r);
 
@@ -130,6 +136,10 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
           const clientRes = await crm.getClient(clientId);
           if (clientRes.ok) {
             const clientData = clientRes.value as Record<string, unknown>;
+            // Diagnostic: log raw phones array so we can see exact structure
+            logger.info(
+              `[TaskWorker] Cliente ${clientId} phones RAW: ${JSON.stringify(clientData["phones"])} | clientSource: ${clientData["clientSource"]}`
+            );
             guest = extractPrimaryGuest(clientData);
             if (!guest) {
               logger.info(
