@@ -277,7 +277,13 @@ function extractPrimaryGuest(r: Record<string, unknown>): { name: string; phone:
     if (guest) return guest;
   }
 
-  // Structure 8: log all top-level keys in plain text for easy diagnosis in Railway
+  // Structure 8: r itself is the guest/contact (e.g. Stays.net /booking/clients/{id} response
+  // where fName, lName, phones are top-level fields on the client object)
+  const selfName = extractName(r);
+  const selfPhone = extractPhone(r);
+  if (selfPhone) return { name: selfName || "Hóspede", phone: selfPhone };
+
+  // Structure 9: log all top-level keys in plain text for easy diagnosis in Railway
   const allKeys = Object.keys(r).join(", ");
   const guestStringFields = Object.entries(r)
     .filter(([k, v]) => (k.toLowerCase().includes("guest") || k.toLowerCase().includes("client") || k.toLowerCase().includes("hospede")) && typeof v === "string")
