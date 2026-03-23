@@ -48,11 +48,12 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | range ${dateTodayStr} → ${dateLimitStr}`
       );
 
-      // Try without status filter first to maximise results
-      const searchRes = await crm.searchActiveReservations({
-        from: dateTodayStr,
-        to: dateLimitStr,
-      });
+      // Strategy: fetch ALL active reservations without date params, then filter locally.
+      // Stays.net's from/to params filter by booking-creation date (not check-in date),
+      // so guests who booked weeks ago with check-in today would be missed.
+      // Fetching everything and applying local date filter is the only reliable approach.
+      // Stays paginates at 100 by default — request a large limit to cover typical properties.
+      const searchRes = await crm.searchActiveReservations({ limit: 500 });
 
       if (!searchRes.ok) {
         const msg = `Tenant ${tenant.id}: falha ao ler reservas — ${searchRes.error.message}`;
@@ -65,14 +66,15 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
       summary.reservationsFound += reservations.length;
 
       logger.info(
-        `[TaskWorker] Tenant ${tenant.id}: ${reservations.length} reservas recebidas da Stays.`
+        `[TaskWorker] Tenant ${tenant.id}: ${reservations.length} reservas recebidas da Stays (sem filtro de data — filtro local aplicado).`
       );
 
       // Log the first reservation structure for diagnostics (once per tenant per sync)
       if (reservations.length > 0) {
-        logger.debug(
-          { firstReservationKeys: Object.keys(reservations[0] as object) },
-          "[TaskWorker] Estrutura da primeira reserva (campos disponíveis)"
+        const firstR = reservations[0] as Record<string, unknown>;
+        logger.info(
+          { firstReservationKeys: Object.keys(firstR), firstReservationSample: firstR },
+          "[TaskWorker] Estrutura da primeira reserva (diagnóstico)"
         );
       }
 
@@ -104,6 +106,15 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
           );
           continue;
         }
+
+        // Local date filter: only process reservations relevant to today/tomorrow
+        const isRelevant =
+          checkIn === dateTodayStr ||
+          checkIn === dateTomorrowStr ||
+          checkOut === dateTodayStr ||
+          checkOut === dateTomorrowStr;
+
+        if (!isRelevant) continue;
 
         // --- Guests: try multiple structures ---
         const guest = extractPrimaryGuest(r);

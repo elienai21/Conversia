@@ -58,28 +58,36 @@ export async function taskRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ detail: adapterRes.error.message });
     }
 
-    const today = new Date();
-    const future = new Date(today);
-    future.setDate(future.getDate() + 3);
-
-    const searchRes = await adapterRes.value.searchActiveReservations({
-      from: today.toISOString().split("T")[0],
-      to: future.toISOString().split("T")[0],
-    });
+    // Fetch without date filter — let Stays return all active reservations
+    const searchRes = await adapterRes.value.searchActiveReservations({});
 
     if (!searchRes.ok) {
       return reply.status(502).send({ detail: searchRes.error.message });
     }
 
     const reservations = searchRes.value;
-    const sample = reservations.slice(0, 3);
+    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+
+    // Extract date fields from first reservation to diagnose field names
+    const dateFieldDiag = reservations.slice(0, 5).map((r) => {
+      const raw = r as Record<string, unknown>;
+      return {
+        id: raw["_id"] ?? raw["id"],
+        checkinRaw: raw["checkin"] ?? raw["checkIn"] ?? raw["checkInDate"] ?? raw["check_in"] ?? raw["_checkin"] ?? "NOT FOUND",
+        checkoutRaw: raw["checkout"] ?? raw["checkOut"] ?? raw["checkOutDate"] ?? raw["check_out"] ?? raw["_checkout"] ?? "NOT FOUND",
+        allDateFields: Object.entries(raw)
+          .filter(([k, v]) => typeof v === "string" && /\d{4}-\d{2}-\d{2}/.test(String(v)))
+          .map(([k, v]) => ({ field: k, value: v })),
+      };
+    });
 
     return reply.send({
       total: reservations.length,
-      sample: sample.map((r) => ({
-        keys: Object.keys(r as object),
-        data: r,
-      })),
+      today,
+      tomorrow,
+      dateFieldDiagnostics: dateFieldDiag,
+      firstReservationFull: reservations[0] ?? null,
     });
   });
 
