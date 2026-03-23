@@ -13,6 +13,7 @@ import { AppError } from "../lib/errors.js";
 import { crmTools } from "./ai-tools.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { generateEmbedding } from "./embedding.service.js";
+import { logger } from "../lib/logger.js";
 
 // The public sync function just enqueues the request (Event-Driven AI)
 export async function enqueueSuggestionJob(
@@ -27,21 +28,21 @@ export async function enqueueSuggestionJob(
   if (isRedisAvailable()) {
     try {
       const job = await copilotQueue.add("generate", jobData);
-      console.log(`[Copilot] Job ${job.id} enqueued via Redis`);
+      logger.info(`[Copilot] Job ${job.id} enqueued via Redis`);
       return ok({ jobId: job.id! });
     } catch (error) {
-      console.warn("[Copilot] Redis enqueue failed, falling back to sync:", error);
+      logger.warn("[Copilot] Redis enqueue failed, falling back to sync:", error);
     }
   }
 
   // Fallback: execute directly (fire-and-forget) when Redis is unavailable
   const fallbackJobId = `sync-${Date.now()}`;
-  console.log(`[Copilot] Redis unavailable — executing job ${fallbackJobId} synchronously`);
+  logger.info(`[Copilot] Redis unavailable — executing job ${fallbackJobId} synchronously`);
 
   // Fire-and-forget: don't await, let it run in background
   generateSuggestionWorker(jobData).then(
-    () => console.log(`[Copilot] Sync job ${fallbackJobId} completed`),
-    (err) => console.error(`[Copilot] Sync job ${fallbackJobId} failed:`, err),
+    () => logger.info(`[Copilot] Sync job ${fallbackJobId} completed`),
+    (err) => logger.error(`[Copilot] Sync job ${fallbackJobId} failed:`, err),
   );
 
   return ok({ jobId: fallbackJobId });
@@ -101,13 +102,13 @@ export async function generateSuggestionWorker(
     try {
       apiKey = decrypt(tenantSettings.openaiApiKey);
     } catch (decryptErr) {
-      console.error("[Copilot] Failed to decrypt OpenAI API key — falling back to global env key. Please re-save the key in Settings.", decryptErr);
+      logger.error({ err: decryptErr }, "[Copilot] Failed to decrypt OpenAI API key — falling back to global env key. Please re-save the key in Settings.");
       // Fallback to global key already set above
     }
   }
 
   if (!apiKey) {
-    console.error("[Copilot] No OpenAI API key available. Aborting suggestion.");
+    logger.error("[Copilot] No OpenAI API key available. Aborting suggestion.");
     SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
       messageId: message.id,
       suggestion: {
@@ -162,7 +163,7 @@ export async function generateSuggestionWorker(
             contentParts.push({ type: "text", text: `[Áudio transcrito: "${transcription.text}"]` });
           }
         } catch (whisperErr) {
-          console.error("[Copilot] Whisper transcription failed:", whisperErr);
+          logger.error({ err: whisperErr }, "[Copilot] Whisper transcription failed");
           contentParts.push({ type: "text", text: "[Áudio não transcrito]" });
         }
       }
@@ -281,7 +282,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
       }
     }
   } catch (openaiErr) {
-    console.error("OpenAI Execution Error in Copilot:", openaiErr);
+    logger.error("OpenAI Execution Error in Copilot:", openaiErr);
     // Silent fail over to default generic text if OpenAI strictly crashes at networking level
     suggestionText = "A error occurred communicating with AI. Please check settings.";
   }
@@ -320,7 +321,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
     return ok(suggestion);
   } catch (dbError) {
-    console.error(`[Copilot] DB Persistence Error:`, dbError);
+    logger.error(`[Copilot] DB Persistence Error:`, dbError);
     // Even if DB fails, we emit the event so the UI stops loading and shows the error text we have
     SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
       messageId: message.id,

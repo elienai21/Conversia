@@ -6,6 +6,7 @@ import {
 } from "./provider.interface.js";
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/encryption.js";
+import { logger } from "../../lib/logger.js";
 
 /** Always forces HTTPS for non-localhost URLs (Railway redirects http→https losing POST body) */
 function normalizeEvolutionUrl(rawUrl: string): string {
@@ -32,21 +33,21 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       const dataKeys = Object.keys(data);
       const dataHasBase64 = !!data.base64;
       const dataHasMessage = !!data.message;
-      console.log(`[Evolution DEBUG] body.keys=${topKeys.join(',')}`);
-      console.log(`[Evolution DEBUG] data.keys=${dataKeys.join(',')}, data.base64=${dataHasBase64}, data.message=${dataHasMessage}`);
-      if (data.message && typeof data.message === 'object') {
+      logger.debug(`[Evolution DEBUG] body.keys=${topKeys.join(",")}`);
+      logger.debug(`[Evolution DEBUG] data.keys=${dataKeys.join(",")}, data.base64=${dataHasBase64}, data.message=${dataHasMessage}`);
+      if (data.message && typeof data.message === "object") {
         const msgKeys = Object.keys(data.message as object);
-        console.log(`[Evolution DEBUG] data.message.keys=${msgKeys.join(',')}`);
+        logger.debug(`[Evolution DEBUG] data.message.keys=${msgKeys.join(",")}`);
         const innerMsg = (data.message as Record<string, unknown>).message;
-        if (innerMsg && typeof innerMsg === 'object') {
-          console.log(`[Evolution DEBUG] data.message.message.keys=${Object.keys(innerMsg as object).join(',')}`);
+        if (innerMsg && typeof innerMsg === "object") {
+          logger.debug(`[Evolution DEBUG] data.message.message.keys=${Object.keys(innerMsg as object).join(",")}`);
         }
       }
       // === END DEBUG ===
 
       let msgData = data;
       // evolution v1 vs v2 differences sometimes put it in data.message
-      if (data.message && typeof (data.message as any).key === 'object') {
+      if (data.message && typeof (data.message as any).key === "object") {
         msgData = data.message as Record<string, unknown>;
       } else if (Array.isArray(data.messages) && data.messages.length > 0) {
         msgData = data.messages[0];
@@ -56,7 +57,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       const messageContent = msgData.message as Record<string, unknown> | undefined;
 
       if (!key?.remoteJid || !messageContent) return [];
-      
+
       // Ignore messages sending by the agent/instance itself
       if (key.fromMe) return [];
 
@@ -68,7 +69,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       }
 
       const attachments = extractEvolutionAttachments(messageContent, msgData);
-      console.log(`[Evolution] parseWebhooks: text="${text}", attachments=${attachments.length}, messageContentKeys=${Object.keys(messageContent).join(',')}`);      
+      logger.info(`[Evolution] parseWebhooks: text="${text}", attachments=${attachments.length}, messageContentKeys=${Object.keys(messageContent).join(",")}`);
       if (!text && attachments.length > 0) {
         text = `[${attachments[0].type}]`;
       }
@@ -92,7 +93,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
         },
       ];
     } catch (err) {
-      console.error("Evolution parseWebhook error:", err);
+      logger.error({ err }, "Evolution parseWebhook error");
       return [];
     }
   }
@@ -108,7 +109,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
     const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
     if (!rawUrl || !instanceName || !apikey) {
-      console.error("[Evolution] Missing serverUrl, instanceName, or apikey for sending message.");
+      logger.error("[Evolution] Missing serverUrl, instanceName, or apikey for sending message.");
       return;
     }
 
@@ -146,7 +147,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
     const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
     if (!rawUrl || !instanceName || !apikey) {
-      console.error("[Evolution] Missing config for sending media.");
+      logger.error("[Evolution] Missing config for sending media.");
       return;
     }
 
@@ -181,7 +182,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       const bodyText = await response.text();
       throw new Error(`Evolution sendMedia failed (${response.status}): ${bodyText}`);
     } else {
-      console.log(`[Evolution] Media sent successfully (${media.type}) to ${to}`);
+      logger.info(`[Evolution] Media sent successfully (${media.type}) to ${to}`);
     }
   }
 }
@@ -222,14 +223,14 @@ export async function fetchEvolutionProfilePicture(
     const pictureUrl = (data.profilePictureUrl ?? data.profilePicUrl ?? data.url ?? data.imgUrl) as string | undefined;
     return pictureUrl || undefined;
   } catch (err) {
-    console.warn("[Evolution] Failed to fetch profile picture:", err);
+    logger.warn({ err }, "[Evolution] Failed to fetch profile picture");
     return undefined;
   }
 }
 
-function extractEvolutionAttachments(
+export function extractEvolutionAttachments(
   messageContent: Record<string, unknown>,
-  msgData?: Record<string, unknown>
+  msgData?: Record<string, unknown>,
 ): MessageAttachmentInput[] {
   const mappings: Array<{ key: string; type: MessageAttachmentInput["type"] }> = [
     { key: "imageMessage", type: "image" },
@@ -238,7 +239,7 @@ function extractEvolutionAttachments(
     { key: "documentMessage", type: "document" },
   ];
 
-  console.log(`[Evolution] extractAttachments: messageContentKeys=${Object.keys(messageContent).join(',')}, msgDataKeys=${msgData ? Object.keys(msgData).join(',') : 'null'}`);
+  logger.info(`[Evolution] extractAttachments: messageContentKeys=${Object.keys(messageContent).join(",")}, msgDataKeys=${msgData ? Object.keys(msgData).join(",") : "null"}`);
 
   for (const mapping of mappings) {
     const payload = messageContent[mapping.key] as Record<string, unknown> | undefined;
@@ -261,7 +262,7 @@ function extractEvolutionAttachments(
       sourceUrl = `data:${mimeType};base64,${b64}`;
     }
 
-    console.log(`[Evolution] extractAttachments: found ${mapping.type}, hasSourceUrl=${!!sourceUrl}, hasBase64=${!!b64}, sourceUrlLen=${sourceUrl?.length ?? 0}`);
+    logger.info(`[Evolution] extractAttachments: found ${mapping.type}, hasSourceUrl=${!!sourceUrl}, hasBase64=${!!b64}, sourceUrlLen=${sourceUrl?.length ?? 0}`);
 
     return [
       {
@@ -296,14 +297,14 @@ export async function fetchEvolutionMediaBase64(
     const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
 
     if (!rawUrl || !instanceName || !apikey) {
-      console.error("[Evolution] Missing config for fetchMediaBase64");
+      logger.error("[Evolution] Missing config for fetchMediaBase64");
       return null;
     }
 
     const serverUrl = normalizeEvolutionUrl(rawUrl);
 
     const url = `${serverUrl}/chat/getBase64FromMediaMessage/${instanceName}`;
-    console.log(`[Evolution] Fetching media base64 from: ${url}`);
+    logger.info(`[Evolution] Fetching media base64 from: ${url}`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -320,7 +321,7 @@ export async function fetchEvolutionMediaBase64(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[Evolution] fetchMediaBase64 failed: ${response.status} ${errorText}`);
+      logger.error(`[Evolution] fetchMediaBase64 failed: ${response.status} ${errorText}`);
       return null;
     }
 
@@ -331,14 +332,14 @@ export async function fetchEvolutionMediaBase64(
     const mimeType = rawMime.split(";")[0].trim();
 
     if (!b64String) {
-      console.error("[Evolution] fetchMediaBase64: no base64 in response");
+      logger.error("[Evolution] fetchMediaBase64: no base64 in response");
       return null;
     }
 
-    console.log(`[Evolution] fetchMediaBase64 success: mimeType=${mimeType}, base64Len=${b64String.length}`);
+    logger.info(`[Evolution] fetchMediaBase64 success: mimeType=${mimeType}, base64Len=${b64String.length}`);
     return { base64: b64String, mimeType };
   } catch (err) {
-    console.error("[Evolution] fetchMediaBase64 error:", err);
+    logger.error({ err }, "[Evolution] fetchMediaBase64 error");
     return null;
   }
 }

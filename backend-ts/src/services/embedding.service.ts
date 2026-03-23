@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { config } from "../config.js";
 import { decrypt } from "../lib/encryption.js";
 import { prisma } from "../lib/prisma.js";
+import { logger } from "../lib/logger.js";
 
 export async function generateEmbedding(
   tenantId: string,
@@ -28,7 +29,7 @@ export async function generateEmbedding(
 
     return response.data[0]?.embedding;
   } catch (err) {
-    console.error("Failed to generate embedding:", err);
+    logger.error({ err }, "Failed to generate embedding");
     return null;
   }
 }

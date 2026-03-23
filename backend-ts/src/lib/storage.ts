@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "../config.js";
+import { logger } from "./logger.js";
 
 let supabase: ReturnType<typeof createClient> | null = null;
 
 if (config.SUPABASE_URL && config.SUPABASE_KEY) {
   supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
-  console.log("[Storage] Supabase client initialized.");
+  logger.info("[Storage] Supabase client initialized.");
 } else {
-  console.warn("[Storage] SUPABASE_URL or SUPABASE_KEY missing. Media uploads will fall back to Data URIs (dangerous for large files).");
+  logger.warn("[Storage] SUPABASE_URL or SUPABASE_KEY missing. Media uploads will fall back to Data URIs (dangerous for large files).");
 }
 
 /**
@@ -17,7 +18,7 @@ if (config.SUPABASE_URL && config.SUPABASE_KEY) {
 export async function uploadMediaToStorage(
   base64Data: string,
   mimeType: string,
-  fileName?: string
+  fileName?: string,
 ): Promise<string | null> {
   if (!supabase) {
     return null;
@@ -25,7 +26,7 @@ export async function uploadMediaToStorage(
 
   try {
     const buffer = Buffer.from(base64Data, "base64");
-    
+
     // Attempt to guess extension if fileName not provided
     let ext = "bin";
     if (mimeType) {
@@ -34,7 +35,7 @@ export async function uploadMediaToStorage(
         ext = parts[1].split(";")[0]; // remove charset if present
       }
     }
-    
+
     const name = fileName || `media_${Date.now()}.${ext}`;
     // Sanitize path
     const path = `whatsapp/${Date.now()}_${name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
@@ -48,7 +49,7 @@ export async function uploadMediaToStorage(
       });
 
     if (error) {
-      console.error("[Storage] Upload failed:", error.message);
+      logger.error(`[Storage] Upload failed: ${error.message}`);
       return null;
     }
 
@@ -56,10 +57,10 @@ export async function uploadMediaToStorage(
       .from("conversia-media")
       .getPublicUrl(path);
 
-    console.log(`[Storage] Upload successful! Public URL: ${publicUrlData.publicUrl}`);
+    logger.info(`[Storage] Upload successful! Public URL: ${publicUrlData.publicUrl}`);
     return publicUrlData.publicUrl;
   } catch (err) {
-    console.error("[Storage] Exception during upload:", err);
+    logger.error({ err }, "[Storage] Exception during upload");
     return null;
   }
 }

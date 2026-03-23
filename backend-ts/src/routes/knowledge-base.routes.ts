@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 import { createKBEntrySchema, updateKBEntrySchema } from "../schemas/knowledge-base.schema.js";
 import { generateEmbedding } from "../services/embedding.service.js";
+import { logger } from "../lib/logger.js";
 
 export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -52,7 +53,7 @@ export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
           );
         }
       })
-      .catch((err) => console.error("Error generating KB embedding:", err));
+      .catch((err) => logger.error({ err }, "Error generating KB embedding"));
 
     return reply.status(201).send({
       id: entry.id,
@@ -101,7 +102,7 @@ export async function knowledgeBaseRoutes(app: FastifyInstance): Promise<void> {
             );
           }
         })
-        .catch((err) => console.error("Error updating KB embedding:", err));
+        .catch((err) => logger.error({ err }, "Error updating KB embedding"));
     }
 
     return {

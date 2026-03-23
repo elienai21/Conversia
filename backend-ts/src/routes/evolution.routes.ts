@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/encryption.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
+import { logger } from "../lib/logger.js";
 
 function normalizeUrl(url: string): string {
   let u = url.trim().replace(/\/+$/, '');
@@ -62,7 +63,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
       return reply.send({ connected, state });
     } catch (err) {
-      console.error("[Evolution] Error getting connection state:", err);
+      logger.error({ err }, "[Evolution] Error getting connection state");
       return reply.status(500).send({ error: "Failed to communicate with WhatsApp server" });
     }
   });
@@ -153,7 +154,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
         if (!createRes.ok) {
           const body = await createRes.text();
-          console.error("Failed to create instance:", body);
+          logger.error(`Failed to create instance: ${body}`);
           return reply.status(500).send({ error: "Failed to create WhatsApp instance" });
         }
 
@@ -167,7 +168,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(500).send({ error: "Failed to get QR Code" });
 
     } catch (err) {
-      console.error("[Evolution] Connect error:", err);
+      logger.error({ err }, "[Evolution] Connect error");
       return reply.status(500).send({ error: "Failed to connect to WhatsApp provider" });
     }
   });
@@ -197,7 +198,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
           headers: { apikey },
         });
       } catch (err) {
-        console.error("Failed to logout instance", err);
+        logger.error({ err }, "Failed to logout instance");
       }
     }
 
@@ -259,7 +260,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
 
         if (!res.ok) {
           const bodyText = await res.text();
-          console.error(`[Evolution] getBase64FromMediaMessage failed (${res.status}):`, bodyText);
+          logger.error(`[Evolution] getBase64FromMediaMessage failed (${res.status}): ${bodyText}`);
           return reply.status(502).send({ detail: "Failed to fetch media from WhatsApp" });
         }
 
@@ -282,7 +283,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
         reply.header("Cache-Control", "public, max-age=86400");
         return reply.send(buffer);
       } catch (err) {
-        console.error("[Evolution] Media proxy error:", err);
+        logger.error({ err }, "[Evolution] Media proxy error");
         return reply.status(502).send({ detail: "Failed to fetch media" });
       }
     },

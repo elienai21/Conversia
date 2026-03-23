@@ -1,5 +1,6 @@
 import type { MessageAttachmentInput } from "./whatsapp/provider.interface.js";
 import { config } from "../config.js";
+import { logger } from "../lib/logger.js";
 
 export interface IncomingInstagramMessage {
   senderId: string;
@@ -83,10 +84,10 @@ export async function sendInstagramMessage(
 
     if (!response.ok) {
       const body = await response.text();
-      console.error(`Instagram send failed (${response.status}):`, body);
+      logger.error(`Instagram send failed (${response.status}): ${body}`);
     }
   } catch (err) {
-    console.error("Instagram send error:", err);
+    logger.error({ err }, "Instagram send error");
   }
 }
 

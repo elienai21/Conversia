@@ -31,10 +31,11 @@ export const config = envSchema.parse(process.env);
 // Block startup if SECRET_KEY is insecure in production; warn in development
 if (config.SECRET_KEY === "change-me-in-production") {
   if (config.NODE_ENV === "production") {
-    console.error("FATAL: SECRET_KEY must be changed in production. Set a strong, unique SECRET_KEY environment variable.");
+    // Use process.stderr directly here — logger depends on config, avoid circular imports
+    process.stderr.write("FATAL: SECRET_KEY must be changed in production. Set a strong, unique SECRET_KEY environment variable.\n");
     process.exit(1);
   } else {
-    console.warn("⚠️  WARNING: Using default SECRET_KEY. This is insecure — set a strong SECRET_KEY before going to production.");
+    process.stderr.write("WARNING: Using default SECRET_KEY. This is insecure — set a strong SECRET_KEY before going to production.\n");
   }
 }
 

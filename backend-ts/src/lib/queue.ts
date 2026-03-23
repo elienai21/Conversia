@@ -3,6 +3,7 @@ import { Redis } from "ioredis";
 import { config } from "../config.js";
 import { generateSuggestionWorker } from "../services/copilot.service.js";
 import { runDailyTaskSync } from "../workers/task.worker.js";
+import { logger } from "./logger.js";
 
 let redisAvailable = false;
 
@@ -11,7 +12,7 @@ const connection = new Redis(config.REDIS_URL || "redis://localhost:6379", {
   lazyConnect: true,
   retryStrategy(times: number) {
     if (times > 3) {
-      console.warn("[BullMQ] Redis unavailable — copilot queue disabled, using sync fallback");
+      logger.warn("[BullMQ] Redis unavailable — copilot queue disabled, using sync fallback");
       redisAvailable = false;
       return null; // Stop retrying
     }
@@ -22,7 +23,7 @@ const connection = new Redis(config.REDIS_URL || "redis://localhost:6379", {
 // Track connection state
 connection.on("connect", () => {
   redisAvailable = true;
-  console.log("[BullMQ] Redis connected successfully");
+  logger.info("[BullMQ] Redis connected successfully");
 });
 
 connection.on("error", () => {
@@ -35,7 +36,7 @@ connection.on("close", () => {
 
 // Try initial connection
 connection.connect().catch(() => {
-  console.warn("[BullMQ] Initial Redis connection failed — using sync fallback");
+  logger.warn("[BullMQ] Initial Redis connection failed — using sync fallback");
   redisAvailable = false;
 });
 
@@ -66,11 +67,11 @@ export const copilotWorker = new Worker<CopilotJobData>(
 );
 
 copilotWorker.on("completed", (job) => {
-  console.log(`[CopilotWorker] Job ${job.id} completed successfully`);
+  logger.info(`[CopilotWorker] Job ${job.id} completed successfully`);
 });
 
 copilotWorker.on("failed", (job, err) => {
-  console.error(`[CopilotWorker] Job ${job?.id} failed:`, err);
+  logger.error({ err }, `[CopilotWorker] Job ${job?.id} failed`);
 });
 
 // ─── Task Sync Queue (CRM reservations) ─────────────────
@@ -90,11 +91,11 @@ export const taskWorker = new Worker(
 );
 
 taskWorker.on("completed", () => {
-  console.log("[TaskWorker] BullMQ job completed");
+  logger.info("[TaskWorker] BullMQ job completed");
 });
 
 taskWorker.on("failed", (_job, err) => {
-  console.error("[TaskWorker] BullMQ job failed:", err);
+  logger.error({ err }, "[TaskWorker] BullMQ job failed");
 });
 
 /** Registra o repeat job de 1h se ainda não existir */
@@ -118,8 +119,8 @@ export async function scheduleTaskSync(): Promise<void> {
         );
       }
     }
-    console.log("[TaskQueue] CRM sync scheduled every 1h via BullMQ");
+    logger.info("[TaskQueue] CRM sync scheduled every 1h via BullMQ");
   } catch (err) {
-    console.warn("[TaskQueue] Failed to schedule CRM sync via BullMQ:", err);
+    logger.warn({ err }, "[TaskQueue] Failed to schedule CRM sync via BullMQ");
   }
 }

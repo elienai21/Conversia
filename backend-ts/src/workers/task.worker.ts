@@ -1,9 +1,10 @@
 import { prisma } from "../lib/prisma.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+import { logger } from "../lib/logger.js";
 
 // Triggers: 'checkin', 'checkout'
 export async function runDailyTaskSync() {
-  console.log("[TaskWorker] Iniciando sincronização diária de missões...");
+  logger.info("[TaskWorker] Iniciando sincronização diária de missões...");
 
   // Data limits (Stays.net params)
   const today = new Date();
@@ -12,7 +13,7 @@ export async function runDailyTaskSync() {
   // Buscamos um range um pouco maior (ex: próximos 4 dias) para garantir que
   // a API da Stays não omita reservas que iniciam no limite do range (exclusive rule).
   const future = new Date(today);
-  future.setDate(future.getDate() + 3); 
+  future.setDate(future.getDate() + 3);
   const dateLimitStr = future.toISOString().split("T")[0];
 
   const tomorrow = new Date(today);
@@ -25,49 +26,45 @@ export async function runDailyTaskSync() {
     for (const tenant of tenants) {
       const adapterRes = await CrmAdapterFactory.getAdapter(tenant.id);
       if (!adapterRes.ok) continue;
-      
+
       const crm = adapterRes.value;
-      console.log(`[TaskWorker] Escaneando reservas para Tenant ${tenant.id} no range ${dateTodayStr} ate ${dateLimitStr}`);
-      
+      logger.info(`[TaskWorker] Escaneando reservas para Tenant ${tenant.id} no range ${dateTodayStr} ate ${dateLimitStr}`);
+
       const searchRes = await crm.searchActiveReservations({
         from: dateTodayStr,
         to: dateLimitStr,
-        status: "confirmed" // Recomendado para evitar rascunhos ou canceladas na fila
+        status: "confirmed", // Recomendado para evitar rascunhos ou canceladas na fila
       });
 
       if (!searchRes.ok) {
-        console.error(`[TaskWorker] Falha ao ler reservas: ${searchRes.error.message}`);
+        logger.error(`[TaskWorker] Falha ao ler reservas: ${searchRes.error.message}`);
         continue;
       }
 
       const activeReservations = searchRes.value;
-      console.log(`[TaskWorker] Tenant ${tenant.id}: Recebeu ${activeReservations.length} reservas da Stays.`);
+      logger.info(`[TaskWorker] Tenant ${tenant.id}: Recebeu ${activeReservations.length} reservas da Stays.`);
 
       for (const res of activeReservations) {
         // Estrutura Reservation da Stays:
         const checkIn = (res as any).checkInDate; // "YYYY-MM-DD"
         const checkOut = (res as any).checkOutDate;
         const resId = (res as any).id || (res as any)._id;
-        const status = (res as any).status;
-
-        // Log interno opcional para bater as datas se necessário
-        // console.log(`[TaskWorker] Analisando Res ${resId}: In=${checkIn}, Out=${checkOut}, Status=${status}`);
 
         const guestsList = (res as any).guestsDetails?.list || [];
         const primaryGuest = guestsList.find((g: any) => g.primary) || guestsList[0];
-        
+
         if (!primaryGuest) continue;
 
         const name = primaryGuest.name || "Hóspede";
         const phones = primaryGuest.phones || [];
         let phoneStr = "";
         if (phones.length > 0) {
-           phoneStr = phones[0].iso || phones[0].value || "";
-           phoneStr = phoneStr.replace(/\D/g, ""); 
+          phoneStr = phones[0].iso || phones[0].value || "";
+          phoneStr = phoneStr.replace(/\D/g, "");
         }
-        
+
         if (!phoneStr) continue;
-        
+
         // Verifica Trigger de Check-in (Faltam 24h)
         if (checkIn === dateTomorrowStr) {
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Confira o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
@@ -94,18 +91,26 @@ export async function runDailyTaskSync() {
       }
     }
 
-    console.log("[TaskWorker] Sincronização finalizada.");
+    logger.info("[TaskWorker] Sincronização finalizada.");
   } catch (err) {
-    console.error("[TaskWorker] FAILED", err);
+    logger.error({ err }, "[TaskWorker] Sync FAILED");
   }
 }
 
-function pendingDate(d: Date): Date {
+function pendingDate(_d: Date): Date {
   // Marca o schedule para as manhãs ou horário atual se atrasado
   return new Date();
 }
 
-async function persistTask(tenantId: string, reservationId: string, type: string, scheduledFor: Date, customerName: string, customerPhone: string, messagePayload: string) {
+async function persistTask(
+  tenantId: string,
+  reservationId: string,
+  type: string,
+  scheduledFor: Date,
+  customerName: string,
+  customerPhone: string,
+  messagePayload: string,
+) {
   try {
     await prisma.taskQueue.upsert({
       where: {
@@ -120,8 +125,10 @@ async function persistTask(tenantId: string, reservationId: string, type: string
         reservationId,
         scheduledFor,
         messagePayload,
-        status: "pending"
-      }
+        status: "pending",
+      },
     });
-  } catch(e) { /* ignore uniqueness issues softly */ }
+  } catch (_e) {
+    /* ignore uniqueness issues softly */
+  }
 }

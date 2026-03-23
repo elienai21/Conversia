@@ -83,7 +83,7 @@ export const defaultAppDeps: AppDeps = {
     sendInstagramMessage,
     decrypt,
     sendPasswordResetEmail: async (email, resetUrl) => {
-      console.log(`[Auth] Password reset requested for ${email}: ${resetUrl}`);
+      logger.info(`[Auth] Password reset requested for ${email}: ${resetUrl}`);
     },
   },
   socket: {

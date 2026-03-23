@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { AppError } from "../lib/errors.js";
+import { logger } from "../lib/logger.js";
 
 export function errorHandler(
   error: FastifyError,
@@ -22,6 +23,6 @@ export function errorHandler(
     return;
   }
 
-  console.error("Unhandled error:", error);
+  logger.error({ err: error }, "Unhandled error");
   reply.status(500).send({ detail: "Internal server error" });
 }

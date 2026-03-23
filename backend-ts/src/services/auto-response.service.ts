@@ -11,6 +11,7 @@ import { SocketService } from "./socket.service.js";
 import { generateEmbedding } from "./embedding.service.js";
 import { crmTools } from "./ai-tools.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+import { logger } from "../lib/logger.js";
 
 /**
  * Executes CRM tool calls from the AI model.
@@ -68,7 +69,7 @@ export async function tryAutoResponse(params: {
   });
 
   if (!settings?.enableAutoResponse) {
-    console.log(`[AutoResponse] Disabled for tenant ${tenantId} (enableAutoResponse=${settings?.enableAutoResponse})`);
+    logger.info(`[AutoResponse] Disabled for tenant ${tenantId} (enableAutoResponse=${settings?.enableAutoResponse})`);
     return false;
   }
 
@@ -78,7 +79,7 @@ export async function tryAutoResponse(params: {
     : [];
 
   if (allowedIntents.length > 0 && !allowedIntents.includes(intent)) {
-    console.log(`[AutoResponse] Intent "${intent}" not in allowed list [${allowedIntents.join(", ")}] for tenant ${tenantId}`);
+    logger.info(`[AutoResponse] Intent "${intent}" not in allowed list [${allowedIntents.join(", ")}] for tenant ${tenantId}`);
     return false;
   }
 
@@ -124,7 +125,7 @@ export async function tryAutoResponse(params: {
     : config.OPENAI_API_KEY;
 
   if (!apiKey) {
-    console.warn(`[AutoResponse] No OpenAI API key available for tenant ${tenantId}`);
+    logger.warn(`[AutoResponse] No OpenAI API key available for tenant ${tenantId}`);
     return false;
   }
 
@@ -173,7 +174,7 @@ ${kbContext}`;
   // Check if CRM is configured to decide whether to use tools
   const crmResult = await CrmAdapterFactory.getAdapter(tenantId);
   const hasCrm = crmResult.ok;
-  console.log(`[AutoResponse] CRM configured: ${hasCrm} for tenant ${tenantId}`);
+  logger.info(`[AutoResponse] CRM configured: ${hasCrm} for tenant ${tenantId}`);
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: "system", content: systemDirective },
@@ -216,7 +217,7 @@ ${kbContext}`;
         for (const toolCall of responseMessage.tool_calls) {
           if (toolCall.type !== "function") continue;
           const args = JSON.parse(toolCall.function.arguments);
-          console.log(`[AutoResponse] CRM tool call: ${toolCall.function.name}(${JSON.stringify(args)})`);
+          logger.info(`[AutoResponse] CRM tool call: ${toolCall.function.name}(${JSON.stringify(args)})`);
           const resultJson = await executeCrmToolCall(tenantId, toolCall.function.name, args);
           messages.push({
             role: "tool",
@@ -232,7 +233,7 @@ ${kbContext}`;
       }
     }
   } catch (openaiErr) {
-    console.error("[AutoResponse] OpenAI/CRM error:", openaiErr);
+    logger.error("[AutoResponse] OpenAI/CRM error:", openaiErr);
     return false;
   }
 
@@ -247,7 +248,7 @@ ${kbContext}`;
   }
 
   if (!answerText || answerText === "NO_MATCH") {
-    console.log(`[AutoResponse] No suitable answer for tenant ${tenantId} (answer="${answerText || "empty"}")`);
+    logger.info(`[AutoResponse] No suitable answer for tenant ${tenantId} (answer="${answerText || "empty"}")`);
     return false;
   }
 
@@ -306,6 +307,6 @@ ${kbContext}`;
     created_at: message.createdAt,
   });
 
-  console.log(`[AutoResponse] Sent auto-response for conversation ${conversationId} (intent: ${intent})`);
+  logger.info(`[AutoResponse] Sent auto-response for conversation ${conversationId} (intent: ${intent})`);
   return true;
 }

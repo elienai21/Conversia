@@ -11,26 +11,26 @@ const app = await buildApp();
 async function start(): Promise<void> {
   try {
     await prisma.$connect();
-    console.log("Database connected");
+    app.log.info("Database connected");
 
     // Redis is optional for local dev — don't block the server if unavailable
     try {
       await redis.connect();
-      console.log("Redis connected");
-      console.log(`BullMQ Copilot Worker started: ${copilotWorker.name}`);
+      app.log.info("Redis connected");
+      app.log.info(`BullMQ Copilot Worker started: ${copilotWorker.name}`);
     } catch (redisErr) {
-      console.warn("⚠️  Redis not available — server will start without queue/copilot features");
-      console.warn("   To enable: install Docker and run 'docker run -d -p 6379:6379 redis:alpine'");
+      app.log.warn("Redis not available — server will start without queue/copilot features");
+      app.log.warn("To enable: install Docker and run 'docker run -d -p 6379:6379 redis:alpine'");
     }
 
     await app.listen({ port: config.PORT, host: "0.0.0.0" });
-    console.log(`Server running on http://localhost:${config.PORT}`);
-    
+    app.log.info(`Server running on http://localhost:${config.PORT}`);
+
     // Initialize WebSockets using the Fastify raw HTTP server
     SocketService.initialize(app.server);
-    console.log("WebSocket Server Initialized");
+    app.log.info("WebSocket Server Initialized");
   } catch (err) {
-    console.error("Failed to start:", err);
+    app.log.error({ err }, "Failed to start server");
     process.exit(1);
   }
 }

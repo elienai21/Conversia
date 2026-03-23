@@ -1,4 +1,5 @@
 import { config } from "../../config.js";
+import { logger } from "../../lib/logger.js";
 import {
   IWhatsAppProvider,
   IncomingWhatsappMessage,
@@ -52,7 +53,7 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
     const phoneNumberId = settings?.whatsappPhoneNumberId;
 
     if (!token || !phoneNumberId) {
-      console.log("[Official WhatsApp] Missing token or phoneNumberId, skipping send");
+      logger.warn("[Official WhatsApp] Missing token or phoneNumberId, skipping send");
       return;
     }
 
@@ -86,7 +87,7 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
     const phoneNumberId = settings?.whatsappPhoneNumberId;
 
     if (!token || !phoneNumberId) {
-      console.log("[Official WhatsApp] Missing token or phoneNumberId, skipping sendMedia");
+      logger.warn("[Official WhatsApp] Missing token or phoneNumberId, skipping sendMedia");
       return;
     }
 
@@ -113,10 +114,10 @@ export class OfficialWhatsAppProvider implements IWhatsAppProvider {
 
       if (!response.ok) {
         const body = await response.text();
-        console.error(`WhatsApp Official sendMedia failed (${response.status}):`, body);
+        logger.error(`WhatsApp Official sendMedia failed (${response.status}): ${body}`);
       }
     } catch (err) {
-      console.error("WhatsApp Official sendMedia error:", err);
+      logger.error({ err }, "WhatsApp Official sendMedia error");
     }
   }
 }

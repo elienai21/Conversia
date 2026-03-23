@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { config } from "../config.js";
 import { logAiUsage } from "./usage-log.service.js";
+import { logger } from "../lib/logger.js";
 
 const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY });
 
@@ -52,7 +53,7 @@ export async function detectIntent(
     const intent = VALID_INTENTS.find((i) => i === raw);
     return intent ?? "outro";
   } catch (err) {
-    console.error("Intent detection failed:", err);
+    logger.error({ err }, "Intent detection failed");
     return "outro";
   }
 }

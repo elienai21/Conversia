@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import type { Server as HttpServer } from "http";
 import { allowedOrigins } from "../config.js";
+import { logger } from "../lib/logger.js";
 
 export class SocketService {
   private static io: Server | null = null;
@@ -9,8 +10,8 @@ export class SocketService {
     this.io = new Server(server, {
       cors: {
         origin: allowedOrigins,
-        methods: ["GET", "POST"]
-      }
+        methods: ["GET", "POST"],
+      },
     });
 
     this.io.use((socket, next) => {
@@ -30,12 +31,12 @@ export class SocketService {
       const tenantRoom = `tenant_${tenantId}`;
       socket.join(tenantRoom);
 
-      console.log(`[Socket] Client connected to room ${tenantRoom}`);
+      logger.info(`[Socket] Client connected to room ${tenantRoom}`);
 
       socket.on("join_conversation", (conversationId: string) => {
         const conversationRoom = `conv_${conversationId}`;
         socket.join(conversationRoom);
-        console.log(`[Socket] Client joined conversation room ${conversationRoom}`);
+        logger.info(`[Socket] Client joined conversation room ${conversationRoom}`);
       });
 
       socket.on("leave_conversation", (conversationId: string) => {
@@ -44,7 +45,7 @@ export class SocketService {
       });
 
       socket.on("disconnect", () => {
-        console.log("[Socket] Client disconnected");
+        logger.info("[Socket] Client disconnected");
       });
     });
   }

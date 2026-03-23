@@ -2,6 +2,7 @@ import * as deepl from "deepl-node";
 import OpenAI from "openai";
 import { config } from "../config.js";
 import { logAiUsage } from "./usage-log.service.js";
+import { logger } from "../lib/logger.js";
 
 const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY });
 
@@ -41,7 +42,7 @@ export async function translateText(
 
       return { translatedText: translated, provider: "deepl" };
     } catch (err) {
-      console.error("DeepL translation failed, falling back to OpenAI:", err);
+      logger.warn({ err }, "DeepL translation failed, falling back to OpenAI");
     }
   }
 

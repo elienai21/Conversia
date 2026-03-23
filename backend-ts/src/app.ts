@@ -115,7 +115,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
 
   // Executa sync inicial no boot (com delay para o DB estar pronto)
   setTimeout(() => {
-    runDailyTaskSync().catch(err => console.error("[CRON] Initial worker failed", err));
+    runDailyTaskSync().catch(err => app.log.error({ err }, "[CRON] Initial worker failed"));
   }, 5000);
 
   return app;
