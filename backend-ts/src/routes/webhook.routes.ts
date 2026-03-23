@@ -69,7 +69,7 @@ async function processIncomingMessage(params: {
       select: { id: true },
     });
     if (dup) {
-      request.log.info(`[Webhook] Duplicate message ignored: ${externalMessageId}`);
+      logger.info(`[Webhook] Duplicate message ignored: ${externalMessageId}`);
       return;
     }
   }
@@ -83,14 +83,14 @@ async function processIncomingMessage(params: {
     externalId: externalMessageId,
   });
 
-  request.log.info(`[Webhook] processIncomingMessage: attachments received=${attachments.length}, types=${attachments.map(a => a.type).join(',')}`);
+  logger.info(`[Webhook] processIncomingMessage: attachments received=${attachments.length}, types=${attachments.map(a => a.type).join(',')}`);
   const savedAttachments = [];
   for (const attachment of attachments) {
     let sourceUrl = attachment.sourceUrl;
     
     // If no sourceUrl but we have the WhatsApp message key, fetch media actively
     if (!sourceUrl && whatsappMessageKey) {
-      request.log.info(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
+      logger.info(`[Webhook] Attachment has no sourceUrl, fetching from Evolution API...`);
       const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
       if (mediaResult) {
         const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, normalizeMime(mediaResult.mimeType), attachment.fileName);
@@ -99,9 +99,9 @@ async function processIncomingMessage(params: {
         } else {
           sourceUrl = `data:${normalizeMime(mediaResult.mimeType)};base64,${mediaResult.base64}`;
         }
-        request.log.info(`[Webhook] Fetched media successfully: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
+        logger.info(`[Webhook] Fetched media successfully: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
       } else {
-        request.log.error(`[Webhook] Failed to fetch media from Evolution API`);
+        logger.error(`[Webhook] Failed to fetch media from Evolution API`);
       }
     } else if (sourceUrl && sourceUrl.startsWith('data:')) {
       // If the webhook payload already came with base64, also upload it to storage
@@ -119,16 +119,16 @@ async function processIncomingMessage(params: {
       // Only fall back to direct CDN download if Evolution API is unavailable.
       let fetchedViaEvolution = false;
       if (whatsappMessageKey) {
-        request.log.info(`[Webhook] Fetching media via Evolution API (decrypted)...`);
+        logger.info(`[Webhook] Fetching media via Evolution API (decrypted)...`);
         try {
           const mediaResult = await fetchEvolutionMediaBase64(tenant.id, whatsappMessageKey, whatsappMessageData);
           if (mediaResult) {
             const uploadedUrl = await uploadMediaToStorage(mediaResult.base64, normalizeMime(mediaResult.mimeType), attachment.fileName);
             sourceUrl = uploadedUrl || `data:${mediaResult.mimeType};base64,${mediaResult.base64}`;
             fetchedViaEvolution = true;
-            request.log.info(`[Webhook] Evolution API media fetched: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
+            logger.info(`[Webhook] Evolution API media fetched: mimeType=${mediaResult.mimeType}, base64Len=${mediaResult.base64.length}`);
           } else {
-            request.log.warn(`[Webhook] Evolution API returned null, falling back to direct CDN download...`);
+            logger.warn(`[Webhook] Evolution API returned null, falling back to direct CDN download...`);
           }
         } catch (err) {
           logger.error({ err }, '[Webhook] Evolution API fetch error, falling back to CDN');
@@ -137,7 +137,7 @@ async function processIncomingMessage(params: {
 
       // Fallback: direct CDN download (encrypted bytes — last resort only)
       if (!fetchedViaEvolution && sourceUrl && sourceUrl.startsWith('http')) {
-        request.log.info(`[Webhook] Attempting direct CDN download as last resort...`);
+        logger.info(`[Webhook] Attempting direct CDN download as last resort...`);
         try {
           const mediaResponse = await fetch(sourceUrl);
           if (mediaResponse.ok) {
@@ -159,9 +159,9 @@ async function processIncomingMessage(params: {
             } else {
               sourceUrl = `data:${contentType};base64,${base64}`;
             }
-            request.log.info(`[Webhook] CDN fallback stored: mimeType=${contentType}, len=${base64.length}`);
+            logger.info(`[Webhook] CDN fallback stored: mimeType=${contentType}, len=${base64.length}`);
           } else {
-            request.log.warn(`[Webhook] CDN download failed (${mediaResponse.status}), keeping original URL`);
+            logger.warn(`[Webhook] CDN download failed (${mediaResponse.status}), keeping original URL`);
           }
         } catch (err) {
           logger.error({ err }, '[Webhook] CDN fallback download error');
@@ -170,7 +170,7 @@ async function processIncomingMessage(params: {
     }
     
     const sourceUrlLen = sourceUrl?.length ?? 0;
-    request.log.info(`[Webhook] Saving attachment: type=${attachment.type}, hasSourceUrl=${!!sourceUrl}, sourceUrlLen=${sourceUrlLen}`);
+    logger.info(`[Webhook] Saving attachment: type=${attachment.type}, hasSourceUrl=${!!sourceUrl}, sourceUrlLen=${sourceUrlLen}`);
     
     try {
       const saved = await saveAttachment({
@@ -182,10 +182,10 @@ async function processIncomingMessage(params: {
         sourceUrl: sourceUrl,
         providerMediaId: attachment.providerMediaId,
       });
-      request.log.info(`[Webhook] Attachment saved successfully: id=${saved.id}`);
+      logger.info(`[Webhook] Attachment saved successfully: id=${saved.id}`);
       savedAttachments.push(saved);
     } catch (err) {
-      request.log.error(`[Webhook] FAILED to save attachment: type=${attachment.type}, error=`, err);
+      logger.error({ err }, `[Webhook] FAILED to save attachment: type=${attachment.type}`);
     }
   }
 
@@ -226,7 +226,7 @@ async function processIncomingMessage(params: {
 
   // Step 8: Detect intent
   const intent = detectedLang ? await detectIntent(tenant.id, text) : "media";
-  request.log.info(`[Webhook] Intent detected: ${intent}`);
+  logger.info(`[Webhook] Intent detected: ${intent}`);
 
   // Step 9: Translate to tenant default language if different
   const tenantLang = tenant.defaultLanguage;
@@ -256,7 +256,7 @@ async function processIncomingMessage(params: {
       detectedLang: detectedLang ?? tenant.defaultLanguage,
     });
     if (autoHandled) {
-      request.log.info(`[Webhook] Auto-response handled conversation ${conversation.id}`);
+      logger.info(`[Webhook] Auto-response handled conversation ${conversation.id}`);
       return;
     }
   } catch (err) {
@@ -268,7 +268,7 @@ async function processIncomingMessage(params: {
     const agentId = await findAvailableAgent(tenant.id);
     if (agentId) {
       await assignConversationToAgent(conversation.id, agentId);
-      request.log.info(`[Webhook] Assigned agent ${agentId}`);
+      logger.info(`[Webhook] Assigned agent ${agentId}`);
       SocketService.emitToTenant(tenant.id, "conversation.updated", {
         type: "assigned",
         conversationId: conversation.id,
@@ -277,7 +277,7 @@ async function processIncomingMessage(params: {
     } else {
       // Step 11: Enqueue if no agent available
       await enqueueConversation(tenant.id, conversation.id);
-      request.log.info(`[Webhook] Enqueued conversation ${conversation.id}`);
+      logger.info(`[Webhook] Enqueued conversation ${conversation.id}`);
       SocketService.emitToTenant(tenant.id, "conversation.updated", {
         type: "queued",
         conversationId: conversation.id,
@@ -318,7 +318,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
   // WhatsApp incoming message
   app.post("/whatsapp", async (request, reply) => {
     const body = request.body as Record<string, unknown>;
-    request.log.info(`[WhatsApp WEBHOOK] bodyKeys=${Object.keys(body).join(',')}, event=${body.event ?? 'N/A'}`);
+    logger.info(`[WhatsApp WEBHOOK] bodyKeys=${Object.keys(body).join(',')}, event=${body.event ?? 'N/A'}`);
 
     // Step 1: Parse incoming message
     const parsed = parseIncomingMessage(body);
@@ -335,7 +335,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         try {
           const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
           if (!tenant) {
-            request.log.warn(`No tenant for providerId: ${incoming.providerId}`);
+            logger.warn(`No tenant for providerId: ${incoming.providerId}`);
             continue;
           }
           const customer = await findOrCreateCustomer(tenant.id, incoming.from, incoming.displayName);
@@ -359,10 +359,10 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     const body = request.body as Record<string, unknown>;
 
     // === TOP-LEVEL DEBUG: Log EVERY webhook event ===
-    request.log.info(`[Evolution WEBHOOK] event="${body.event}", instance="${body.instance}", bodyKeys=${Object.keys(body).join(',')}`);
+    logger.info(`[Evolution WEBHOOK] event="${body.event}", instance="${body.instance}", bodyKeys=${Object.keys(body).join(',')}`);
     if (body.data && typeof body.data === 'object') {
       const data = body.data as Record<string, unknown>;
-      request.log.info(`[Evolution WEBHOOK] data.keys=${Object.keys(data).join(',')}`);
+      logger.info(`[Evolution WEBHOOK] data.keys=${Object.keys(data).join(',')}`);
     }
     // === END TOP-LEVEL DEBUG ===
 
@@ -424,7 +424,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         try {
           const tenant = await resolveTenant(incoming.providerId, parsed.providerName);
           if (!tenant) {
-            request.log.warn(`[Evolution Webhook] No tenant for instance: ${incoming.providerId}`);
+            logger.warn(`[Evolution Webhook] No tenant for instance: ${incoming.providerId}`);
             continue;
           }
 
@@ -485,7 +485,7 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     // Step 2: Resolve tenant by Instagram page ID
     const tenant = await resolveInstagramTenant(incoming.pageId);
     if (!tenant) {
-      request.log.warn(`No tenant for Instagram pageId: ${incoming.pageId}`);
+      logger.warn(`No tenant for Instagram pageId: ${incoming.pageId}`);
       return reply.send({ status: "no_tenant" });
     }
 

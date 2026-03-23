@@ -31,7 +31,7 @@ export async function enqueueSuggestionJob(
       logger.info(`[Copilot] Job ${job.id} enqueued via Redis`);
       return ok({ jobId: job.id! });
     } catch (error) {
-      logger.warn("[Copilot] Redis enqueue failed, falling back to sync:", error);
+      logger.warn({ err: error }, "[Copilot] Redis enqueue failed, falling back to sync");
     }
   }
 
@@ -42,7 +42,7 @@ export async function enqueueSuggestionJob(
   // Fire-and-forget: don't await, let it run in background
   generateSuggestionWorker(jobData).then(
     () => logger.info(`[Copilot] Sync job ${fallbackJobId} completed`),
-    (err) => logger.error(`[Copilot] Sync job ${fallbackJobId} failed:`, err),
+    (err) => logger.error({ err }, `[Copilot] Sync job ${fallbackJobId} failed`),
   );
 
   return ok({ jobId: fallbackJobId });
@@ -282,7 +282,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
       }
     }
   } catch (openaiErr) {
-    logger.error("OpenAI Execution Error in Copilot:", openaiErr);
+    logger.error({ err: openaiErr }, "OpenAI Execution Error in Copilot");
     // Silent fail over to default generic text if OpenAI strictly crashes at networking level
     suggestionText = "A error occurred communicating with AI. Please check settings.";
   }
@@ -321,7 +321,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
     return ok(suggestion);
   } catch (dbError) {
-    logger.error(`[Copilot] DB Persistence Error:`, dbError);
+    logger.error({ err: dbError }, "[Copilot] DB Persistence Error");
     // Even if DB fails, we emit the event so the UI stops loading and shows the error text we have
     SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
       messageId: message.id,

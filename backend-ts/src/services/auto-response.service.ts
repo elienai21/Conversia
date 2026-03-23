@@ -233,7 +233,7 @@ ${kbContext}`;
       }
     }
   } catch (openaiErr) {
-    logger.error("[AutoResponse] OpenAI/CRM error:", openaiErr);
+    logger.error({ err: openaiErr }, "[AutoResponse] OpenAI/CRM error");
     return false;
   }
 

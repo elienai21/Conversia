@@ -217,9 +217,10 @@ model TenantSettings {
   instagramPageAccessToken  String?  @map("instagram_page_access_token")
   instagramPageId           String?  @map("instagram_page_id")
   instagramVerifyToken      String?  @map("instagram_verify_token")
-  enableAutoResponse        Boolean  @default(false) @map("enable_auto_response")
-  autoResponseIntents       String?  @map("auto_response_intents")
-  tenant                    Tenant   @relation(fields: [tenantId], references: [id])
+  enableAutoResponse        Boolean   @default(false) @map("enable_auto_response")
+  autoResponseIntents       String?   @map("auto_response_intents")
+  lastTaskSyncAt            DateTime? @map("last_task_sync_at")
+  tenant                    Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_settings")
 }

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "./lib/prisma.js";
+import { logger } from "./lib/logger.js";
 import {
   createAccessToken,
   createPasswordResetToken,

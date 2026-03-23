@@ -423,6 +423,12 @@ export function createTestDeps(
         conversation_id: conversationId,
         count: BigInt(store.messages.filter((message) => message.conversationId === conversationId && message.senderType === "customer").length),
       })),
+    // $queryRaw is used by conversation list for unread counts (Prisma.sql template)
+    $queryRaw: async () =>
+      store.conversations.map((conversation) => ({
+        conversation_id: conversation.id,
+        count: BigInt(store.messages.filter((message) => message.conversationId === conversation.id && message.senderType === "customer").length),
+      })),
   } as unknown as AppDeps["prisma"];
 
   return {
@@ -450,6 +456,15 @@ export function createTestDeps(
         tenant_id: "tenant-a",
         purpose: "password_reset" as const,
       }),
+      createRefreshToken: (userId: string, tenantId: string) => `refresh-${userId}-${tenantId}`,
+      decodeRefreshToken: (token: string) => {
+        const parts = token.split("-");
+        // token format: "refresh-{userId}-{tenantId}"
+        if (parts.length >= 3 && parts[0] === "refresh") {
+          return { sub: parts[1], tenant_id: parts[2] };
+        }
+        throw new Error("Invalid refresh token");
+      },
     },
     services: {
       findOrCreateConversation: async (tenantId, customerId, channel) => {

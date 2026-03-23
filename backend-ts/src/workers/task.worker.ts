@@ -2,133 +2,292 @@ import { prisma } from "../lib/prisma.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { logger } from "../lib/logger.js";
 
+export interface TaskSyncSummary {
+  tenantsScanned: number;
+  reservationsFound: number;
+  tasksCreated: number;
+  errors: string[];
+}
+
 // Triggers: 'checkin', 'checkout'
-export async function runDailyTaskSync() {
+export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
   logger.info("[TaskWorker] Iniciando sincronização diária de missões...");
 
-  // Data limits (Stays.net params)
   const today = new Date();
-  const dateTodayStr = today.toISOString().split("T")[0];
-
-  // Buscamos um range um pouco maior (ex: próximos 4 dias) para garantir que
-  // a API da Stays não omita reservas que iniciam no limite do range (exclusive rule).
-  const future = new Date(today);
-  future.setDate(future.getDate() + 3);
-  const dateLimitStr = future.toISOString().split("T")[0];
+  const dateTodayStr = toDateStr(today);
 
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const dateTomorrowStr = tomorrow.toISOString().split("T")[0];
+  const dateTomorrowStr = toDateStr(tomorrow);
+
+  // Range broad enough to catch check-ins/check-outs within the next 2 days
+  const future = new Date(today);
+  future.setDate(future.getDate() + 3);
+  const dateLimitStr = toDateStr(future);
+
+  const summary: TaskSyncSummary = {
+    tenantsScanned: 0,
+    reservationsFound: 0,
+    tasksCreated: 0,
+    errors: [],
+  };
 
   try {
     const tenants = await prisma.tenant.findMany({ select: { id: true } });
+    summary.tenantsScanned = tenants.length;
 
     for (const tenant of tenants) {
       const adapterRes = await CrmAdapterFactory.getAdapter(tenant.id);
-      if (!adapterRes.ok) continue;
-
-      const crm = adapterRes.value;
-      logger.info(`[TaskWorker] Escaneando reservas para Tenant ${tenant.id} no range ${dateTodayStr} ate ${dateLimitStr}`);
-
-      const searchRes = await crm.searchActiveReservations({
-        from: dateTodayStr,
-        to: dateLimitStr,
-        status: "confirmed", // Recomendado para evitar rascunhos ou canceladas na fila
-      });
-
-      if (!searchRes.ok) {
-        logger.error(`[TaskWorker] Falha ao ler reservas: ${searchRes.error.message}`);
+      if (!adapterRes.ok) {
+        logger.debug(`[TaskWorker] Tenant ${tenant.id} sem CRM configurado — ignorado.`);
         continue;
       }
 
-      const activeReservations = searchRes.value;
-      logger.info(`[TaskWorker] Tenant ${tenant.id}: Recebeu ${activeReservations.length} reservas da Stays.`);
+      const crm = adapterRes.value;
+      logger.info(
+        `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | range ${dateTodayStr} → ${dateLimitStr}`
+      );
 
-      for (const res of activeReservations) {
-        // Estrutura Reservation da Stays:
-        const checkIn = (res as any).checkInDate; // "YYYY-MM-DD"
-        const checkOut = (res as any).checkOutDate;
-        const resId = (res as any).id || (res as any)._id;
+      // Try without status filter first to maximise results
+      const searchRes = await crm.searchActiveReservations({
+        from: dateTodayStr,
+        to: dateLimitStr,
+      });
 
-        const guestsList = (res as any).guestsDetails?.list || [];
-        const primaryGuest = guestsList.find((g: any) => g.primary) || guestsList[0];
+      if (!searchRes.ok) {
+        const msg = `Tenant ${tenant.id}: falha ao ler reservas — ${searchRes.error.message}`;
+        logger.error(`[TaskWorker] ${msg}`);
+        summary.errors.push(msg);
+        continue;
+      }
 
-        if (!primaryGuest) continue;
+      const reservations = searchRes.value;
+      summary.reservationsFound += reservations.length;
 
-        const name = primaryGuest.name || "Hóspede";
-        const phones = primaryGuest.phones || [];
-        let phoneStr = "";
-        if (phones.length > 0) {
-          phoneStr = phones[0].iso || phones[0].value || "";
-          phoneStr = phoneStr.replace(/\D/g, "");
+      logger.info(
+        `[TaskWorker] Tenant ${tenant.id}: ${reservations.length} reservas recebidas da Stays.`
+      );
+
+      // Log the first reservation structure for diagnostics (once per tenant per sync)
+      if (reservations.length > 0) {
+        logger.debug(
+          { firstReservationKeys: Object.keys(reservations[0] as object) },
+          "[TaskWorker] Estrutura da primeira reserva (campos disponíveis)"
+        );
+      }
+
+      for (const res of reservations) {
+        const r = res as Record<string, unknown>;
+
+        // --- ID: Stays uses _id (MongoDB ObjectId) ---
+        const resId = String(
+          r["_id"] ?? r["id"] ?? r["reservationId"] ?? r["reservation_id"] ?? ""
+        );
+        if (!resId) {
+          logger.warn("[TaskWorker] Reserva sem ID — ignorada");
+          continue;
         }
 
-        if (!phoneStr) continue;
+        // --- Dates: try multiple possible field names ---
+        // Stays.net can return ISO strings like "2025-01-15T00:00:00.000Z" or "2025-01-15"
+        const checkIn = extractDateStr(
+          r["checkin"] ?? r["checkIn"] ?? r["checkInDate"] ?? r["check_in"] ?? r["_checkin"]
+        );
+        const checkOut = extractDateStr(
+          r["checkout"] ?? r["checkOut"] ?? r["checkOutDate"] ?? r["check_out"] ?? r["_checkout"]
+        );
 
-        // Verifica Trigger de Check-in (Faltam 24h)
+        if (!checkIn || !checkOut) {
+          logger.warn(
+            { resId, fields: Object.keys(r) },
+            "[TaskWorker] Reserva sem datas reconhecíveis — ignorada"
+          );
+          continue;
+        }
+
+        // --- Guests: try multiple structures ---
+        const guest = extractPrimaryGuest(r);
+        if (!guest) {
+          logger.warn({ resId }, "[TaskWorker] Reserva sem hóspede com telefone — ignorada");
+          continue;
+        }
+
+        const { name, phone } = guest;
+
+        let created = 0;
+
         if (checkIn === dateTomorrowStr) {
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Confira o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
-          await persistTask(tenant.id, resId, "checkin_amanha", pendingDate(today), name, phoneStr, payload);
+          if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload)) created++;
         }
 
-        // Verifica Trigger de Check-in Hoje
         if (checkIn === dateTodayStr) {
           const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Estamos ansiosos para te receber. Aqui está a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
-          await persistTask(tenant.id, resId, "checkin_hoje", pendingDate(today), name, phoneStr, payload);
+          if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload)) created++;
         }
 
-        // Verifica Trigger de Check-out Amanhã
         if (checkOut === dateTomorrowStr) {
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-out é amanhã até as 11h. Esperamos que esteja aproveitando muito a estadia! Por favor, lembre-se de conferir seus pertences antes de sair.`;
-          await persistTask(tenant.id, resId, "checkout_amanha", pendingDate(today), name, phoneStr, payload);
+          if (await persistTask(tenant.id, resId, "checkout_amanha", name, phone, payload)) created++;
         }
 
-        // Verifica Trigger de Check-out (Hoje)
         if (checkOut === dateTodayStr) {
-          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como vc fez seu checkout hoje, gostaríamos de sua avaliação (NPS).\nComo mimo, oferecemos 10% de desconto na sua próxima viagem conosco usando o cupom RETURN10!`;
-          await persistTask(tenant.id, resId, "checkout_hoje", pendingDate(today), name, phoneStr, payload);
+          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como você fez seu checkout hoje, gostaríamos de sua avaliação.\nComo mimo, oferecemos 10% de desconto na sua próxima viagem conosco usando o cupom RETURN10!`;
+          if (await persistTask(tenant.id, resId, "checkout_hoje", name, phone, payload)) created++;
         }
+
+        summary.tasksCreated += created;
       }
+
+      // Update lastTaskSyncAt on tenant settings
+      await prisma.tenantSettings.updateMany({
+        where: { tenantId: tenant.id },
+        data: { lastTaskSyncAt: new Date() },
+      });
     }
 
-    logger.info("[TaskWorker] Sincronização finalizada.");
+    logger.info(
+      { summary },
+      "[TaskWorker] Sincronização finalizada."
+    );
   } catch (err) {
     logger.error({ err }, "[TaskWorker] Sync FAILED");
+    summary.errors.push(err instanceof Error ? err.message : String(err));
   }
+
+  return summary;
 }
 
-function pendingDate(_d: Date): Date {
-  // Marca o schedule para as manhãs ou horário atual se atrasado
-  return new Date();
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+/** Accepts ISO string ("2025-01-15T00:00:00.000Z") or already-plain date ("2025-01-15") */
+function extractDateStr(value: unknown): string | null {
+  if (!value) return null;
+  const str = String(value);
+  // ISO timestamp → slice to date part
+  if (str.length >= 10) return str.slice(0, 10);
+  return null;
+}
+
+/** Tries multiple possible guest list structures from Stays.net */
+function extractPrimaryGuest(r: Record<string, unknown>): { name: string; phone: string } | null {
+  // Structure 1: guestsDetails.list (current assumption)
+  const guestsDetails = r["guestsDetails"] as Record<string, unknown> | undefined;
+  if (guestsDetails?.list && Array.isArray(guestsDetails.list)) {
+    const guest = findPrimaryFromList(guestsDetails.list);
+    if (guest) return guest;
+  }
+
+  // Structure 2: guests array directly
+  const guestsDirect = r["guests"] as unknown[] | undefined;
+  if (Array.isArray(guestsDirect) && guestsDirect.length > 0) {
+    const guest = findPrimaryFromList(guestsDirect);
+    if (guest) return guest;
+  }
+
+  // Structure 3: guest object directly on reservation
+  const guestObj = r["guest"] as Record<string, unknown> | undefined;
+  if (guestObj) {
+    const name = extractName(guestObj);
+    const phone = extractPhone(guestObj);
+    if (name && phone) return { name, phone };
+  }
+
+  // Structure 4: mainGuest
+  const mainGuest = r["mainGuest"] as Record<string, unknown> | undefined;
+  if (mainGuest) {
+    const name = extractName(mainGuest);
+    const phone = extractPhone(mainGuest);
+    if (name && phone) return { name, phone };
+  }
+
+  // Structure 5: contact or client object
+  const contact = (r["contact"] ?? r["client"]) as Record<string, unknown> | undefined;
+  if (contact) {
+    const name = extractName(contact);
+    const phone = extractPhone(contact);
+    if (name && phone) return { name, phone };
+  }
+
+  return null;
+}
+
+function findPrimaryFromList(list: unknown[]): { name: string; phone: string } | null {
+  const gList = list as Array<Record<string, unknown>>;
+  const primary = gList.find((g) => g["primary"] === true || g["isPrimary"] === true) ?? gList[0];
+  if (!primary) return null;
+
+  const name = extractName(primary);
+  const phone = extractPhone(primary);
+  if (!phone) return null;
+
+  return { name: name || "Hóspede", phone };
+}
+
+function extractName(obj: Record<string, unknown>): string {
+  if (obj["name"]) return String(obj["name"]);
+  if (obj["fullName"]) return String(obj["fullName"]);
+  if (obj["full_name"]) return String(obj["full_name"]);
+  const first = (obj["firstName"] ?? obj["firstname"] ?? obj["first_name"] ?? "") as string;
+  const last = (obj["lastName"] ?? obj["lastname"] ?? obj["last_name"] ?? "") as string;
+  const combined = `${first} ${last}`.trim();
+  return combined || "Hóspede";
+}
+
+function extractPhone(obj: Record<string, unknown>): string {
+  // phones array: [{ iso, value, ... }]
+  const phones = obj["phones"] as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(phones) && phones.length > 0) {
+    const raw = String(phones[0]["iso"] ?? phones[0]["value"] ?? phones[0]["number"] ?? "");
+    const digits = raw.replace(/\D/g, "");
+    if (digits) return digits;
+  }
+
+  // phone string directly
+  const phoneFields = ["phone", "phoneNumber", "phone_number", "mobile", "celular", "whatsapp"];
+  for (const field of phoneFields) {
+    if (obj[field]) {
+      const digits = String(obj[field]).replace(/\D/g, "");
+      if (digits) return digits;
+    }
+  }
+
+  return "";
 }
 
 async function persistTask(
   tenantId: string,
   reservationId: string,
   type: string,
-  scheduledFor: Date,
   customerName: string,
   customerPhone: string,
   messagePayload: string,
-) {
+): Promise<boolean> {
   try {
-    await prisma.taskQueue.upsert({
+    const result = await prisma.taskQueue.upsert({
       where: {
         tenantId_reservationId_type: { tenantId, reservationId, type },
       },
-      update: {}, // Não faz update, apenas ignora se já está na fila
+      update: {},
       create: {
         tenantId,
         type,
         customerName,
         customerPhone,
         reservationId,
-        scheduledFor,
+        scheduledFor: new Date(),
         messagePayload,
         status: "pending",
       },
     });
-  } catch (_e) {
-    /* ignore uniqueness issues softly */
+    logger.debug(`[TaskWorker] Task persistida: ${type} para ${customerName} (reserva ${reservationId})`);
+    return !!result;
+  } catch (err) {
+    logger.error({ err }, `[TaskWorker] Erro ao persistir task ${type} reserva ${reservationId}`);
+    return false;
   }
 }

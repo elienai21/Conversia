@@ -11,12 +11,79 @@
   gap: var(--spacing-6);
 }
 
+/* ─── Header ──────────────────────────────────────────────────────── */
+
 .task-queue-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--spacing-2);
 }
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: var(--spacing-1);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ─── Banners ──────────────────────────────────────────────────────── */
+
+.sync-summary-banner,
+.task-error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  animation: slideDown 0.2s ease;
+}
+
+.sync-summary-banner {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--text-primary);
+}
+
+.task-error-banner {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--text-primary);
+}
+
+.sync-errors {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--accent-error);
+  font-weight: 600;
+}
+
+.sync-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.sync-dismiss:hover {
+  color: var(--text-primary);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Groups ──────────────────────────────────────────────────────── */
 
 .task-queue-groups {
   display: flex;
@@ -56,11 +123,15 @@
   margin-left: var(--spacing-2);
 }
 
+/* ─── Grid ────────────────────────────────────────────────────────── */
+
 .tasks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: var(--spacing-6);
 }
+
+/* ─── Card ────────────────────────────────────────────────────────── */
 
 .task-card {
   display: flex;
@@ -103,6 +174,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .customer-details p:first-child {
@@ -126,7 +198,10 @@
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
+  white-space: nowrap;
 }
+
+/* ─── Card Body ───────────────────────────────────────────────────── */
 
 .task-card-body {
   padding: var(--spacing-5);
@@ -139,15 +214,78 @@
   line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-wrap;
+  margin: 0;
 }
 
+.task-message-editor {
+  width: 100%;
+  min-height: 110px;
+  background: var(--bg-primary);
+  border: 1px solid var(--brand-primary);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  padding: var(--spacing-3);
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb, 99, 102, 241), 0.12);
+  transition: border-color var(--transition-fast);
+}
+
+.task-message-editor:focus {
+  border-color: var(--brand-primary);
+}
+
+/* ─── Card Footer ─────────────────────────────────────────────────── */
+
 .task-card-footer {
-  padding: var(--spacing-4) var(--spacing-5);
+  padding: var(--spacing-3) var(--spacing-5);
   background: rgba(255, 255, 255, 0.03);
   border-top: 1px solid var(--border-color);
+}
+
+.task-actions {
   display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
   justify-content: flex-end;
 }
+
+.task-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  justify-content: flex-end;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Inbox Zero ──────────────────────────────────────────────────── */
 
 .inbox-zero-container {
   flex: 1;
@@ -185,16 +323,17 @@
   line-height: 1.5;
 }
 
-/* Responsive fixes */
+/* ─── Responsive ──────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
   .task-queue-page {
     padding: var(--spacing-4);
   }
-  
+
   .tasks-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .task-queue-header {
     flex-direction: column;
     gap: var(--spacing-4);

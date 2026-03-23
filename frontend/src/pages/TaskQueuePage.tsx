@@ -1,5 +1,17 @@
-import { useState, useEffect } from "react";
-import { CheckCircle2, Key, Sparkles, Send, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  CheckCircle2,
+  Key,
+  Sparkles,
+  Send,
+  RefreshCw,
+  Pencil,
+  X,
+  Check,
+  Trash2,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import { ApiService } from "@/services/api";
 import "./TaskQueuePage.css";
 
@@ -13,31 +25,60 @@ interface TaskItem {
   scheduledFor: string;
 }
 
+interface DailyResponse {
+  tasks: TaskItem[];
+  lastSyncAt: string | null;
+}
+
+interface SyncSummary {
+  tenantsScanned: number;
+  reservationsFound: number;
+  tasksCreated: number;
+  errors: string[];
+}
+
 export function TaskQueuePage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
   const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+  const [cancellingIds, setCancellingIds] = useState<Set<string>>(new Set());
+  // editingId → current draft text
+  const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const data = await ApiService.get<TaskItem[]>("/tasks/daily");
-      setTasks(data);
+      const data = await ApiService.get<DailyResponse>("/tasks/daily");
+      setTasks(data.tasks);
+      setLastSyncAt(data.lastSyncAt);
     } catch (e) {
       console.error("Failed to load tasks", e);
+      setError("Não foi possível carregar as missões. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleForceSync = async () => {
     setIsSyncing(true);
+    setSyncSummary(null);
+    setError(null);
     try {
-      await ApiService.post("/tasks/sync", {});
+      const res = await ApiService.post<{ success: boolean; summary: SyncSummary }>(
+        "/tasks/sync",
+        {}
+      );
+      setSyncSummary(res.summary);
       await fetchTasks();
     } catch (e) {
       console.error(e);
+      setError("Falha ao sincronizar com a Stays.net.");
     } finally {
       setIsSyncing(false);
     }
@@ -45,38 +86,115 @@ export function TaskQueuePage() {
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
 
-  const handleApprove = async (taskIds: string[]) => {
-    setApprovingIds(new Set([...approvingIds, ...taskIds]));
+  // ─── Edit helpers ────────────────────────────────────────────────────────
+
+  const startEdit = (task: TaskItem) => {
+    setEditDrafts((prev) => ({ ...prev, [task.id]: task.messagePayload }));
+  };
+
+  const cancelEdit = (taskId: string) => {
+    setEditDrafts((prev) => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  };
+
+  const saveEdit = async (taskId: string) => {
+    const draft = editDrafts[taskId];
+    if (!draft?.trim()) return;
+
+    setSavingIds((prev) => new Set([...prev, taskId]));
     try {
-      await ApiService.post("/tasks/approve", { taskIds });
-      setTasks((prev) => prev.filter((t) => !taskIds.includes(t.id)));
+      await ApiService.patch(`/tasks/${taskId}`, { messagePayload: draft });
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, messagePayload: draft } : t))
+      );
+      cancelEdit(taskId);
     } catch (e) {
-      console.error("Failed to approve tasks", e);
+      console.error("Failed to save edit", e);
     } finally {
-      setApprovingIds((prev) => {
+      setSavingIds((prev) => {
         const next = new Set(prev);
-        taskIds.forEach(id => next.delete(id));
+        next.delete(taskId);
         return next;
       });
     }
   };
 
-  // Maps para exibição
-  const typeMap: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+  // ─── Approve ─────────────────────────────────────────────────────────────
+
+  const handleApprove = async (taskIds: string[]) => {
+    setApprovingIds((prev) => new Set([...prev, ...taskIds]));
+    try {
+      await ApiService.post("/tasks/approve", { taskIds });
+      setTasks((prev) => prev.filter((t) => !taskIds.includes(t.id)));
+    } catch (e) {
+      console.error("Failed to approve tasks", e);
+      setError("Falha ao enviar mensagens. Verifique a conexão WhatsApp.");
+    } finally {
+      setApprovingIds((prev) => {
+        const next = new Set(prev);
+        taskIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    }
+  };
+
+  // ─── Cancel ──────────────────────────────────────────────────────────────
+
+  const handleCancel = async (taskId: string) => {
+    setCancellingIds((prev) => new Set([...prev, taskId]));
+    try {
+      await ApiService.delete(`/tasks/${taskId}`);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    } catch (e) {
+      console.error("Failed to cancel task", e);
+    } finally {
+      setCancellingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
+  };
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  const formatLastSync = (iso: string | null) => {
+    if (!iso) return "Nunca sincronizado";
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "Agora mesmo";
+    if (diffMin < 60) return `Há ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Há ${diffH}h`;
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  };
+
+  // ─── Config ──────────────────────────────────────────────────────────────
+
+  const typeMap: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
     checkin_hoje: { label: "Check-in Hoje", icon: Key, color: "text-amber-500", bg: "bg-amber-500/10" },
     checkin_amanha: { label: "Check-in Amanhã", icon: Key, color: "text-orange-500", bg: "bg-orange-500/10" },
     checkout_hoje: { label: "Check-out NPS (Hoje)", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10" },
     checkout_amanha: { label: "Check-out Avisos", icon: Sparkles, color: "text-indigo-500", bg: "bg-indigo-500/10" },
   };
 
-  // Agrupamento vertical
-  const groups = tasks.reduce((acc, t) => {
-    if (!acc[t.type]) acc[t.type] = [];
-    acc[t.type].push(t);
-    return acc;
-  }, {} as Record<string, TaskItem[]>);
+  const groups = tasks.reduce(
+    (acc, t) => {
+      if (!acc[t.type]) acc[t.type] = [];
+      acc[t.type].push(t);
+      return acc;
+    },
+    {} as Record<string, TaskItem[]>
+  );
+
+  // ─── Render ──────────────────────────────────────────────────────────────
 
   if (isLoading && tasks.length === 0) {
     return (
@@ -91,13 +209,20 @@ export function TaskQueuePage() {
 
   return (
     <div className="task-queue-page animate-fade-in scrollable-content">
+      {/* ── Header ── */}
       <div className="task-queue-header">
         <div>
           <h1 className="text-3xl font-semibold mb-1">Missões Diárias</h1>
-          <p className="text-muted">Centro de Comando de mensagens agendadas e automações do CRM.</p>
+          <p className="text-muted">
+            Centro de Comando de mensagens agendadas e automações do CRM.
+          </p>
+          <div className="sync-status">
+            <Clock size={13} />
+            <span>{formatLastSync(lastSyncAt)}</span>
+          </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleForceSync}
           disabled={isSyncing}
           className="btn-primary flex items-center gap-2"
@@ -107,6 +232,38 @@ export function TaskQueuePage() {
         </button>
       </div>
 
+      {/* ── Sync Summary ── */}
+      {syncSummary && (
+        <div className="sync-summary-banner">
+          <CheckCircle2 size={16} className="text-success" />
+          <span>
+            Sincronização concluída —{" "}
+            <strong>{syncSummary.reservationsFound}</strong> reservas encontradas,{" "}
+            <strong>{syncSummary.tasksCreated}</strong> novas tarefas criadas.
+          </span>
+          {syncSummary.errors.length > 0 && (
+            <span className="sync-errors">
+              {syncSummary.errors.length} erro(s)
+            </span>
+          )}
+          <button onClick={() => setSyncSummary(null)} className="sync-dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {error && (
+        <div className="task-error-banner">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="sync-dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Empty State ── */}
       {tasks.length === 0 ? (
         <div className="inbox-zero-container">
           <div className="inbox-zero-icon">
@@ -114,41 +271,65 @@ export function TaskQueuePage() {
           </div>
           <h2>Inbox Zero! 🎉</h2>
           <p>
-            Sua Fila de Missões está completamente limpa. Todos os hóspedes já receberam as instruções corretas via WhatsApp.
+            Sua Fila de Missões está completamente limpa. Todos os hóspedes já
+            receberam as instruções corretas via WhatsApp.
+          </p>
+          <p className="text-muted text-sm mt-4">
+            Clique em <strong>Atualizar na Stays</strong> para verificar novas reservas.
           </p>
         </div>
       ) : (
         <div className="task-queue-groups">
           {Object.entries(groups).map(([type, list]) => {
-            const config = typeMap[type] || { label: type, icon: Send, color: "text-blue-500", bg: "bg-blue-500/10" };
-            const Icon = config.icon;
-            const isApprovingAll = list.every(t => approvingIds.has(t.id));
+            const cfg = typeMap[type] ?? {
+              label: type,
+              icon: Send,
+              color: "text-blue-500",
+              bg: "bg-blue-500/10",
+            };
+            const Icon = cfg.icon;
+            const allApproving = list.every((t) => approvingIds.has(t.id));
 
             return (
               <div key={type} className="task-group">
                 <div className="group-header">
                   <h2 className="group-title">
-                    <span className={`p-1.5 rounded-lg ${config.bg} ${config.color}`}><Icon size={18} /></span>
-                    {config.label}
+                    <span className={`p-1.5 rounded-lg ${cfg.bg} ${cfg.color}`}>
+                      <Icon size={18} />
+                    </span>
+                    {cfg.label}
                     <span className="group-badge">{list.length}</span>
                   </h2>
 
                   <button
-                    onClick={() => handleApprove(list.map(t => t.id))}
-                    disabled={isApprovingAll}
+                    onClick={() => handleApprove(list.map((t) => t.id))}
+                    disabled={allApproving}
                     className="btn-primary flex items-center gap-2 btn-sm py-2"
-                    style={{ background: 'var(--accent-success)', borderColor: 'var(--accent-success)' }}
+                    style={{
+                      background: "var(--accent-success)",
+                      borderColor: "var(--accent-success)",
+                    }}
                   >
-                    {isApprovingAll ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                    {allApproving ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : (
+                      <Send size={16} />
+                    )}
                     Aprovar Todos
                   </button>
                 </div>
 
                 <div className="tasks-grid">
-                  {list.map(task => {
-                    const isTaskApproving = approvingIds.has(task.id);
+                  {list.map((task) => {
+                    const isApproving = approvingIds.has(task.id);
+                    const isCancelling = cancellingIds.has(task.id);
+                    const draftText = editDrafts[task.id];
+                    const isEditing = draftText !== undefined;
+                    const isSaving = savingIds.has(task.id);
+
                     return (
                       <div key={task.id} className="task-card glass-panel">
+                        {/* Header */}
                         <div className="task-card-header">
                           <div className="task-customer-info">
                             <div className="customer-avatar">
@@ -163,22 +344,92 @@ export function TaskQueuePage() {
                             #{task.reservationId.slice(-6)}
                           </span>
                         </div>
-                        
+
+                        {/* Body — message (editable or read-only) */}
                         <div className="task-card-body">
-                          <p className="task-message">
-                            {task.messagePayload}
-                          </p>
+                          {isEditing ? (
+                            <textarea
+                              className="task-message-editor"
+                              value={draftText}
+                              onChange={(e) =>
+                                setEditDrafts((prev) => ({
+                                  ...prev,
+                                  [task.id]: e.target.value,
+                                }))
+                              }
+                              rows={5}
+                              autoFocus
+                            />
+                          ) : (
+                            <p className="task-message">{task.messagePayload}</p>
+                          )}
                         </div>
 
+                        {/* Footer */}
                         <div className="task-card-footer">
-                          <button
-                            onClick={() => handleApprove([task.id])}
-                            disabled={isTaskApproving}
-                            className={`btn-primary flex items-center gap-2 btn-sm ${isTaskApproving ? 'opacity-50' : ''}`}
-                          >
-                            {isTaskApproving ? "Enviando..." : "Aprovar & Enviar"}
-                            {!isTaskApproving && <Send size={14} />}
-                          </button>
+                          {isEditing ? (
+                            <div className="task-edit-actions">
+                              <button
+                                onClick={() => cancelEdit(task.id)}
+                                className="btn-ghost flex items-center gap-1 btn-sm"
+                                disabled={isSaving}
+                              >
+                                <X size={14} /> Cancelar
+                              </button>
+                              <button
+                                onClick={() => saveEdit(task.id)}
+                                className="btn-primary flex items-center gap-1 btn-sm"
+                                disabled={isSaving || !draftText.trim()}
+                              >
+                                {isSaving ? (
+                                  <RefreshCw size={14} className="animate-spin" />
+                                ) : (
+                                  <Check size={14} />
+                                )}
+                                Salvar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="task-actions">
+                              <button
+                                onClick={() => handleCancel(task.id)}
+                                disabled={isCancelling || isApproving}
+                                className="btn-ghost flex items-center gap-1 btn-sm text-muted"
+                                title="Cancelar missão"
+                              >
+                                {isCancelling ? (
+                                  <RefreshCw size={14} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={14} />
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => startEdit(task)}
+                                disabled={isApproving || isCancelling}
+                                className="btn-ghost flex items-center gap-1 btn-sm"
+                                title="Editar mensagem"
+                              >
+                                <Pencil size={14} /> Editar
+                              </button>
+
+                              <button
+                                onClick={() => handleApprove([task.id])}
+                                disabled={isApproving || isCancelling}
+                                className={`btn-primary flex items-center gap-2 btn-sm ${
+                                  isApproving ? "opacity-50" : ""
+                                }`}
+                              >
+                                {isApproving ? (
+                                  "Enviando..."
+                                ) : (
+                                  <>
+                                    Aprovar & Enviar <Send size={14} />
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
