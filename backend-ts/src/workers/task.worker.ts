@@ -250,10 +250,14 @@ function extractPrimaryGuest(r: Record<string, unknown>): { name: string; phone:
     if (guest) return guest;
   }
 
-  // Structure 8: log all top-level keys to diagnose unknown structure
+  // Structure 8: log all top-level keys in plain text for easy diagnosis in Railway
+  const allKeys = Object.keys(r).join(", ");
+  const guestStringFields = Object.entries(r)
+    .filter(([k, v]) => (k.toLowerCase().includes("guest") || k.toLowerCase().includes("client") || k.toLowerCase().includes("hospede")) && typeof v === "string")
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
   logger.info(
-    { resId: r["_id"] ?? r["id"], topLevelKeys: Object.keys(r) },
-    "[TaskWorker] Nenhuma estrutura de hóspede reconhecida — chaves disponíveis"
+    `[TaskWorker] Nenhuma estrutura reconhecida. Chaves: ${allKeys} | Campos guest/client: ${guestStringFields || "nenhum"}`
   );
 
   return null;
