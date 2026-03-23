@@ -5,7 +5,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 interface TaskItem {
   id: string;
-  type: string; // 'checkin' | 'checkout'
+  type: string; // 'checkin_hoje' | 'checkin_amanha' | 'checkout_hoje' | 'checkout_amanha'
   customerName: string;
   customerPhone: string;
   reservationId: string;
@@ -13,8 +13,14 @@ interface TaskItem {
   scheduledFor: string;
 }
 
+interface DailyTasksResponse {
+  tasks: TaskItem[];
+  lastSyncAt: string | null;
+}
+
 export function DailyTaskQueue() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -36,10 +42,12 @@ export function DailyTaskQueue() {
   const fetchTasks = async () => {
     setIsLoading(true);
     try {
-      const data = await ApiService.get<TaskItem[]>("/tasks/daily");
-      setTasks(data);
+      const data = await ApiService.get<DailyTasksResponse>("/tasks/daily");
+      setTasks(data.tasks ?? []);
+      setLastSyncAt(data.lastSyncAt ?? null);
     } catch (e) {
       console.error(e);
+      setTasks([]);
     } finally {
       setIsLoading(false);
     }
@@ -49,22 +57,33 @@ export function DailyTaskQueue() {
     fetchTasks();
   }, []);
 
+  const syncHeader = (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-medium flex items-center gap-2">
+        <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
+      </h2>
+      <div className="flex items-center gap-3">
+        {lastSyncAt && (
+          <span className="text-xs text-muted">
+            Última sync: {new Date(lastSyncAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+          </span>
+        )}
+        <button
+          onClick={handleForceSync}
+          disabled={isSyncing}
+          className="text-muted hover:text-foreground text-sm flex items-center gap-2 transition-colors bg-muted/10 hover:bg-muted/20 px-3 py-1.5 rounded-md"
+        >
+          <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
+          {isSyncing ? "Buscando..." : "Atualizar na Stays"}
+        </button>
+      </div>
+    </div>
+  );
+
   if (!isLoading && tasks.length === 0) {
     return (
       <div className="w-full mb-8 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
-          </h2>
-          <button 
-            onClick={handleForceSync}
-            disabled={isSyncing}
-            className="text-muted hover:text-foreground text-sm flex items-center gap-2 transition-colors bg-muted/10 hover:bg-muted/20 px-3 py-1.5 rounded-md"
-          >
-            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> 
-            {isSyncing ? "Buscando..." : "Atualizar na Stays"}
-          </button>
-        </div>
+        {syncHeader}
         <div className="p-6 rounded-xl border border-dashed flex flex-col items-center justify-center text-center bg-muted/5">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
             <CheckCircle2 size={24} />
@@ -83,8 +102,10 @@ export function DailyTaskQueue() {
   }, {} as Record<string, TaskItem[]>);
 
   const displayMap: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-    checkin: { label: "Mensagens de Check-in", icon: Key, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
-    checkout: { label: "Mensagens de Check-out (NPS)", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/20" },
+    checkin_amanha: { label: "Check-in Amanhã", icon: Key, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
+    checkin_hoje:   { label: "Check-in Hoje", icon: Key, color: "text-orange-500", bg: "bg-orange-500/10 border-orange-500/20" },
+    checkout_amanha: { label: "Check-out Amanhã", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/20" },
+    checkout_hoje:   { label: "Check-out + NPS Hoje", icon: Sparkles, color: "text-pink-500", bg: "bg-pink-500/10 border-pink-500/20" },
   };
 
   const handleApproveAll = async (type: string) => {
@@ -107,19 +128,7 @@ export function DailyTaskQueue() {
   return (
     <>
       <div className="w-full mb-8 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-brand-primary" /> Fila de Missões Diárias
-          </h2>
-          <button 
-            onClick={handleForceSync}
-            disabled={isSyncing}
-            className="text-muted hover:text-foreground text-sm flex items-center gap-2 transition-colors bg-muted/10 hover:bg-muted/20 px-3 py-1.5 rounded-md"
-          >
-            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} /> 
-            {isSyncing ? "Buscando..." : "Atualizar na Stays"}
-          </button>
-        </div>
+        {syncHeader}
         
         <div className="flex gap-4 flex-wrap">
           {Object.entries(groupedTasks).map(([type, list]) => {
