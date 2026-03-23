@@ -12,6 +12,7 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TaskQueuePage } from "./pages/TaskQueuePage";
+import { GuestCheckinPage } from "./pages/GuestCheckinPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -41,6 +42,9 @@ function App() {
         <SocketProvider>
           <BrowserRouter>
             <Routes>
+              {/* Totalmente público — sem auth, sem layout interno */}
+              <Route path="/checkin/:token" element={<GuestCheckinPage />} />
+
               {/* Public / Auth Routes */}
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<LoginPage />} />

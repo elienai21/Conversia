@@ -32,22 +32,26 @@ model Tenant {
 }
 
 model TaskQueue {
-  id             String   @id @default(uuid()) @db.Uuid
-  tenantId       String   @map("tenant_id") @db.Uuid
-  type           String   @map("type") // e.g. 'checkin', 'checkout'
-  status         String   @default("pending") @map("status") // pending, sent, cancelled
-  customerPhone  String   @map("customer_phone")
-  customerName   String   @map("customer_name")
-  reservationId  String   @map("reservation_id")
-  scheduledFor   DateTime @map("scheduled_for")
-  messagePayload String   @map("message_payload") // Text draft
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  type           String    @map("type") // e.g. 'checkin', 'checkout'
+  status         String    @default("pending") @map("status") // pending, sent, cancelled
+  customerPhone  String    @map("customer_phone")
+  customerName   String    @map("customer_name")
+  reservationId  String    @map("reservation_id")
+  scheduledFor   DateTime  @map("scheduled_for")
+  messagePayload String    @map("message_payload") // Text draft
+  magicToken     String?   @unique @map("magic_token") // UUID token for guest check-in form link
+  guestFormData  String?   @map("guest_form_data")   // JSON: submitted guest form (name, doc, photos)
+  guestFormAt    DateTime? @map("guest_form_at")     // When guest submitted the form
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, reservationId, type], map: "ix_taskqueue_unique_task")
   @@index([tenantId, status, scheduledFor], map: "ix_taskqueue_filter")
+  @@index([magicToken], map: "ix_taskqueue_magic_token")
   @@map("task_queue")
 }
 

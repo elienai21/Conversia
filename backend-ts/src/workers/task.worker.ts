@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { logger } from "../lib/logger.js";
+import { randomUUID } from "crypto";
 
 export interface TaskSyncSummary {
   tenantsScanned: number;
@@ -161,13 +162,17 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         let created = 0;
 
         if (checkIn === dateTomorrowStr) {
-          const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Confira o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
-          if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload)) created++;
+          const token = randomUUID();
+          const checkinLink = `${process.env.FRONTEND_URL ?? "https://app.conversia.com"}/checkin/${token}`;
+          const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Para agilizar seu acesso, preencha seu cadastro antecipado aqui: ${checkinLink}\nConfira também o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
+          if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload, token)) created++;
         }
 
         if (checkIn === dateTodayStr) {
-          const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Estamos ansiosos para te receber. Aqui está a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
-          if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload)) created++;
+          const token = randomUUID();
+          const checkinLink = `${process.env.FRONTEND_URL ?? "https://app.conversia.com"}/checkin/${token}`;
+          const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Para liberar seu acesso, complete seu cadastro aqui: ${checkinLink}\nAqui está também a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
+          if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload, token)) created++;
         }
 
         if (checkOut === dateTomorrowStr) {
@@ -363,6 +368,7 @@ async function persistTask(
   customerName: string,
   customerPhone: string,
   messagePayload: string,
+  magicToken?: string,
 ): Promise<boolean> {
   try {
     const result = await prisma.taskQueue.upsert({
@@ -379,6 +385,7 @@ async function persistTask(
         scheduledFor: new Date(),
         messagePayload,
         status: "pending",
+        ...(magicToken ? { magicToken } : {}),
       },
     });
     logger.debug(`[TaskWorker] Task persistida: ${type} para ${customerName} (reserva ${reservationId})`);

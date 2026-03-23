@@ -24,6 +24,7 @@ import { audioRoutes } from "./routes/audio.routes.js";
 import { evolutionRoutes } from "./routes/evolution.routes.js";
 import { quickReplyRoutes } from "./routes/quick-reply.routes.js";
 import { taskRoutes } from "./routes/task.routes.js";
+import { publicCheckinRoutes } from "./routes/public-checkin.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
 import { runDailyTaskSync } from "./workers/task.worker.js";
 import { scheduleTaskSync } from "./lib/queue.js";
@@ -38,8 +39,10 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: "1 minute",
-    // Webhooks externos (Evolution, Instagram) ficam isentos do rate limit
-    allowList: (request) => request.url.startsWith("/api/v1/webhook"),
+    // Webhooks externos e formulário público de checkin ficam isentos do rate limit
+    allowList: (request) =>
+      request.url.startsWith("/api/v1/webhook") ||
+      request.url.startsWith("/public/checkin"),
     // Por tenant autenticado; fallback para IP
     keyGenerator: (request) => {
       const auth = request.headers.authorization;
@@ -109,6 +112,8 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(evolutionRoutes, { prefix: "/api/v1/whatsapp" });
   await app.register(quickReplyRoutes, { prefix: "/api/v1/quick-replies" });
   await app.register(taskRoutes, { prefix: "/api/v1/tasks" });
+  // Public (unauthenticated) guest check-in form routes — no authMiddleware
+  await app.register(publicCheckinRoutes, { prefix: "/public/checkin" });
 
   // Job Agendador de Missões (CRM Sync) = a cada 1 hora via BullMQ
   await scheduleTaskSync();

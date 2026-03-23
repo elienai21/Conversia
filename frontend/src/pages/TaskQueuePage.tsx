@@ -11,9 +11,24 @@ import {
   Trash2,
   Clock,
   AlertCircle,
+  ClipboardCheck,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { ApiService } from "@/services/api";
 import "./TaskQueuePage.css";
+
+interface GuestFormData {
+  fullName: string;
+  document: string;
+  documentType: string;
+  nationality?: string;
+  birthDate?: string;
+  phone?: string;
+  photoFrontUrl?: string | null;
+  photoBackUrl?: string | null;
+  submittedAt: string;
+}
 
 interface TaskItem {
   id: string;
@@ -23,6 +38,9 @@ interface TaskItem {
   reservationId: string;
   messagePayload: string;
   scheduledFor: string;
+  magicToken?: string | null;
+  guestFormData?: string | null;
+  guestFormAt?: string | null;
 }
 
 interface DailyResponse {
@@ -49,6 +67,8 @@ export function TaskQueuePage() {
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  // Guest form modal
+  const [viewingFormTask, setViewingFormTask] = useState<TaskItem | null>(null);
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
@@ -340,9 +360,21 @@ export function TaskQueuePage() {
                               <p>{task.customerPhone}</p>
                             </div>
                           </div>
-                          <span className="reservation-tag">
-                            #{task.reservationId.slice(-6)}
-                          </span>
+                          <div className="task-header-right">
+                            {task.guestFormAt && (
+                              <button
+                                className="guest-form-badge"
+                                onClick={() => setViewingFormTask(task)}
+                                title="Hóspede preencheu o formulário"
+                              >
+                                <ClipboardCheck size={12} />
+                                Cadastro enviado
+                              </button>
+                            )}
+                            <span className="reservation-tag">
+                              #{task.reservationId.slice(-6)}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Body — message (editable or read-only) */}
@@ -440,6 +472,98 @@ export function TaskQueuePage() {
           })}
         </div>
       )}
+
+      {/* ── Guest Form Modal ── */}
+      {viewingFormTask && (() => {
+        let formData: GuestFormData | null = null;
+        try {
+          formData = viewingFormTask.guestFormData
+            ? (JSON.parse(viewingFormTask.guestFormData) as GuestFormData)
+            : null;
+        } catch { /* ignore */ }
+
+        return (
+          <div className="modal-overlay" onClick={() => setViewingFormTask(null)}>
+            <div className="modal-panel glass-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3 className="flex items-center gap-2">
+                  <FileText size={18} className="text-brand-primary" />
+                  Cadastro do Hóspede
+                </h3>
+                <button onClick={() => setViewingFormTask(null)} className="btn-ghost p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {formData ? (
+                <div className="modal-body">
+                  <div className="guest-form-grid">
+                    <div className="gf-field">
+                      <span className="gf-label">Nome completo</span>
+                      <span className="gf-value">{formData.fullName}</span>
+                    </div>
+                    <div className="gf-field">
+                      <span className="gf-label">Documento ({formData.documentType?.toUpperCase()})</span>
+                      <span className="gf-value">{formData.document}</span>
+                    </div>
+                    {formData.nationality && (
+                      <div className="gf-field">
+                        <span className="gf-label">Nacionalidade</span>
+                        <span className="gf-value">{formData.nationality}</span>
+                      </div>
+                    )}
+                    {formData.birthDate && (
+                      <div className="gf-field">
+                        <span className="gf-label">Data de nascimento</span>
+                        <span className="gf-value">
+                          {new Date(formData.birthDate + "T12:00:00").toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+                    )}
+                    {formData.phone && (
+                      <div className="gf-field">
+                        <span className="gf-label">Telefone</span>
+                        <span className="gf-value">{formData.phone}</span>
+                      </div>
+                    )}
+                    <div className="gf-field">
+                      <span className="gf-label">Enviado em</span>
+                      <span className="gf-value">
+                        {new Date(formData.submittedAt).toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(formData.photoFrontUrl || formData.photoBackUrl) && (
+                    <div className="gf-photos">
+                      {formData.photoFrontUrl && (
+                        <div className="gf-photo-item">
+                          <span className="gf-label">Frente</span>
+                          <a href={formData.photoFrontUrl} target="_blank" rel="noopener noreferrer">
+                            <img src={formData.photoFrontUrl} alt="Frente do documento" />
+                            <span className="gf-photo-link"><ExternalLink size={12} /> Abrir</span>
+                          </a>
+                        </div>
+                      )}
+                      {formData.photoBackUrl && (
+                        <div className="gf-photo-item">
+                          <span className="gf-label">Verso</span>
+                          <a href={formData.photoBackUrl} target="_blank" rel="noopener noreferrer">
+                            <img src={formData.photoBackUrl} alt="Verso do documento" />
+                            <span className="gf-photo-link"><ExternalLink size={12} /> Abrir</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-muted text-sm p-4">Dados do formulário não disponíveis.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
