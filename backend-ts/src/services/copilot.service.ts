@@ -281,10 +281,30 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
         break; 
       }
     }
-  } catch (openaiErr) {
-    logger.error({ err: openaiErr }, "OpenAI Execution Error in Copilot");
-    // Silent fail over to default generic text if OpenAI strictly crashes at networking level
-    suggestionText = "A error occurred communicating with AI. Please check settings.";
+  } catch (openaiErr: unknown) {
+    // Extract a useful error message from the OpenAI SDK error
+    let openaiErrMsg = "unknown error";
+    if (openaiErr && typeof openaiErr === "object") {
+      const e = openaiErr as Record<string, unknown>;
+      // OpenAI SDK wraps errors with .status / .error / .message
+      openaiErrMsg = String(e.message ?? e.error ?? e.status ?? "unknown");
+    }
+    logger.error(
+      { err: openaiErr, model, tenantId, openaiErrMsg },
+      `[Copilot] OpenAI API error: ${openaiErrMsg}`
+    );
+
+    // Don't persist error text — emit socket event and bail out.
+    // This lets the next job retry cleanly (no stale "error" suggestion in DB).
+    SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
+      messageId: message.id,
+      suggestion: {
+        id: `err-${Date.now()}`,
+        suggestionText: "A error occurred communicating with AI. Please check settings.",
+        wasUsed: false,
+      },
+    });
+    return fail(new AppError(`OpenAI error: ${openaiErrMsg}`, 500));
   }
 
   // 9. Log final cumulative token usage
