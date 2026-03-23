@@ -139,31 +139,43 @@ export class StaysNetAdapter implements ICrmAdapter {
   }
 
   async searchActiveReservations(params?: ReservationSearchParams): Promise<Result<Reservation[], AppError>> {
-    // GET /booking/reservations requires 'from' as mandatory query param (check-in date range).
-    // To capture checkouts from guests who checked in weeks ago, we use a wide range:
-    //   from = 60 days ago (covers long stays), to = caller-supplied or 2 days forward.
-    // Local filtering (today/tomorrow) is applied in the worker after fetching.
-    const query = new URLSearchParams();
+    // Stays.net GET /booking/reservations requires: from, to, dateType (all mandatory).
+    // dateType tells the API which date field to filter by: "checkin" or "checkout".
+    // Strategy: make TWO calls (checkin range + checkout range) and merge deduplicated results.
+    const from = params?.from ?? (() => {
+      const d = new Date(); return d.toISOString().split("T")[0];
+    })();
+    const to = params?.to ?? (() => {
+      const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split("T")[0];
+    })();
 
-    if (params?.from) {
-      query.set("from", params.from);
-    } else {
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      query.set("from", sixtyDaysAgo.toISOString().split("T")[0]);
+    const fetchByType = (dateType: "checkin" | "checkout") => {
+      const q = new URLSearchParams({ from, to, dateType });
+      if (params?.status) q.set("status", params.status);
+      return this.apiRequest<Reservation[]>("GET", `/booking/reservations?${q.toString()}`);
+    };
+
+    try {
+      const [checkinRes, checkoutRes] = await Promise.all([
+        fetchByType("checkin"),
+        fetchByType("checkout"),
+      ]);
+
+      // Merge and deduplicate by reservation _id
+      const seen = new Set<string>();
+      const merged: Reservation[] = [];
+      for (const r of [...checkinRes, ...checkoutRes]) {
+        const id = String((r as Record<string, unknown>)["_id"] ?? (r as Record<string, unknown>)["id"] ?? "");
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        merged.push(r);
+      }
+
+      return ok(merged);
+    } catch (err: unknown) {
+      if (err instanceof AppError) return fail(err);
+      return fail(new AppError(err instanceof Error ? err.message : "Unknown error connecting to CRM"));
     }
-
-    if (params?.to) {
-      query.set("to", params.to);
-    } else {
-      const twoDaysAhead = new Date();
-      twoDaysAhead.setDate(twoDaysAhead.getDate() + 2);
-      query.set("to", twoDaysAhead.toISOString().split("T")[0]);
-    }
-
-    if (params?.status) query.set("status", params.status);
-
-    return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations?${query.toString()}`));
   }
 
   async getCheckinDetails(reservationCode: string): Promise<Result<unknown, AppError>> {
