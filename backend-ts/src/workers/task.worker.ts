@@ -109,12 +109,15 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
           checkOut === dateTomorrowStr;
 
         if (!isRelevant) {
+          // Only log first few to avoid noise
           logger.info(
-            { resId, checkIn, checkOut, dateTodayStr, dateTomorrowStr },
+            { resId, checkIn, checkOut, esperado: `${dateTodayStr} ou ${dateTomorrowStr}` },
             "[TaskWorker] SKIP: datas fora do range hoje/amanhã"
           );
           continue;
         }
+
+        logger.info({ resId, checkIn, checkOut }, "[TaskWorker] Reserva RELEVANTE encontrada — verificando hóspede");
 
         // --- Guests: try multiple structures ---
         const guest = extractPrimaryGuest(r);
@@ -219,13 +222,39 @@ function extractPrimaryGuest(r: Record<string, unknown>): { name: string; phone:
     if (name && phone) return { name, phone };
   }
 
-  // Structure 5: contact or client object
+  // Structure 5: contact or client (plain key)
   const contact = (r["contact"] ?? r["client"]) as Record<string, unknown> | undefined;
   if (contact) {
     const name = extractName(contact);
     const phone = extractPhone(contact);
     if (name && phone) return { name, phone };
   }
+
+  // Structure 6: _client (Stays.net MongoDB underscore convention)
+  const staysClient = r["_client"] as Record<string, unknown> | undefined;
+  if (staysClient) {
+    const name = extractName(staysClient);
+    const phone = extractPhone(staysClient);
+    // Log structure for debugging when phone is missing
+    logger.info(
+      { clientKeys: Object.keys(staysClient), hasPhones: Array.isArray(staysClient["phones"]) },
+      "[TaskWorker] _client encontrado"
+    );
+    if (name && phone) return { name, phone };
+  }
+
+  // Structure 7: _guestsDetails (Stays.net underscore prefix variant)
+  const staysGuests = r["_guestsDetails"] as Record<string, unknown> | undefined;
+  if (staysGuests?.list && Array.isArray(staysGuests.list)) {
+    const guest = findPrimaryFromList(staysGuests.list);
+    if (guest) return guest;
+  }
+
+  // Structure 8: log all top-level keys to diagnose unknown structure
+  logger.info(
+    { resId: r["_id"] ?? r["id"], topLevelKeys: Object.keys(r) },
+    "[TaskWorker] Nenhuma estrutura de hóspede reconhecida — chaves disponíveis"
+  );
 
   return null;
 }
