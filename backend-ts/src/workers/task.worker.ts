@@ -94,9 +94,9 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         );
 
         if (!checkIn || !checkOut) {
-          logger.warn(
-            { resId, fields: Object.keys(r) },
-            "[TaskWorker] Reserva sem datas reconhecíveis — ignorada"
+          logger.info(
+            { resId, fields: Object.keys(r), rawCheckin: r["checkin"] ?? r["checkIn"] ?? r["_checkin"] ?? r["check_in"] ?? "N/A" },
+            "[TaskWorker] SKIP: reserva sem datas reconhecíveis"
           );
           continue;
         }
@@ -108,12 +108,21 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
           checkOut === dateTodayStr ||
           checkOut === dateTomorrowStr;
 
-        if (!isRelevant) continue;
+        if (!isRelevant) {
+          logger.info(
+            { resId, checkIn, checkOut, dateTodayStr, dateTomorrowStr },
+            "[TaskWorker] SKIP: datas fora do range hoje/amanhã"
+          );
+          continue;
+        }
 
         // --- Guests: try multiple structures ---
         const guest = extractPrimaryGuest(r);
         if (!guest) {
-          logger.warn({ resId }, "[TaskWorker] Reserva sem hóspede com telefone — ignorada");
+          logger.info(
+            { resId, guestKeys: Object.keys((r["guestsDetails"] as Record<string, unknown> ?? r["guest"] ?? {}) as Record<string, unknown>) },
+            "[TaskWorker] SKIP: reserva sem hóspede com telefone"
+          );
           continue;
         }
 
