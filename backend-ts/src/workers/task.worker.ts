@@ -20,11 +20,6 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateTomorrowStr = toDateStr(tomorrow);
 
-  // Range broad enough to catch check-ins/check-outs within the next 2 days
-  const future = new Date(today);
-  future.setDate(future.getDate() + 3);
-  const dateLimitStr = toDateStr(future);
-
   const summary: TaskSyncSummary = {
     tenantsScanned: 0,
     reservationsFound: 0,
@@ -45,15 +40,14 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 
       const crm = adapterRes.value;
       logger.info(
-        `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | range ${dateTodayStr} → ${dateLimitStr}`
+        `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | filtro local: checkin/checkout em ${dateTodayStr} ou ${dateTomorrowStr}`
       );
 
       // Strategy: fetch ALL active reservations without date params, then filter locally.
       // Stays.net's from/to params filter by booking-creation date (not check-in date),
       // so guests who booked weeks ago with check-in today would be missed.
-      // Fetching everything and applying local date filter is the only reliable approach.
-      // Stays paginates at 100 by default — request a large limit to cover typical properties.
-      const searchRes = await crm.searchActiveReservations({ limit: 500 });
+      // Stays.net also rejects unknown query params (e.g. 'limit') with 400 error.
+      const searchRes = await crm.searchActiveReservations({});
 
       if (!searchRes.ok) {
         const msg = `Tenant ${tenant.id}: falha ao ler reservas — ${searchRes.error.message}`;
