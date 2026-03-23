@@ -139,13 +139,31 @@ export class StaysNetAdapter implements ICrmAdapter {
   }
 
   async searchActiveReservations(params?: ReservationSearchParams): Promise<Result<Reservation[], AppError>> {
-    // Stays.net uses GET /booking/reservations (NOT /reservations/search which returns 404)
-    // Only `status` is a known valid query param; from/to/limit are rejected with 400.
+    // GET /booking/reservations requires 'from' as mandatory query param (check-in date range).
+    // To capture checkouts from guests who checked in weeks ago, we use a wide range:
+    //   from = 60 days ago (covers long stays), to = caller-supplied or 2 days forward.
+    // Local filtering (today/tomorrow) is applied in the worker after fetching.
     const query = new URLSearchParams();
-    if (params?.status) query.set("status", params.status);
-    const qs = query.toString();
 
-    return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations${qs ? `?${qs}` : ""}`));
+    if (params?.from) {
+      query.set("from", params.from);
+    } else {
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      query.set("from", sixtyDaysAgo.toISOString().split("T")[0]);
+    }
+
+    if (params?.to) {
+      query.set("to", params.to);
+    } else {
+      const twoDaysAhead = new Date();
+      twoDaysAhead.setDate(twoDaysAhead.getDate() + 2);
+      query.set("to", twoDaysAhead.toISOString().split("T")[0]);
+    }
+
+    if (params?.status) query.set("status", params.status);
+
+    return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations?${query.toString()}`));
   }
 
   async getCheckinDetails(reservationCode: string): Promise<Result<unknown, AppError>> {
