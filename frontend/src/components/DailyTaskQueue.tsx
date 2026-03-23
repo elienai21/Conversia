@@ -101,11 +101,20 @@ export function DailyTaskQueue() {
     return acc;
   }, {} as Record<string, TaskItem[]>);
 
-  const displayMap: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-    checkin_amanha: { label: "Check-in Amanhã", icon: Key, color: "text-amber-500", bg: "bg-amber-500/10 border-amber-500/20" },
-    checkin_hoje:   { label: "Check-in Hoje", icon: Key, color: "text-orange-500", bg: "bg-orange-500/10 border-orange-500/20" },
-    checkout_amanha: { label: "Check-out Amanhã", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10 border-purple-500/20" },
-    checkout_hoje:   { label: "Check-out + NPS Hoje", icon: Sparkles, color: "text-pink-500", bg: "bg-pink-500/10 border-pink-500/20" },
+  const displayMap: Record<string, {
+    label: string;
+    sublabel: string;
+    icon: any;
+    iconBg: string;
+    iconColor: string;
+    cardBorder: string;
+    badgeBg: string;
+    badgeText: string;
+  }> = {
+    checkin_amanha:  { label: "Check-in Amanhã",      sublabel: "Avisos de chegada para amanhã",      icon: Key,      iconBg: "bg-amber-500",   iconColor: "text-white",       cardBorder: "border-amber-500/40",  badgeBg: "bg-amber-500",  badgeText: "text-white" },
+    checkin_hoje:    { label: "Check-in Hoje",         sublabel: "Boas-vindas para hoje",              icon: Key,      iconBg: "bg-orange-500",  iconColor: "text-white",       cardBorder: "border-orange-500/40", badgeBg: "bg-orange-500", badgeText: "text-white" },
+    checkout_amanha: { label: "Check-out Amanhã",      sublabel: "Lembrete de saída para amanhã",      icon: Sparkles, iconBg: "bg-purple-500",  iconColor: "text-white",       cardBorder: "border-purple-500/40", badgeBg: "bg-purple-500", badgeText: "text-white" },
+    checkout_hoje:   { label: "Check-out + NPS Hoje",  sublabel: "Avaliação e desconto de fidelidade", icon: Sparkles, iconBg: "bg-pink-500",    iconColor: "text-white",       cardBorder: "border-pink-500/40",   badgeBg: "bg-pink-500",   badgeText: "text-white" },
   };
 
   const handleApproveAll = async (type: string) => {
@@ -130,27 +139,41 @@ export function DailyTaskQueue() {
       <div className="w-full mb-8 animate-fade-in">
         {syncHeader}
         
-        <div className="flex gap-4 flex-wrap">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Object.entries(groupedTasks).map(([type, list]) => {
-            const config = displayMap[type] || { label: type, icon: Send, color: "text-blue-500", bg: "bg-blue-500/10" };
+            const config = displayMap[type] || {
+              label: type, sublabel: "", icon: Send,
+              iconBg: "bg-blue-500", iconColor: "text-white",
+              cardBorder: "border-blue-500/40", badgeBg: "bg-blue-500", badgeText: "text-white",
+            };
             const Icon = config.icon;
 
             return (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
-                className={`relative flex items-center justify-between w-full md:w-auto min-w-[300px] p-4 rounded-xl border transition-all hover:-translate-y-1 hover:shadow-lg ${config.bg} ${theme === 'dark' ? 'hover:bg-opacity-20' : 'hover:bg-opacity-30'}`}
+                className={`group relative flex flex-col gap-3 p-4 rounded-xl border-2 ${config.cardBorder} bg-white/5 hover:bg-white/10 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl text-left w-full`}
               >
-                <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-lg bg-background shadow-sm ${config.color}`}>
-                    <Icon size={24} />
+                {/* Top row: icon + badge */}
+                <div className="flex items-center justify-between">
+                  <div className={`w-10 h-10 rounded-lg ${config.iconBg} ${config.iconColor} flex items-center justify-center shadow-md`}>
+                    <Icon size={20} />
                   </div>
-                  <div className="text-left">
-                    <p className={`font-semibold text-sm ${config.color}`}>Aprovar {list.length}</p>
-                    <p className="text-foreground font-medium">{config.label}</p>
-                  </div>
+                  <span className={`${config.badgeBg} ${config.badgeText} text-xs font-bold px-2.5 py-1 rounded-full shadow-sm`}>
+                    {list.length}
+                  </span>
                 </div>
-                <ChevronRight className="text-muted" size={20} />
+
+                {/* Labels */}
+                <div>
+                  <p className="text-foreground font-semibold text-sm leading-tight">{config.label}</p>
+                  <p className="text-muted text-xs mt-0.5 leading-tight">{config.sublabel}</p>
+                </div>
+
+                {/* CTA */}
+                <div className="flex items-center gap-1 text-xs font-medium text-muted group-hover:text-foreground transition-colors">
+                  Revisar e aprovar <ChevronRight size={13} />
+                </div>
               </button>
             );
           })}
