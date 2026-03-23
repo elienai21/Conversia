@@ -119,13 +119,30 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 
         logger.info({ resId, checkIn, checkOut }, "[TaskWorker] Reserva RELEVANTE encontrada — verificando hóspede");
 
-        // --- Guests: try multiple structures ---
-        const guest = extractPrimaryGuest(r);
+        // --- Guests: try inline structures first ---
+        let guest = extractPrimaryGuest(r);
+
+        // Fallback: Stays.net embeds only _idclient (reference ID), not full client data.
+        // Fetch client details separately when inline extraction fails.
+        if (!guest && r["_idclient"]) {
+          const clientId = String(r["_idclient"]);
+          logger.info(`[TaskWorker] Buscando cliente via API: _idclient=${clientId}`);
+          const clientRes = await crm.getClient(clientId);
+          if (clientRes.ok) {
+            const clientData = clientRes.value as Record<string, unknown>;
+            guest = extractPrimaryGuest(clientData);
+            if (!guest) {
+              logger.info(
+                `[TaskWorker] Cliente ${clientId} sem telefone. Chaves: ${Object.keys(clientData).join(", ")}`
+              );
+            }
+          } else {
+            logger.warn(`[TaskWorker] Falha ao buscar cliente ${clientId}: ${clientRes.error.message}`);
+          }
+        }
+
         if (!guest) {
-          logger.info(
-            { resId, guestKeys: Object.keys((r["guestsDetails"] as Record<string, unknown> ?? r["guest"] ?? {}) as Record<string, unknown>) },
-            "[TaskWorker] SKIP: reserva sem hóspede com telefone"
-          );
+          logger.info(`[TaskWorker] SKIP reserva ${resId}: sem telefone após busca de cliente`);
           continue;
         }
 
