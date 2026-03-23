@@ -53,7 +53,7 @@ export class StaysNetAdapter implements ICrmAdapter {
     return response.json() as Promise<T>;
   }
 
-  private async wrapRequest<T>(requestFn: () => Promise<T>, sanitizePII = true): Promise<Result<T, AppError>> {
+  private async wrapRequest<T>(requestFn: () => Promise<T>, sanitizePII = true, translate404 = false): Promise<Result<T, AppError>> {
     try {
       const data = await requestFn();
       
@@ -78,8 +78,8 @@ export class StaysNetAdapter implements ICrmAdapter {
       return ok(data);
     } catch (err: unknown) {
       if (err instanceof AppError) {
-        // Translation for 404 -> Not Available semantics instead of generic API Error
-        if (err.statusCode === 404) {
+        // Only translate 404 to "property unavailable" for availability/calendar calls
+        if (translate404 && err.statusCode === 404) {
           return fail(new AppError("Imóvel ocupado ou indisponível (regras de noites mínimas) para este período.", 404));
         }
         return fail(err);
@@ -124,11 +124,13 @@ export class StaysNetAdapter implements ICrmAdapter {
 
   // --- Calendar & Pricing ---
   async getListingCalendar(listingId: string, params: CalendarQueryParams): Promise<Result<CalendarDay[], AppError>> {
-    return this.wrapRequest(() => this.apiRequest<CalendarDay[]>("GET", `/calendar/listing/${listingId}?from=${params.from}&to=${params.to}`));
+    // translate404=true: 404 means "property unavailable for this period"
+    return this.wrapRequest(() => this.apiRequest<CalendarDay[]>("GET", `/calendar/listing/${listingId}?from=${params.from}&to=${params.to}`), true, true);
   }
 
   async calculatePrice(params: CalculatePriceParams): Promise<Result<PriceCalculation, AppError>> {
-    return this.wrapRequest(() => this.apiRequest<PriceCalculation>("POST", "/booking/calculate-price", params));
+    // translate404=true: 404 means "no pricing / unavailable"
+    return this.wrapRequest(() => this.apiRequest<PriceCalculation>("POST", "/booking/calculate-price", params), true, true);
   }
 
   // --- Reservations ---
@@ -137,16 +139,13 @@ export class StaysNetAdapter implements ICrmAdapter {
   }
 
   async searchActiveReservations(params?: ReservationSearchParams): Promise<Result<Reservation[], AppError>> {
+    // Stays.net uses GET /booking/reservations (NOT /reservations/search which returns 404)
+    // Only `status` is a known valid query param; from/to/limit are rejected with 400.
     const query = new URLSearchParams();
-    if (params?.from) query.set("from", params.from);
-    if (params?.to) query.set("to", params.to);
-    if (params?.listingId) query.set("listingId", params.listingId);
     if (params?.status) query.set("status", params.status);
-    if (params?.skip !== undefined) query.set("skip", String(params.skip));
-    if (params?.limit !== undefined) query.set("limit", String(params.limit));
     const qs = query.toString();
-    
-    return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations/search${qs ? `?${qs}` : ""}`));
+
+    return this.wrapRequest(() => this.apiRequest<Reservation[]>("GET", `/booking/reservations${qs ? `?${qs}` : ""}`));
   }
 
   async getCheckinDetails(reservationCode: string): Promise<Result<unknown, AppError>> {
