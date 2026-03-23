@@ -296,27 +296,44 @@ function extractName(obj: Record<string, unknown>): string {
   if (obj["name"]) return String(obj["name"]);
   if (obj["fullName"]) return String(obj["fullName"]);
   if (obj["full_name"]) return String(obj["full_name"]);
-  const first = (obj["firstName"] ?? obj["firstname"] ?? obj["first_name"] ?? "") as string;
-  const last = (obj["lastName"] ?? obj["lastname"] ?? obj["last_name"] ?? "") as string;
+  // Stays.net uses fName/lName (short form)
+  const first = (obj["fName"] ?? obj["firstName"] ?? obj["firstname"] ?? obj["first_name"] ?? "") as string;
+  const last = (obj["lName"] ?? obj["lastName"] ?? obj["lastname"] ?? obj["last_name"] ?? "") as string;
   const combined = `${first} ${last}`.trim();
   return combined || "Hóspede";
 }
 
 function extractPhone(obj: Record<string, unknown>): string {
-  // phones array: [{ iso, value, ... }]
-  const phones = obj["phones"] as Array<Record<string, unknown>> | undefined;
+  // Stays.net phones array: [{ phone: "+5511999999999" }] or [{ iso, value, number, ... }]
+  const phones = obj["phones"] as Array<unknown> | undefined;
   if (Array.isArray(phones) && phones.length > 0) {
-    const raw = String(phones[0]["iso"] ?? phones[0]["value"] ?? phones[0]["number"] ?? "");
-    const digits = raw.replace(/\D/g, "");
-    if (digits) return digits;
+    for (const p of phones) {
+      if (typeof p === "string") {
+        const digits = p.replace(/\D/g, "");
+        if (digits.length >= 8) return digits;
+      }
+      if (p && typeof p === "object") {
+        const pObj = p as Record<string, unknown>;
+        // Try all common field names including Stays.net's "phone" (singular)
+        const raw = String(
+          pObj["phone"] ?? pObj["iso"] ?? pObj["value"] ?? pObj["number"] ?? pObj["phoneNumber"] ?? ""
+        );
+        if (raw) {
+          const digits = raw.replace(/\D/g, "");
+          if (digits.length >= 8) return digits;
+        }
+      }
+    }
+    // Log phones structure for further diagnosis
+    logger.info(`[TaskWorker] phones field presente mas sem número extraível: ${JSON.stringify(phones)}`);
   }
 
-  // phone string directly
+  // phone string directly on object
   const phoneFields = ["phone", "phoneNumber", "phone_number", "mobile", "celular", "whatsapp"];
   for (const field of phoneFields) {
     if (obj[field]) {
       const digits = String(obj[field]).replace(/\D/g, "");
-      if (digits) return digits;
+      if (digits.length >= 8) return digits;
     }
   }
 
