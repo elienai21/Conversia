@@ -298,12 +298,17 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
     });
   }
 
-  // 10. Save the final suggestion to database
+  // 10. Save the final suggestion to database (upsert guards against rare duplicate job race)
   try {
-    const suggestion = await prisma.aISuggestion.create({
-      data: {
+    const suggestion = await prisma.aISuggestion.upsert({
+      where: { messageId: message.id },
+      create: {
         messageId: message.id,
         agentId,
+        suggestionText,
+        suggestionLanguage: agentLanguage,
+      },
+      update: {
         suggestionText,
         suggestionLanguage: agentLanguage,
       },
