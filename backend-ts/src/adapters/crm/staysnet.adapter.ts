@@ -149,7 +149,8 @@ export class StaysNetAdapter implements ICrmAdapter {
       const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split("T")[0];
     })();
 
-    const fetchByType = (dateType: "checkin" | "checkout") => {
+    // Stays.net dateType enum: arrival=checkin, departure=checkout, creation, creationorig, included
+    const fetchByType = (dateType: "arrival" | "departure") => {
       const q = new URLSearchParams({ from, to, dateType });
       if (params?.status) q.set("status", params.status);
       return this.apiRequest<Reservation[]>("GET", `/booking/reservations?${q.toString()}`);
@@ -157,8 +158,8 @@ export class StaysNetAdapter implements ICrmAdapter {
 
     try {
       const [checkinRes, checkoutRes] = await Promise.all([
-        fetchByType("checkin"),
-        fetchByType("checkout"),
+        fetchByType("arrival"),
+        fetchByType("departure"),
       ]);
 
       // Merge and deduplicate by reservation _id
