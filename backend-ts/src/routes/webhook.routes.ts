@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import type { Conversation } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 import { config } from "../config.js";
 import {
   parseIncomingMessage,
@@ -63,24 +62,19 @@ async function processIncomingMessage(params: {
     });
   }
 
-  // Step 7: Save message — unique constraint on externalId prevents race-condition duplicates
-  let message: Awaited<ReturnType<typeof saveMessage>>;
-  try {
-    message = await saveMessage({
-      conversationId: conversation.id,
-      senderType: "customer",
-      text,
-      detectedLanguage: detectedLang ?? undefined,
-      externalId: externalMessageId,
-    });
-  } catch (err) {
-    // P2002 = unique constraint violation — duplicate webhook delivery, silently skip
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      logger.info(`[Webhook] Duplicate message skipped (P2002): ${externalMessageId}`);
-      return;
-    }
-    throw err;
+  // Step 7: Save message — check externalId before insert to skip duplicate webhook deliveries
+  const existing = await prisma.message.findFirst({ where: { externalId: externalMessageId } });
+  if (existing) {
+    logger.info(`[Webhook] Duplicate message skipped: ${externalMessageId}`);
+    return;
   }
+  const message = await saveMessage({
+    conversationId: conversation.id,
+    senderType: "customer",
+    text,
+    detectedLanguage: detectedLang ?? undefined,
+    externalId: externalMessageId,
+  });
 
   logger.info(`[Webhook] processIncomingMessage: attachments received=${attachments.length}, types=${attachments.map(a => a.type).join(',')}`);
   const savedAttachments = [];
