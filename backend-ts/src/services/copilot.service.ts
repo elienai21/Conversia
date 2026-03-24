@@ -6,6 +6,42 @@ import { getRecentMessages } from "./message.service.js";
 import { logAiUsage } from "./usage-log.service.js";
 import { SocketService } from "./socket.service.js";
 
+/**
+ * Validates actual image magic bytes to detect encrypted/corrupt data.
+ *
+ * WhatsApp CDN bytes are AES-encrypted. When the Evolution API fails to
+ * decrypt them and we fall back to a direct CDN download, the raw bytes
+ * stored in the data URI are NOT valid images — they look like random binary
+ * data and OpenAI Vision will reject them with a 400 error even if the
+ * declared MIME type is "image/jpeg".
+ *
+ * Supported magic byte signatures:
+ *   JPEG  : FF D8 FF
+ *   PNG   : 89 50 4E 47 0D 0A 1A 0A
+ *   GIF   : 47 49 46 38 (GIF8)
+ *   WebP  : 52 49 46 46 __ __ __ __ 57 45 42 50 (RIFF....WEBP)
+ */
+function hasValidImageMagicBytes(b64: string): boolean {
+  try {
+    // Decode only first 16 bytes (24 base64 chars) — enough for all signatures
+    const buf = Buffer.from(b64.slice(0, 24), "base64");
+    // JPEG
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true;
+    // PNG
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
+    // GIF
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true;
+    // WebP (RIFF....WEBP)
+    if (
+      buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+    ) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 import { copilotQueue, isRedisAvailable, type CopilotJobData } from "../lib/queue.js";
 import { type Result, ok, fail } from "../lib/result.js";
 import { AppError } from "../lib/errors.js";
@@ -156,15 +192,19 @@ export async function generateSuggestionWorker(
           // OpenAI Vision only accepts: png, jpeg, gif, webp
           const supportedMimes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
           const normalizedMime = mimeType.toLowerCase().split(";")[0].trim();
-          if (supportedMimes.includes(normalizedMime)) {
+          const mimeOk = supportedMimes.includes(normalizedMime);
+          // Also validate actual bytes — encrypted CDN fallback data has a valid MIME
+          // declaration but the bytes are AES-encrypted garbage that OpenAI rejects (400).
+          const bytesOk = mimeOk && hasValidImageMagicBytes(b64);
+          if (bytesOk) {
             contentParts.push({
               type: "image_url",
               image_url: { url: `data:${normalizedMime};base64,${b64}`, detail: "low" },
             });
           } else {
-            // Unsupported format (e.g. image/heic from iPhone) — describe as text
-            logger.info(`[Copilot] Skipping unsupported image MIME "${mimeType}" for Vision API`);
-            contentParts.push({ type: "text", text: `[O cliente enviou uma imagem (formato ${mimeType})]` });
+            const reason = !mimeOk ? `formato não suportado (${mimeType})` : "bytes inválidos/criptografados";
+            logger.info(`[Copilot] Skipping image for Vision API — ${reason}`);
+            contentParts.push({ type: "text", text: `[O cliente enviou uma imagem (${reason})]` });
           }
         } else {
           // Non-vision model: describe as text so the AI knows an image arrived
