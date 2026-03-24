@@ -51,6 +51,42 @@ import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { generateEmbedding } from "./embedding.service.js";
 import { logger } from "../lib/logger.js";
 
+/**
+ * Calls an OpenAI completion with automatic retry on 429 (rate limit).
+ *
+ * Strategy: exponential backoff — 3 s, 6 s, 12 s (max 2 retries).
+ * Respects the `Retry-After` header when present.
+ * Does NOT retry on 400 / 401 / 404 — those are permanent errors.
+ */
+async function openaiWithRetry(
+  fn: () => Promise<OpenAI.Chat.Completions.ChatCompletion>,
+  maxRetries = 2,
+): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const e = err as Record<string, unknown>;
+      const status = Number(e?.status ?? 0);
+      // Only retry on 429; surface everything else immediately
+      if (status !== 429 || attempt >= maxRetries) throw err;
+
+      // Respect Retry-After header if the SDK exposes it, otherwise use backoff
+      const retryAfterHeader =
+        (e?.headers as Record<string, string> | undefined)?.["retry-after"];
+      const delaySec = retryAfterHeader
+        ? Math.min(Number(retryAfterHeader), 30)
+        : 3 * Math.pow(2, attempt); // 3 s → 6 s → 12 s
+
+      logger.warn(`[Copilot] Rate limited (429) — retrying in ${delaySec}s (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise((r) => setTimeout(r, delaySec * 1_000));
+    }
+  }
+  throw lastErr;
+}
+
 // The public sync function just enqueues the request (Event-Driven AI)
 export async function enqueueSuggestionJob(
   tenantId: string,
@@ -258,14 +294,16 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
   try {
     // We allow up to 5 loop iterations to prevent infinite loops if tools misbehave
     for (let i = 0; i < 5; i++) {
-      const response = await openai.chat.completions.create({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        tools: crmTools,
-        tool_choice: "auto",
-      });
+      const response = await openaiWithRetry(() =>
+        openai.chat.completions.create({
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          tools: crmTools,
+          tool_choice: "auto",
+        })
+      );
 
       if (response.usage) {
         finalUsage.prompt_tokens += response.usage.prompt_tokens;
@@ -359,7 +397,14 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
     } else if (httpStatus === 404) {
       userMsg = `⚠️ Modelo "${model}" não encontrado. Altere o modelo em Configurações → IA.`;
     } else if (httpStatus === 429) {
-      userMsg = `⚠️ Limite de requisições da OpenAI atingido. Aguarde um momento e tente novamente.`;
+      // Distinguish between rate limit (temporary) and quota exhausted (needs top-up)
+      const isQuotaExhausted = openaiErrMsg.toLowerCase().includes("quota") ||
+                               openaiErrMsg.toLowerCase().includes("exceeded your current");
+      if (isQuotaExhausted) {
+        userMsg = `⚠️ Cota de uso da OpenAI esgotada. Acesse platform.openai.com → Billing para adicionar créditos.`;
+      } else {
+        userMsg = `⚠️ Limite de requisições/min da OpenAI atingido (já tentei 3x). Aguarde ~30s e tente novamente.`;
+      }
     } else if (httpStatus === 400) {
       userMsg = `⚠️ Requisição inválida para OpenAI: ${openaiErrMsg}`;
     }
