@@ -23,7 +23,7 @@ WORKDIR /app
 
 # Copy package files and install production-only dependencies
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copy prisma schema and generate client (needed at runtime)
 COPY prisma ./prisma
@@ -40,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
 
 # Run migrations then start the server
-CMD ["sh", "-c", "echo \"DELETE FROM messages WHERE external_id IS NOT NULL AND id NOT IN (SELECT DISTINCT ON (external_id) id FROM messages WHERE external_id IS NOT NULL ORDER BY external_id, created_at ASC);\" | npx prisma db execute --stdin 2>/dev/null || true && npx prisma db push --skip-generate --accept-data-loss && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/server.js"]

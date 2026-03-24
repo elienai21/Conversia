@@ -200,7 +200,7 @@ export function GuestCheckinPage() {
             <span>1</span> Dados
           </div>
           <div className="gc-progress-line" />
-          <div className={`gc-step ${step === "photo" || step === "submitting" ? "active" : step === "success" ? "done" : ""}`}>
+          <div className={`gc-step ${step === "photo" || step === "submitting" ? "active" : ""}`}>
             <span>2</span> Documento
           </div>
         </div>
