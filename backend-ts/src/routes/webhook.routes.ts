@@ -37,6 +37,33 @@ function normalizeMime(mime: string): string {
   return mime.split(";")[0].trim();
 }
 
+/**
+ * In-process dedup cache for incoming messages.
+ *
+ * The Evolution API sometimes fires "messages.upsert" TWICE for the same
+ * message within ~8 ms (race condition). Both calls pass the DB findFirst
+ * check before either insert completes, making the P2002 unique-violation
+ * the only safety net — but only when the @unique index exists in the DB.
+ *
+ * This Map provides a fast, atomic (single-threaded JS event loop) first
+ * layer: the second webhook is rejected instantly without any DB round-trip.
+ *
+ * TTL: 60 s — well above any realistic duplicate window.
+ */
+const _dedupCache = new Map<string, number>(); // externalId → timestamp (ms)
+const DEDUP_TTL_MS = 60_000;
+
+function checkAndMarkDuplicate(externalId: string): boolean {
+  const now = Date.now();
+  // Purge stale entries
+  for (const [key, ts] of _dedupCache) {
+    if (now - ts > DEDUP_TTL_MS) _dedupCache.delete(key);
+  }
+  if (_dedupCache.has(externalId)) return true; // duplicate
+  _dedupCache.set(externalId, now);
+  return false;
+}
+
 // Shared pipeline (steps 5-11) used by both WhatsApp and Instagram
 async function processIncomingMessage(params: {
   tenant: { id: string; defaultLanguage: string };
@@ -63,7 +90,14 @@ async function processIncomingMessage(params: {
     });
   }
 
-  // Step 7: Save message — findFirst pre-check + P2002 fallback covers both common and race-condition duplicates
+  // Step 7: Save message — three-layer dedup strategy:
+  //   Layer 1: in-process Map (atomic, no DB round-trip — handles same-process race condition)
+  //   Layer 2: DB findFirst (handles cross-restart / multi-process cases)
+  //   Layer 3: P2002 unique-violation catch (last resort for any remaining race condition)
+  if (externalMessageId && checkAndMarkDuplicate(externalMessageId)) {
+    logger.info(`[Webhook] Duplicate message skipped (in-memory): ${externalMessageId}`);
+    return;
+  }
   const existing = await prisma.message.findFirst({ where: { externalId: externalMessageId } });
   if (existing) {
     logger.info(`[Webhook] Duplicate message skipped: ${externalMessageId}`);

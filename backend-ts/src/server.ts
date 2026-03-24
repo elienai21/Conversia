@@ -13,6 +13,29 @@ async function start(): Promise<void> {
     await prisma.$connect();
     app.log.info("Database connected");
 
+    // Dedup cleanup: remove duplicate messages sharing the same external_id.
+    // This allows prisma db push to successfully add/maintain the @unique
+    // constraint on external_id even if the Evolution API sent duplicate webhooks.
+    try {
+      const deleted = await prisma.$executeRaw`
+        DELETE FROM messages
+        WHERE ctid IN (
+          SELECT ctid FROM (
+            SELECT ctid,
+                   ROW_NUMBER() OVER (PARTITION BY external_id ORDER BY created_at ASC) AS rn
+            FROM messages
+            WHERE external_id IS NOT NULL
+          ) t
+          WHERE t.rn > 1
+        )
+      `;
+      if (deleted > 0) {
+        app.log.info(`[Startup] Removed ${deleted} duplicate message(s) with repeated external_id`);
+      }
+    } catch (dedupErr) {
+      app.log.warn({ dedupErr }, "[Startup] Could not run external_id dedup cleanup (non-fatal)");
+    }
+
     // Redis is optional for local dev — don't block the server if unavailable
     try {
       await redis.connect();

@@ -40,4 +40,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
 
 # Run migrations then start the server
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/server.js"]
+# Note: use ; (not &&) so the server always starts even if prisma push fails
+# (e.g. when DB has duplicate external_ids that block the @unique constraint)
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss; node dist/server.js"]
