@@ -14,23 +14,32 @@ async function start(): Promise<void> {
     app.log.info("Database connected");
 
     // Dedup cleanup: remove duplicate messages sharing the same external_id.
-    // This allows prisma db push to successfully add/maintain the @unique
-    // constraint on external_id even if the Evolution API sent duplicate webhooks.
+    // Must delete dependents first (ai_suggestions, translations, attachments)
+    // because those FK constraints use RESTRICT (default in Prisma).
+    // This unblocks prisma db push from adding the @unique constraint.
     try {
-      const deleted = await prisma.$executeRaw`
-        DELETE FROM messages
-        WHERE ctid IN (
-          SELECT ctid FROM (
-            SELECT ctid,
-                   ROW_NUMBER() OVER (PARTITION BY external_id ORDER BY created_at ASC) AS rn
-            FROM messages
-            WHERE external_id IS NOT NULL
-          ) t
-          WHERE t.rn > 1
-        )
+      // 1. Find IDs of duplicate messages to delete (keep oldest per external_id)
+      const dupes = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM (
+          SELECT id,
+                 ROW_NUMBER() OVER (PARTITION BY external_id ORDER BY created_at ASC) AS rn
+          FROM messages
+          WHERE external_id IS NOT NULL
+        ) t
+        WHERE t.rn > 1
       `;
-      if (deleted > 0) {
-        app.log.info(`[Startup] Removed ${deleted} duplicate message(s) with repeated external_id`);
+
+      if (dupes.length > 0) {
+        const ids = dupes.map((r) => r.id);
+        app.log.info(`[Startup] Found ${ids.length} duplicate message(s) — cleaning up dependents first`);
+
+        // 2. Delete dependents in the correct cascade order
+        await prisma.aISuggestion.deleteMany({ where: { messageId: { in: ids } } });
+        await prisma.messageTranslation.deleteMany({ where: { messageId: { in: ids } } });
+        await prisma.messageAttachment.deleteMany({ where: { messageId: { in: ids } } });
+        await prisma.message.deleteMany({ where: { id: { in: ids } } });
+
+        app.log.info(`[Startup] Successfully removed ${ids.length} duplicate message(s)`);
       }
     } catch (dedupErr) {
       app.log.warn({ dedupErr }, "[Startup] Could not run external_id dedup cleanup (non-fatal)");

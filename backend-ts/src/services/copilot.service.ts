@@ -153,10 +153,19 @@ export async function generateSuggestionWorker(
 
       if (att.type === "image") {
         if (visionEnabled) {
-          contentParts.push({
-            type: "image_url",
-            image_url: { url: `data:${mimeType};base64,${b64}`, detail: "low" },
-          });
+          // OpenAI Vision only accepts: png, jpeg, gif, webp
+          const supportedMimes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
+          const normalizedMime = mimeType.toLowerCase().split(";")[0].trim();
+          if (supportedMimes.includes(normalizedMime)) {
+            contentParts.push({
+              type: "image_url",
+              image_url: { url: `data:${normalizedMime};base64,${b64}`, detail: "low" },
+            });
+          } else {
+            // Unsupported format (e.g. image/heic from iPhone) — describe as text
+            logger.info(`[Copilot] Skipping unsupported image MIME "${mimeType}" for Vision API`);
+            contentParts.push({ type: "text", text: `[O cliente enviou uma imagem (formato ${mimeType})]` });
+          }
         } else {
           // Non-vision model: describe as text so the AI knows an image arrived
           contentParts.push({ type: "text", text: "[O cliente enviou uma imagem]" });
