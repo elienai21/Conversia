@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import OpenAI from "openai";
 import { sendEmail } from "../services/email.service.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
@@ -11,6 +12,9 @@ import {
 import {
   updateConversationStatus,
 } from "../services/conversation.service.js";
+import { config } from "../config.js";
+import { decrypt } from "../lib/encryption.js";
+import { logger } from "../lib/logger.js";
 
 const startConversationSchema = z.object({
   customer_id: z.string().uuid(),
@@ -367,6 +371,94 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         const result = await sendEmail({ to, subject: body.subject.trim(), html });
         return reply.send({ success: true, email_id: result.id, to });
       } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        return reply.status(502).send({ detail: msg });
+      }
+    },
+  );
+
+  // Suggest email subject + body using AI based on conversation history
+  app.post<{ Params: { conversationId: string } }>(
+    "/:conversationId/suggest-email",
+    async (request, reply) => {
+      const { prisma } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            take: 30,
+            select: { senderType: true, originalText: true },
+          },
+          customer: { select: { name: true } },
+        },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      // Detect email address mentioned in any message
+      const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+      let detectedEmail: string | null = null;
+      for (const msg of [...conversation.messages].reverse()) {
+        const match = msg.originalText?.match(emailRegex);
+        if (match) { detectedEmail = match[0]; break; }
+      }
+
+      // Resolve tenant OpenAI key with fallback to global
+      const tenantSettings = await prisma.tenantSettings.findUnique({ where: { tenantId: user.tenantId } });
+      let apiKey = config.OPENAI_API_KEY;
+      if (tenantSettings?.openaiApiKey) {
+        try { apiKey = decrypt(tenantSettings.openaiApiKey); } catch { /* fallback */ }
+      }
+
+      if (!apiKey) {
+        return reply.status(503).send({ detail: "OpenAI API key not configured" });
+      }
+
+      // Build readable conversation history
+      const history = conversation.messages
+        .filter((m) => m.originalText?.trim())
+        .map((m) => `${m.senderType === "customer" ? "Cliente" : "Atendente"}: ${m.originalText}`)
+        .join("\n");
+
+      const customerName = conversation.customer?.name || "cliente";
+
+      try {
+        const openai = new OpenAI({ apiKey });
+        const completion = await openai.chat.completions.create({
+          model: tenantSettings?.openaiModel || config.OPENAI_MODEL || "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Você é um assistente de atendimento ao cliente. Analise a conversa de WhatsApp fornecida e redija um email profissional de follow-up em português. Responda APENAS com JSON válido no formato: {\"subject\": \"...\", \"body\": \"...\"}. O campo \"body\" deve ser texto simples (sem HTML). O email deve ser cordial, profissional e dar continuidade ao que foi tratado na conversa.",
+            },
+            {
+              role: "user",
+              content: `Conversa com ${customerName}:\n\n${history}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 600,
+          temperature: 0.7,
+        });
+
+        let subject = "";
+        let body = "";
+        try {
+          const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+          subject = parsed.subject || "";
+          body = parsed.body || "";
+        } catch { /* leave empty */ }
+
+        return reply.send({ subject, body, detectedEmail });
+      } catch (err: unknown) {
+        logger.error({ err }, "[SuggestEmail] OpenAI error");
         const msg = err instanceof Error ? err.message : "Unknown error";
         return reply.status(502).send({ detail: msg });
       }

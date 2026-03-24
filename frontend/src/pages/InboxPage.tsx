@@ -326,6 +326,7 @@ export function InboxPage() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isLoadingEmailSuggestion, setIsLoadingEmailSuggestion] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
@@ -544,14 +545,41 @@ export function InboxPage() {
     setShowChatMenu(false);
   };
 
+  const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+  const fetchEmailSuggestion = async (conversationId: string, currentTo: string) => {
+    setIsLoadingEmailSuggestion(true);
+    try {
+      const res = await ApiService.post<{ subject: string; body: string; detectedEmail: string | null }>(
+        `/conversations/${conversationId}/suggest-email`,
+        {}
+      );
+      if (res.subject) setEmailSubject(res.subject);
+      if (res.body) setEmailBody(res.body);
+      if (res.detectedEmail && !currentTo) setEmailTo(res.detectedEmail);
+    } catch {
+      // suggestion failed silently — user can type manually
+    } finally {
+      setIsLoadingEmailSuggestion(false);
+    }
+  };
+
   const handleOpenEmailModal = () => {
-    const customerEmail = activeConv?.customer?.email || "";
-    setEmailTo(customerEmail);
+    // Detect email from customer profile or from message history (most recent first)
+    let detectedTo = activeConv?.customer?.email || "";
+    if (!detectedTo) {
+      for (const msg of [...messages].reverse()) {
+        const match = msg.originalText?.match(EMAIL_REGEX);
+        if (match) { detectedTo = match[0]; break; }
+      }
+    }
+    setEmailTo(detectedTo);
     setEmailSubject("");
-    setEmailBody(replyText.trim());
+    setEmailBody("");
     setEmailError(null);
     setShowEmailModal(true);
     setShowChatMenu(false);
+    if (activeConversation) fetchEmailSuggestion(activeConversation, detectedTo);
   };
 
   const handleSendEmail = async () => {
@@ -1061,7 +1089,7 @@ export function InboxPage() {
       {/* Email Compose Modal */}
       {showEmailModal && (
         <div className="modal-overlay" onClick={() => setShowEmailModal(false)}>
-          <div className="modal-panel glass-panel" onClick={e => e.stopPropagation()} style={{ width: "480px", maxWidth: "95vw", padding: "24px", borderRadius: "16px" }}>
+          <div className="modal-panel glass-panel" onClick={e => e.stopPropagation()} style={{ width: "500px", maxWidth: "95vw", padding: "24px", borderRadius: "16px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                 <Mail size={18} /> Enviar por Email
@@ -1080,13 +1108,28 @@ export function InboxPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Assunto</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Assunto</label>
+                  {isLoadingEmailSuggestion ? (
+                    <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Loader2 size={11} className="animate-spin" /> Gerando sugestão IA...
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => activeConversation && fetchEmailSuggestion(activeConversation, emailTo)}
+                      style={{ fontSize: "11px", color: "var(--color-primary, #6366f1)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", padding: 0 }}
+                    >
+                      <Sparkles size={11} /> Regenerar sugestão
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={emailSubject}
                   onChange={e => setEmailSubject(e.target.value)}
-                  placeholder="Assunto do email"
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box" }}
+                  placeholder={isLoadingEmailSuggestion ? "Gerando..." : "Assunto do email"}
+                  disabled={isLoadingEmailSuggestion}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box", opacity: isLoadingEmailSuggestion ? 0.6 : 1 }}
                 />
               </div>
               <div>
@@ -1094,9 +1137,10 @@ export function InboxPage() {
                 <textarea
                   value={emailBody}
                   onChange={e => setEmailBody(e.target.value)}
-                  rows={6}
-                  placeholder="Escreva sua mensagem..."
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+                  rows={7}
+                  placeholder={isLoadingEmailSuggestion ? "Gerando sugestão com base no histórico da conversa..." : "Escreva sua mensagem..."}
+                  disabled={isLoadingEmailSuggestion}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", resize: "vertical", boxSizing: "border-box", opacity: isLoadingEmailSuggestion ? 0.6 : 1 }}
                 />
               </div>
               {emailError && (
@@ -1104,7 +1148,7 @@ export function InboxPage() {
               )}
               <button
                 className="send-btn"
-                disabled={isSendingEmail || !emailSubject.trim() || !emailBody.trim()}
+                disabled={isSendingEmail || isLoadingEmailSuggestion || !emailSubject.trim() || !emailBody.trim()}
                 onClick={handleSendEmail}
                 style={{ alignSelf: "flex-end", display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "8px" }}
               >
