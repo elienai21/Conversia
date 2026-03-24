@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { sendEmail } from "../services/email.service.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import {
   conversationAssignSchema,
@@ -77,7 +78,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       created_at: c.createdAt,
       updated_at: c.updatedAt,
       customer: c.customer
-        ? { phone: c.customer.phone, name: c.customer.name, profile_picture_url: c.customer.profilePictureUrl }
+        ? { phone: c.customer.phone, name: c.customer.name, email: c.customer.email, profile_picture_url: c.customer.profilePictureUrl }
         : null,
       unread_count: unreadMap.get(c.id) || 0,
       last_message_preview: c.messages[0]?.originalText?.substring(0, 80) || null,
@@ -332,4 +333,43 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.status(201).send(result);
   });
+
+  // Send email from conversation context
+  app.post<{ Params: { conversationId: string } }>(
+    "/:conversationId/send-email",
+    async (request, reply) => {
+      const { prisma } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+      const body = request.body as { to?: string; subject: string; body: string };
+
+      if (!body.subject?.trim() || !body.body?.trim()) {
+        return reply.status(422).send({ detail: "subject and body are required" });
+      }
+
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+        include: { customer: true },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      const to = body.to?.trim() || conversation.customer?.email;
+      if (!to) {
+        return reply.status(422).send({ detail: "No email address. Provide 'to' or add email to the customer profile." });
+      }
+
+      const html = body.body.replace(/\n/g, "<br/>");
+
+      try {
+        const result = await sendEmail({ to, subject: body.subject.trim(), html });
+        return reply.send({ success: true, email_id: result.id, to });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        return reply.status(502).send({ detail: msg });
+      }
+    },
+  );
 }

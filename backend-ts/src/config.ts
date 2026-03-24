@@ -24,6 +24,8 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().default("http://localhost:5173"),
   PASSWORD_RESET_EXPIRE_MINUTES: z.coerce.number().default(60),
   REFRESH_TOKEN_EXPIRE_DAYS: z.coerce.number().default(30),
+  RESEND_API_KEY: z.string().default(""),
+  EMAIL_FROM: z.string().default(""),
 });
 
 export const config = envSchema.parse(process.env);

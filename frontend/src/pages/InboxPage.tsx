@@ -2,14 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 
 // Internal component types (camelCase)
 type Conversation = {
   id: string;
-  customer: { phone: string; name?: string | null; profilePictureUrl?: string | null } | null;
+  customer: { phone: string; name?: string | null; email?: string | null; profilePictureUrl?: string | null } | null;
   channel: string;
   status: string;
   updatedAt: string;
@@ -52,7 +52,7 @@ type RawConversation = {
   channel: string;
   status: string;
   updated_at: string;
-  customer: { phone: string; name: string | null; profile_picture_url?: string | null } | null;
+  customer: { phone: string; name: string | null; email?: string | null; profile_picture_url?: string | null } | null;
   unread_count?: number;
   last_message_preview?: string | null;
 };
@@ -94,7 +94,7 @@ function mapConversation(raw: RawConversation): Conversation {
   return {
     id: raw.id,
     customer: raw.customer
-      ? { phone: raw.customer.phone, name: raw.customer.name, profilePictureUrl: raw.customer.profile_picture_url }
+      ? { phone: raw.customer.phone, name: raw.customer.name, email: raw.customer.email, profilePictureUrl: raw.customer.profile_picture_url }
       : null,
     channel: raw.channel,
     status: raw.status,
@@ -321,6 +321,12 @@ export function InboxPage() {
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
@@ -536,6 +542,37 @@ export function InboxPage() {
       console.error(e);
     }
     setShowChatMenu(false);
+  };
+
+  const handleOpenEmailModal = () => {
+    const customerEmail = activeConv?.customer?.email || "";
+    setEmailTo(customerEmail);
+    setEmailSubject("");
+    setEmailBody(replyText.trim());
+    setEmailError(null);
+    setShowEmailModal(true);
+    setShowChatMenu(false);
+  };
+
+  const handleSendEmail = async () => {
+    if (!activeConversation || !emailSubject.trim() || !emailBody.trim()) return;
+    setIsSendingEmail(true);
+    setEmailError(null);
+    try {
+      await ApiService.post(`/conversations/${activeConversation}/send-email`, {
+        to: emailTo.trim() || undefined,
+        subject: emailSubject.trim(),
+        body: emailBody.trim(),
+      });
+      setShowEmailModal(false);
+      setEmailTo("");
+      setEmailSubject("");
+      setEmailBody("");
+    } catch (err: any) {
+      setEmailError(err?.message || "Falha ao enviar email.");
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -774,6 +811,9 @@ export function InboxPage() {
                   </button>
                   {showChatMenu && (
                     <div className="chat-menu-dropdown glass-panel">
+                      <button className="chat-menu-item" onClick={handleOpenEmailModal}>
+                        <Mail size={14} /> Enviar por email
+                      </button>
                       <button className="chat-menu-item" onClick={handleCloseConversation}>
                         <X size={14} /> Fechar conversa
                       </button>
@@ -1017,6 +1057,64 @@ export function InboxPage() {
           </>
         )}
       </div>
+
+      {/* Email Compose Modal */}
+      {showEmailModal && (
+        <div className="modal-overlay" onClick={() => setShowEmailModal(false)}>
+          <div className="modal-panel glass-panel" onClick={e => e.stopPropagation()} style={{ width: "480px", maxWidth: "95vw", padding: "24px", borderRadius: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <Mail size={18} /> Enviar por Email
+              </h3>
+              <button className="icon-btn-header" onClick={() => setShowEmailModal(false)}><X size={18} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Para</label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={e => setEmailTo(e.target.value)}
+                  placeholder="email@exemplo.com"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Assunto</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="Assunto do email"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Mensagem</label>
+                <textarea
+                  value={emailBody}
+                  onChange={e => setEmailBody(e.target.value)}
+                  rows={6}
+                  placeholder="Escreva sua mensagem..."
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", resize: "vertical", boxSizing: "border-box" }}
+                />
+              </div>
+              {emailError && (
+                <p style={{ color: "var(--color-danger, #ef4444)", fontSize: "13px", margin: 0 }}>{emailError}</p>
+              )}
+              <button
+                className="send-btn"
+                disabled={isSendingEmail || !emailSubject.trim() || !emailBody.trim()}
+                onClick={handleSendEmail}
+                style={{ alignSelf: "flex-end", display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "8px" }}
+              >
+                {isSendingEmail ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                {isSendingEmail ? "Enviando..." : "Enviar Email"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context Menu for message actions */}
       {contextMenu && (
