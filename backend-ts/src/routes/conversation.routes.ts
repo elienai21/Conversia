@@ -430,8 +430,10 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
       try {
         const openai = new OpenAI({ apiKey });
+        // Use gpt-4o-mini explicitly — guaranteed JSON mode support regardless of tenant model
+        logger.info(`[SuggestEmail] calling OpenAI for conversation ${conversationId}, msgs=${conversation.messages.length}`);
         const completion = await openai.chat.completions.create({
-          model: tenantSettings?.openaiModel || config.OPENAI_MODEL || "gpt-4o-mini",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
@@ -448,10 +450,13 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
           temperature: 0.7,
         });
 
+        const raw = completion.choices[0].message.content || "{}";
+        logger.info(`[SuggestEmail] raw response: ${raw.slice(0, 200)}`);
+
         let subject = "";
         let body = "";
         try {
-          const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+          const parsed = JSON.parse(raw);
           subject = parsed.subject || "";
           body = parsed.body || "";
         } catch { /* leave empty */ }

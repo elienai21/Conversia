@@ -328,6 +328,7 @@ export function InboxPage() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isLoadingEmailSuggestion, setIsLoadingEmailSuggestion] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuggestionError, setEmailSuggestionError] = useState(false);
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
@@ -549,16 +550,17 @@ export function InboxPage() {
 
   const fetchEmailSuggestion = async (conversationId: string, currentTo: string) => {
     setIsLoadingEmailSuggestion(true);
+    setEmailSuggestionError(false);
     try {
       const res = await ApiService.post<{ subject: string; body: string; detectedEmail: string | null }>(
         `/conversations/${conversationId}/suggest-email`,
         {}
       );
-      if (res.subject) setEmailSubject(res.subject);
-      if (res.body) setEmailBody(res.body);
+      setEmailSubject(res.subject || "");
+      setEmailBody(res.body || "");
       if (res.detectedEmail && !currentTo) setEmailTo(res.detectedEmail);
     } catch {
-      // suggestion failed silently — user can type manually
+      setEmailSuggestionError(true);
     } finally {
       setIsLoadingEmailSuggestion(false);
     }
@@ -577,6 +579,7 @@ export function InboxPage() {
     setEmailSubject("");
     setEmailBody("");
     setEmailError(null);
+    setEmailSuggestionError(false);
     setShowEmailModal(true);
     setShowChatMenu(false);
     if (activeConversation) fetchEmailSuggestion(activeConversation, detectedTo);
@@ -1089,72 +1092,102 @@ export function InboxPage() {
       {/* Email Compose Modal */}
       {showEmailModal && (
         <div className="modal-overlay" onClick={() => setShowEmailModal(false)}>
-          <div className="modal-panel glass-panel" onClick={e => e.stopPropagation()} style={{ width: "500px", maxWidth: "95vw", padding: "24px", borderRadius: "16px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                <Mail size={18} /> Enviar por Email
-              </h3>
-              <button className="icon-btn-header" onClick={() => setShowEmailModal(false)}><X size={18} /></button>
+          <div className="email-modal-panel" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="email-modal-header">
+              <div className="email-modal-title-row">
+                <div className="email-modal-icon"><Mail size={17} /></div>
+                <div>
+                  <div className="email-modal-title">Enviar por Email</div>
+                  <div className="email-modal-subtitle">{activeConv?.customer?.name || "Cliente"}</div>
+                </div>
+              </div>
+              <button className="email-modal-close" onClick={() => setShowEmailModal(false)}><X size={16} /></button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Para</label>
+
+            {/* Body */}
+            <div className="email-modal-body">
+
+              {/* Para */}
+              <div className="email-modal-field">
+                <label className="email-modal-label">Para</label>
                 <input
                   type="email"
+                  className="email-modal-input"
                   value={emailTo}
                   onChange={e => setEmailTo(e.target.value)}
                   placeholder="email@exemplo.com"
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box" }}
                 />
               </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Assunto</label>
-                  {isLoadingEmailSuggestion ? (
-                    <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <Loader2 size={11} className="animate-spin" /> Gerando sugestão IA...
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => activeConversation && fetchEmailSuggestion(activeConversation, emailTo)}
-                      style={{ fontSize: "11px", color: "var(--color-primary, #6366f1)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", padding: 0 }}
-                    >
-                      <Sparkles size={11} /> Regenerar sugestão
-                    </button>
-                  )}
+
+              {/* Assunto */}
+              <div className="email-modal-field">
+                <div className="email-modal-label-row">
+                  <label className="email-modal-label">Assunto</label>
+                  <div className="email-ai-row">
+                    {isLoadingEmailSuggestion ? (
+                      <span className="email-ai-loading-text">
+                        <Loader2 size={11} className="animate-spin" /> Gerando com IA...
+                      </span>
+                    ) : emailSuggestionError ? (
+                      <button
+                        className="email-regen-btn"
+                        onClick={() => activeConversation && fetchEmailSuggestion(activeConversation, emailTo)}
+                      >
+                        <Sparkles size={11} /> Tentar novamente
+                      </button>
+                    ) : (
+                      <>
+                        <span className="email-ai-badge"><Sparkles size={9} /> IA</span>
+                        <button
+                          className="email-regen-btn"
+                          disabled={isLoadingEmailSuggestion}
+                          onClick={() => activeConversation && fetchEmailSuggestion(activeConversation, emailTo)}
+                        >
+                          Regenerar
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <input
                   type="text"
+                  className="email-modal-input"
                   value={emailSubject}
                   onChange={e => setEmailSubject(e.target.value)}
-                  placeholder={isLoadingEmailSuggestion ? "Gerando..." : "Assunto do email"}
+                  placeholder={isLoadingEmailSuggestion ? "Gerando assunto..." : "Assunto do email"}
                   disabled={isLoadingEmailSuggestion}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", boxSizing: "border-box", opacity: isLoadingEmailSuggestion ? 0.6 : 1 }}
                 />
               </div>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Mensagem</label>
+
+              {/* Mensagem */}
+              <div className="email-modal-field">
+                <label className="email-modal-label">Mensagem</label>
                 <textarea
+                  className="email-modal-textarea"
                   value={emailBody}
                   onChange={e => setEmailBody(e.target.value)}
                   rows={7}
-                  placeholder={isLoadingEmailSuggestion ? "Gerando sugestão com base no histórico da conversa..." : "Escreva sua mensagem..."}
+                  placeholder={isLoadingEmailSuggestion ? "Gerando mensagem com base no histórico da conversa..." : "Escreva sua mensagem..."}
                   disabled={isLoadingEmailSuggestion}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--surface-secondary)", color: "var(--text-primary)", fontSize: "14px", resize: "vertical", boxSizing: "border-box", opacity: isLoadingEmailSuggestion ? 0.6 : 1 }}
                 />
               </div>
-              {emailError && (
-                <p style={{ color: "var(--color-danger, #ef4444)", fontSize: "13px", margin: 0 }}>{emailError}</p>
-              )}
-              <button
-                className="send-btn"
-                disabled={isSendingEmail || isLoadingEmailSuggestion || !emailSubject.trim() || !emailBody.trim()}
-                onClick={handleSendEmail}
-                style={{ alignSelf: "flex-end", display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "8px" }}
-              >
-                {isSendingEmail ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-                {isSendingEmail ? "Enviando..." : "Enviar Email"}
-              </button>
+
+              {emailError && <div className="email-modal-error">{emailError}</div>}
+
+              <div className="email-modal-footer">
+                <button className="email-modal-cancel" onClick={() => setShowEmailModal(false)}>Cancelar</button>
+                <button
+                  className="email-modal-send"
+                  disabled={isSendingEmail || isLoadingEmailSuggestion || !emailSubject.trim() || !emailBody.trim()}
+                  onClick={handleSendEmail}
+                >
+                  {isSendingEmail ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+                  {isSendingEmail ? "Enviando..." : "Enviar Email"}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
