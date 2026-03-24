@@ -91,21 +91,28 @@ export async function generateSuggestionWorker(
     : "";
 
   // 4. Resolve settings (tenant-specific → global fallback)
-  const model = tenantSettings?.openaiModel || config.OPENAI_MODEL;
+  const rawModel = tenantSettings?.openaiModel || config.OPENAI_MODEL || "gpt-4o-mini";
+  // Normalize legacy/typo model names to a supported equivalent
+  const model = rawModel === "gpt-4.1-mini" ? "gpt-4o-mini"
+              : rawModel === "gpt-4.1"      ? "gpt-4o"
+              : rawModel;
   const temperature = tenantSettings?.aiTemperature ?? 0.7;
   const maxTokens = tenantSettings?.aiMaxTokens ?? 200;
   const customSystemPrompt = tenantSettings?.aiSystemPrompt;
 
   // 5. Resolve API key (tenant-specific encrypted → global env)
   let apiKey = config.OPENAI_API_KEY;
+  let keySource = "global_env";
   if (tenantSettings?.openaiApiKey) {
     try {
       apiKey = decrypt(tenantSettings.openaiApiKey);
+      keySource = "tenant_settings";
     } catch (decryptErr) {
-      logger.error({ err: decryptErr }, "[Copilot] Failed to decrypt OpenAI API key — falling back to global env key. Please re-save the key in Settings.");
+      logger.error({ err: decryptErr }, "[Copilot] Failed to decrypt tenant OpenAI API key — falling back to global env. Re-save the key in Settings → Integrations.");
       // Fallback to global key already set above
     }
   }
+  logger.info(`[Copilot] Using API key source="${keySource}", model="${model}" for tenant ${tenantId}`);
 
   if (!apiKey) {
     logger.error("[Copilot] No OpenAI API key available. Aborting suggestion.");
@@ -283,16 +290,30 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
     }
   } catch (openaiErr: unknown) {
     // Extract a useful error message from the OpenAI SDK error
-    let openaiErrMsg = "unknown error";
+    let openaiErrMsg = "Erro desconhecido";
+    let httpStatus = 0;
     if (openaiErr && typeof openaiErr === "object") {
       const e = openaiErr as Record<string, unknown>;
       // OpenAI SDK wraps errors with .status / .error / .message
       openaiErrMsg = String(e.message ?? e.error ?? e.status ?? "unknown");
+      httpStatus = Number(e.status ?? 0);
     }
     logger.error(
-      { err: openaiErr, model, tenantId, openaiErrMsg },
-      `[Copilot] OpenAI API error: ${openaiErrMsg}`
+      { err: openaiErr, model, keySource, tenantId, httpStatus, openaiErrMsg },
+      `[Copilot] OpenAI API error (status=${httpStatus}): ${openaiErrMsg}`
     );
+
+    // Build a user-friendly but informative error message
+    let userMsg = `⚠️ Erro OpenAI (${model}): ${openaiErrMsg}`;
+    if (httpStatus === 401) {
+      userMsg = `⚠️ Chave da OpenAI inválida (fonte: ${keySource}). Verifique em Configurações → Integrações.`;
+    } else if (httpStatus === 404) {
+      userMsg = `⚠️ Modelo "${model}" não encontrado. Altere o modelo em Configurações → IA.`;
+    } else if (httpStatus === 429) {
+      userMsg = `⚠️ Limite de requisições da OpenAI atingido. Aguarde um momento e tente novamente.`;
+    } else if (httpStatus === 400) {
+      userMsg = `⚠️ Requisição inválida para OpenAI: ${openaiErrMsg}`;
+    }
 
     // Don't persist error text — emit socket event and bail out.
     // This lets the next job retry cleanly (no stale "error" suggestion in DB).
@@ -300,7 +321,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
       messageId: message.id,
       suggestion: {
         id: `err-${Date.now()}`,
-        suggestionText: "A error occurred communicating with AI. Please check settings.",
+        suggestionText: userMsg,
         wasUsed: false,
       },
     });
