@@ -400,3 +400,53 @@
     width: 100%;
   }
 }
+
+/* ─── Tabs ─── */
+.ops-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface-tertiary);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.ops-tab {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ops-tab:hover {
+  color: var(--text-primary);
+}
+
+.ops-tab-active {
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ops-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  background: var(--accent-error, #ef4444);
+  color: #fff;
+}

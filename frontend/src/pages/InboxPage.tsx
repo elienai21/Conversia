@@ -316,7 +316,7 @@ export function InboxPage() {
   const [usedSuggestionId, setUsedSuggestionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "guest" | "lead" | "urgent">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "groups" | "urgent">("all");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -716,8 +716,8 @@ export function InboxPage() {
   const filteredConversations = conversations
     .filter((conv) => {
       if (activeTab === "urgent" && conv.priority !== "urgent") return false;
-      if (activeTab === "guest" && conv.customer?.role !== "guest") return false;
-      if (activeTab === "lead" && conv.customer?.role !== "lead") return false;
+      if (activeTab === "unread" && conv.unreadCount === 0) return false;
+      if (activeTab === "groups" && !conv.customer?.phone?.includes("@g.us")) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const name = conv.customer?.name?.toLowerCase() || "";
@@ -768,30 +768,35 @@ export function InboxPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex bg-[var(--surface-tertiary)] p-1 rounded-lg">
-            <button 
-              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'all' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
+          <div className="flex bg-[var(--surface-tertiary)] p-1 rounded-lg gap-0.5">
+            <button
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'all' ? 'bg-[var(--surface-primary)] shadow-sm font-medium' : 'text-muted hover:text-[var(--text-primary)]'}`}
               onClick={() => setActiveTab('all')}
             >
-              Todas
+              Todos
             </button>
-            <button 
-              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'guest' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
-              onClick={() => setActiveTab('guest')}
+            <button
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === 'unread' ? 'bg-[var(--surface-primary)] shadow-sm font-medium' : 'text-muted hover:text-[var(--text-primary)]'}`}
+              onClick={() => setActiveTab('unread')}
             >
-              Ativos
+              Não Lidos
+              {conversations.filter(c => c.unreadCount > 0).length > 0 && (
+                <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] rounded-full bg-[var(--accent-error)] text-white font-bold">
+                  {conversations.filter(c => c.unreadCount > 0).length}
+                </span>
+              )}
             </button>
-            <button 
-              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'lead' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
-              onClick={() => setActiveTab('lead')}
+            <button
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'groups' ? 'bg-[var(--surface-primary)] shadow-sm font-medium' : 'text-muted hover:text-[var(--text-primary)]'}`}
+              onClick={() => setActiveTab('groups')}
             >
-              Leads
+              Grupos
             </button>
-            <button 
+            <button
               className={`flex-1 text-xs sm:text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === 'urgent' ? 'bg-red-500/10 text-red-500 shadow-sm font-medium' : 'text-muted hover:text-red-400'}`}
               onClick={() => setActiveTab('urgent')}
             >
-              🔥 Urgência
+              🔥
             </button>
           </div>
         </div>

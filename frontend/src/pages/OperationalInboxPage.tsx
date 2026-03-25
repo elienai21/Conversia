@@ -60,6 +60,7 @@ export function OperationalInboxPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "groups">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { socket } = useSocket();
 
@@ -169,13 +170,15 @@ export function OperationalInboxPage() {
     }
   };
 
-  const filtered = search
-    ? conversations.filter(
-        (c) =>
-          c.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-          c.customer?.phone?.includes(search)
-      )
-    : conversations;
+  const filtered = conversations.filter((c) => {
+    if (activeTab === "unread" && c.unreadCount === 0) return false;
+    if (activeTab === "groups" && c.customer?.tag !== "GROUP_STAFF") return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return c.customer?.name?.toLowerCase().includes(q) || c.customer?.phone?.includes(q);
+    }
+    return true;
+  });
 
   const selectedConv = conversations.find((c) => c.id === selectedId);
 
@@ -196,6 +199,31 @@ export function OperationalInboxPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+          </div>
+          <div className="ops-tabs">
+            <button
+              className={`ops-tab ${activeTab === "all" ? "ops-tab-active" : ""}`}
+              onClick={() => setActiveTab("all")}
+            >
+              Todos
+            </button>
+            <button
+              className={`ops-tab ${activeTab === "unread" ? "ops-tab-active" : ""}`}
+              onClick={() => setActiveTab("unread")}
+            >
+              Não Lidos
+              {conversations.filter(c => c.unreadCount > 0).length > 0 && (
+                <span className="ops-tab-badge">
+                  {conversations.filter(c => c.unreadCount > 0).length}
+                </span>
+              )}
+            </button>
+            <button
+              className={`ops-tab ${activeTab === "groups" ? "ops-tab-active" : ""}`}
+              onClick={() => setActiveTab("groups")}
+            >
+              Grupos
+            </button>
           </div>
         </div>
 

@@ -279,7 +279,7 @@ async function processIncomingMessage(params: {
   
   // ---> Roteamento Inteligente (Primeira Qualificação)
   if (isNewConversation && customer?.role === "lead") {
-    const welcomeMsg = "Olá! Seja muito bem-vindo! Como posso te chamar?";
+    const welcomeMsg = "Olá! Sou a assistente virtual. Como posso te ajudar hoje?";
     logger.info(`[Webhook] Enviando mensagem de boas-vindas para o Lead ${customer.id}`);
     
     // Fire-and-forget sending welcome message
