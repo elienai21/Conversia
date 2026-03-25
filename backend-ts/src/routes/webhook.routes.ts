@@ -276,6 +276,40 @@ async function processIncomingMessage(params: {
   logger.info(`[Webhook] Intent detected: ${intent}`);
 
   const customer = await prisma.customer.findUnique({ where: { id: conversation.customerId } });
+  
+  // ---> Roteamento Inteligente (Primeira Qualificação)
+  if (isNewConversation && customer?.role === "lead") {
+    const welcomeMsg = "Olá! Seja muito bem-vindo! Como posso te chamar?";
+    logger.info(`[Webhook] Enviando mensagem de boas-vindas para o Lead ${customer.id}`);
+    
+    // Fire-and-forget sending welcome message
+    void (async () => {
+      try {
+        await sendWhatsappMessage(tenant.id, customer.phone, welcomeMsg);
+        await saveMessage({
+          conversationId: conversation.id,
+          senderType: "agent",
+          text: welcomeMsg,
+        });
+      } catch (err) {
+        logger.error({ err }, "[Webhook] Erro ao enviar boas-vindas");
+      }
+    })();
+  } else if (!isNewConversation && customer?.role === "lead") {
+    // Se não for novo, mas ainda é lead, vamos tentar classificar based on intent
+    const isOwnerIntent = intent === "parceria";
+    const isGuestIntent = intent === "pergunta" || intent === "agendamento" || intent === "vendas" || intent === "emergencia" || intent === "reclamação";
+    
+    if (isOwnerIntent || isGuestIntent) {
+      const newRole = isOwnerIntent ? "owner" : "guest";
+      logger.info(`[Webhook] Atualizando Lead ${customer.id} para Role ${newRole} baseado no intento ${intent}`);
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { role: newRole },
+      });
+      customer.role = newRole; // atualiza objeto local
+    }
+  }
 
   // ---> NEW LOGIC: Intelligent Review Funnel & Emergency Routing
   if (intent === "avaliacao" && customer?.phone) {

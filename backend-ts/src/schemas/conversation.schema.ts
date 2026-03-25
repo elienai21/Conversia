@@ -21,6 +21,9 @@ export interface ConversationOut {
   customer: {
     phone: string;
     name: string | null;
+    email?: string | null;
+    tag?: string | null;
+    role?: string;
     profile_picture_url?: string | null;
   } | null;
   unread_count?: number;

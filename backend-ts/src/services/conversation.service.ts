@@ -21,10 +21,22 @@ export async function findOrCreateCustomer(
   name?: string,
   profilePictureUrl?: string,
   tag?: string,
+  role?: string,
 ) {
   // Auto-detect WhatsApp groups by the @g.us suffix
   const isGroup = phone.includes("@g.us");
   const effectiveTag = isGroup ? "GROUP_STAFF" : (tag ?? "GUEST");
+  
+  // Decide default role if not provided
+  let effectiveRole = role;
+  if (!effectiveRole) {
+    if (isGroup || effectiveTag === "STAFF" || effectiveTag === "GROUP_STAFF") {
+      effectiveRole = "staff";
+    } else {
+      effectiveRole = "lead"; // Por padrão, entra como lead, depois o intent avalia
+    }
+  }
+
   const normalized = isGroup ? phone : normalizePhone(phone);
 
   let customer = await prisma.customer.findUnique({
@@ -41,13 +53,16 @@ export async function findOrCreateCustomer(
         name: name ?? phone,
         profilePictureUrl: profilePictureUrl ?? null,
         tag: effectiveTag,
+        role: effectiveRole,
       },
     });
   } else {
-    // Update profile picture and/or tag if needed
+    // Update profile picture, tag and/or role if needed
     const updates: Record<string, unknown> = {};
     if (profilePictureUrl && !customer.profilePictureUrl) updates.profilePictureUrl = profilePictureUrl;
     if (isGroup && customer.tag !== "GROUP_STAFF") updates.tag = "GROUP_STAFF";
+    if (role && customer.role !== role) updates.role = role;
+
     if (Object.keys(updates).length > 0) {
       customer = await prisma.customer.update({
         where: { id: customer.id },

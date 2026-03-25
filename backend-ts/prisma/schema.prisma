@@ -87,6 +87,7 @@ model Customer {
   email             String?        @map("email")
   socialMedia       String?        @map("social_media")
   tag               String?        @default("GUEST") @map("tag")
+  role              String         @default("guest") @map("role") // "guest", "owner", "staff", "lead"
   profilePictureUrl String?        @map("profile_picture_url")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")

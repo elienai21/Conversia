@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -23,13 +23,20 @@ export function DashboardLayout() {
   const { t } = useTranslation();
   const [openCount, setOpenCount] = useState(0);
   const [upsellCount, setUpsellCount] = useState(0);
+  const [opsCount, setOpsCount] = useState(0);
+  const [ownersCount, setOwnersCount] = useState(0);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const fetchOpenCount = useCallback(async () => {
     try {
-      const conversations = await ApiService.get<ConversationSummary[]>("/conversations");
-      const unread = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
-      setOpenCount(unread);
+      const [convsMain, convsOps, convsOwner] = await Promise.all([
+        ApiService.get<ConversationSummary[]>("/conversations"),
+        ApiService.get<ConversationSummary[]>("/conversations?scope=operations"),
+        ApiService.get<ConversationSummary[]>("/conversations?scope=owners"),
+      ]);
+      setOpenCount(convsMain.filter((c) => (c.unread_count ?? 0) > 0).length);
+      setOpsCount(convsOps.filter((c) => (c.unread_count ?? 0) > 0).length);
+      setOwnersCount(convsOwner.filter((c) => (c.unread_count ?? 0) > 0).length);
     } catch {
       // silently ignore
     }
@@ -114,9 +121,15 @@ export function DashboardLayout() {
           </div>
 
           <div className="nav-section">
+            <NavLink to="/owners" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <Briefcase size={20} />
+              <span>Inbox Diretoria</span>
+              {ownersCount > 0 && <span className="nav-badge">{ownersCount > 99 ? "99+" : ownersCount}</span>}
+            </NavLink>
             <NavLink to="/operations" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <HardHat size={20} />
               <span>Inbox Equipe</span>
+              {opsCount > 0 && <span className="nav-badge">{opsCount > 99 ? "99+" : opsCount}</span>}
             </NavLink>
             <NavLink to="/service-orders" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <ClipboardList size={20} />

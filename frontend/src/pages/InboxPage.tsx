@@ -9,7 +9,7 @@ import { SecureMedia } from "@/components/common/SecureMedia";
 // Internal component types (camelCase)
 type Conversation = {
   id: string;
-  customer: { phone: string; name?: string | null; email?: string | null; profilePictureUrl?: string | null } | null;
+  customer: { phone: string; name?: string | null; email?: string | null; profilePictureUrl?: string | null; role?: string } | null;
   channel: string;
   status: string;
   updatedAt: string;
@@ -53,7 +53,7 @@ type RawConversation = {
   channel: string;
   status: string;
   updated_at: string;
-  customer: { phone: string; name: string | null; email?: string | null; profile_picture_url?: string | null } | null;
+  customer: { phone: string; name: string | null; email?: string | null; profile_picture_url?: string | null; role?: string } | null;
   unread_count?: number;
   last_message_preview?: string | null;
   priority?: string;
@@ -96,7 +96,7 @@ function mapConversation(raw: RawConversation): Conversation {
   return {
     id: raw.id,
     customer: raw.customer
-      ? { phone: raw.customer.phone, name: raw.customer.name, email: raw.customer.email, profilePictureUrl: raw.customer.profile_picture_url }
+      ? { phone: raw.customer.phone, name: raw.customer.name, email: raw.customer.email, profilePictureUrl: raw.customer.profile_picture_url, role: raw.customer.role }
       : null,
     channel: raw.channel,
     status: raw.status,
@@ -316,7 +316,7 @@ export function InboxPage() {
   const [usedSuggestionId, setUsedSuggestionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "urgent">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "guest" | "lead" | "urgent">("all");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -716,6 +716,8 @@ export function InboxPage() {
   const filteredConversations = conversations
     .filter((conv) => {
       if (activeTab === "urgent" && conv.priority !== "urgent") return false;
+      if (activeTab === "guest" && conv.customer?.role !== "guest") return false;
+      if (activeTab === "lead" && conv.customer?.role !== "lead") return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const name = conv.customer?.name?.toLowerCase() || "";
@@ -774,7 +776,19 @@ export function InboxPage() {
               Todas
             </button>
             <button 
-              className={`flex-1 text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === 'urgent' ? 'bg-red-500/10 text-red-500 shadow-sm font-medium' : 'text-muted hover:text-red-400'}`}
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'guest' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
+              onClick={() => setActiveTab('guest')}
+            >
+              Ativos
+            </button>
+            <button 
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'lead' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
+              onClick={() => setActiveTab('lead')}
+            >
+              Leads
+            </button>
+            <button 
+              className={`flex-1 text-xs sm:text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === 'urgent' ? 'bg-red-500/10 text-red-500 shadow-sm font-medium' : 'text-muted hover:text-red-400'}`}
               onClick={() => setActiveTab('urgent')}
             >
               🔥 Urgência

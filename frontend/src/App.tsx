@@ -14,6 +14,7 @@ import { SupportPage } from "./pages/SupportPage";
 import { TaskQueuePage } from "./pages/TaskQueuePage";
 import { GuestCheckinPage } from "./pages/GuestCheckinPage";
 import { OperationalInboxPage } from "./pages/OperationalInboxPage";
+import { OwnersInboxPage } from "./pages/OwnersInboxPage";
 import { ServiceOrdersPage } from "./pages/ServiceOrdersPage";
 import { StaffPage } from "./pages/StaffPage";
 
@@ -64,6 +65,7 @@ function App() {
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/operations" element={<OperationalInboxPage />} />
+                  <Route path="/owners" element={<OwnersInboxPage />} />
                   <Route path="/service-orders" element={<ServiceOrdersPage />} />
                   <Route path="/staff" element={<StaffPage />} />
                 </Route>

@@ -14,11 +14,14 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
     const filter = query.filter; // "active" | "resolved" | undefined (all)
     const tag = query.tag?.trim();
     const tags = tag ? tag.split(",").map((t: string) => t.trim()) : [];
+    const roleQuery = query.role?.trim();
+    const roles = roleQuery ? roleQuery.split(",").map((r: string) => r.trim()) : [];
 
     const customers = await prisma.customer.findMany({
       where: {
         tenantId,
         ...(tags.length > 0 ? { tag: { in: tags } } : {}),
+        ...(roles.length > 0 ? { role: { in: roles } } : {}),
         ...(search
           ? {
               OR: [
@@ -57,6 +60,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
           email: c.email,
           social_media: c.socialMedia,
           tag: c.tag,
+          role: c.role,
           profile_picture_url: c.profilePictureUrl,
           created_at: c.createdAt,
           conversation_count: c.conversations.length,
@@ -84,6 +88,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
       email?: string;
       social_media?: string;
       tag?: string;
+      role?: string;
     };
 
     const rawPhone = body.phone?.trim();
@@ -108,6 +113,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
         email: body.email?.trim() || null,
         socialMedia: body.social_media?.trim() || null,
         tag: body.tag?.trim() || null,
+        role: body.role?.trim() || "guest",
       },
     });
 
@@ -118,6 +124,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
       email: customer.email,
       social_media: customer.socialMedia,
       tag: customer.tag,
+      role: customer.role,
       created_at: customer.createdAt,
     });
   });
@@ -134,6 +141,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
         email?: string | null;
         social_media?: string | null;
         tag?: string | null;
+        role?: string;
       };
 
       const customer = await prisma.customer.findFirst({
@@ -163,6 +171,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
           ...(body.email !== undefined && { email: body.email?.trim() || null }),
           ...(body.social_media !== undefined && { socialMedia: body.social_media?.trim() || null }),
           ...(body.tag !== undefined && { tag: body.tag?.trim() || null }),
+          ...(body.role !== undefined && { role: body.role?.trim() }),
         },
       });
 
@@ -173,6 +182,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
         email: updated.email,
         social_media: updated.socialMedia,
         tag: updated.tag,
+        role: updated.role,
         created_at: updated.createdAt,
       });
     },
@@ -271,6 +281,7 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
         email: customer.email,
         social_media: customer.socialMedia,
         tag: customer.tag,
+        role: customer.role,
         profile_picture_url: customer.profilePictureUrl,
         created_at: customer.createdAt,
         conversations: customer.conversations.map((cv) => ({

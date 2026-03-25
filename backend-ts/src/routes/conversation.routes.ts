@@ -40,12 +40,15 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       where.assignedAgentId = user.id;
     }
 
-    // scope=operations: only show STAFF/GROUP_STAFF conversations
-    // scope=guests (default): only show GUEST conversations
+    // scope=operations: show STAFF/GROUP_STAFF conversations (role=staff)
+    // scope=owners: show OWNER conversations (role=owner)
+    // default: show GUEST + LEAD conversations (role=guest OR role=lead)
     if (scope === "operations") {
-      where.customer = { tag: { in: ["STAFF", "GROUP_STAFF"] } };
+      where.customer = { role: "staff" };
+    } else if (scope === "owners") {
+      where.customer = { role: "owner" };
     } else {
-      where.customer = { OR: [{ tag: "GUEST" }, { tag: null }] };
+      where.customer = { role: { in: ["guest", "lead"] } };
     }
 
     const conversations = await prisma.conversation.findMany({
@@ -80,7 +83,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     const unreadMap = new Map(unreadCounts.map((r) => [r.conversation_id, Number(r.count)]));
 
-    const result: ConversationOut[] = conversations.map((c: Record<string, unknown> & { id: string; tenantId: string; customerId: string; assignedAgentId: string | null; channel: string; status: string; priority?: string; detectedLanguage: string | null; createdAt: Date; updatedAt: Date; customer: { phone: string; name: string | null; email?: string | null; profilePictureUrl?: string | null; tag?: string | null } | null; messages: { originalText: string | null }[] }) => ({
+    const result: ConversationOut[] = conversations.map((c: Record<string, unknown> & { id: string; tenantId: string; customerId: string; assignedAgentId: string | null; channel: string; status: string; priority?: string; detectedLanguage: string | null; createdAt: Date; updatedAt: Date; customer: { phone: string; name: string | null; email?: string | null; profilePictureUrl?: string | null; tag?: string | null; role: string } | null; messages: { originalText: string | null }[] }) => ({
       id: c.id,
       tenant_id: c.tenantId,
       customer_id: c.customerId,
@@ -92,7 +95,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       created_at: c.createdAt,
       updated_at: c.updatedAt,
       customer: c.customer
-        ? { phone: c.customer.phone, name: c.customer.name, email: c.customer.email, profile_picture_url: c.customer.profilePictureUrl, tag: c.customer.tag }
+        ? { phone: c.customer.phone, name: c.customer.name, email: c.customer.email, profile_picture_url: c.customer.profilePictureUrl, tag: c.customer.tag, role: c.customer.role }
         : null,
       unread_count: unreadMap.get(c.id) || 0,
       last_message_preview: c.messages[0]?.originalText?.substring(0, 80) || null,
@@ -137,7 +140,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         detected_language: conversation.detectedLanguage,
         created_at: conversation.createdAt,
         updated_at: conversation.updatedAt,
-        customer: conversation.customer ? { phone: conversation.customer.phone, name: conversation.customer.name } : null,
+        customer: conversation.customer ? { phone: conversation.customer.phone, name: conversation.customer.name, role: conversation.customer.role } : null,
       };
 
       return reply.send(result);
@@ -342,7 +345,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       detected_language: conversation.detectedLanguage,
       created_at: conversation.createdAt,
       updated_at: conversation.updatedAt,
-      customer: { phone: customer.phone, name: customer.name },
+      customer: { phone: customer.phone, name: customer.name, role: customer.role },
     };
 
     return reply.status(201).send(result);

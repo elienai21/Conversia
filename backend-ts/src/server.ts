@@ -46,6 +46,28 @@ async function start(): Promise<void> {
       app.log.warn({ dedupErr }, "[Startup] Could not run external_id dedup cleanup (non-fatal)");
     }
 
+    // One-time role migration: backfill role from tag for existing customers.
+    // The new filtering system uses `role` (guest/owner/staff/lead) instead of `tag`.
+    // Without this, existing STAFF/GROUP_STAFF contacts would vanish from Inbox Equipe.
+    try {
+      const [staffFixed, groupFixed] = await Promise.all([
+        prisma.customer.updateMany({
+          where: { tag: "STAFF", role: "guest" },
+          data: { role: "staff" },
+        }),
+        prisma.customer.updateMany({
+          where: { tag: "GROUP_STAFF", role: "guest" },
+          data: { role: "staff" },
+        }),
+      ]);
+      const total = staffFixed.count + groupFixed.count;
+      if (total > 0) {
+        app.log.info(`[Startup] Backfilled role="staff" for ${total} customer(s) with tag STAFF/GROUP_STAFF`);
+      }
+    } catch (roleErr) {
+      app.log.warn({ roleErr }, "[Startup] Could not run role backfill migration (non-fatal)");
+    }
+
     // Redis is optional for local dev — don't block the server if unavailable
     try {
       await redis.connect();
