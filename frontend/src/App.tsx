@@ -13,6 +13,9 @@ import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { SupportPage } from "./pages/SupportPage";
 import { TaskQueuePage } from "./pages/TaskQueuePage";
 import { GuestCheckinPage } from "./pages/GuestCheckinPage";
+import { OperationalInboxPage } from "./pages/OperationalInboxPage";
+import { ServiceOrdersPage } from "./pages/ServiceOrdersPage";
+import { StaffPage } from "./pages/StaffPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -60,6 +63,9 @@ function App() {
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/support" element={<SupportPage />} />
+                  <Route path="/operations" element={<OperationalInboxPage />} />
+                  <Route path="/service-orders" element={<ServiceOrdersPage />} />
+                  <Route path="/staff" element={<StaffPage />} />
                 </Route>
               </Route>
 

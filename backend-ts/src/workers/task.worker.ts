@@ -44,6 +44,13 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | filtro local: checkin/checkout em ${dateTodayStr} ou ${dateTomorrowStr}`
       );
 
+      // Buscar equipe operacional (para direcionar O.S. e alertas de faxina/lavanderia)
+      const opContacts = await prisma.customer.findMany({
+        where: { tenantId: tenant.id, tag: { in: ["STAFF", "GROUP_STAFF"] } },
+      });
+      // Prioridade: grupos primeiro, depois indivíduos
+      const defaultStaff = opContacts.find(c => c.tag === "GROUP_STAFF") || opContacts[0];
+
       // Strategy: fetch ALL active reservations without date params, then filter locally.
       // Stays.net's from/to params filter by booking-creation date (not check-in date),
       // so guests who booked weeks ago with check-in today would be missed.
@@ -178,11 +185,23 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         if (checkOut === dateTomorrowStr) {
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-out é amanhã até as 11h. Esperamos que esteja aproveitando muito a estadia! Por favor, lembre-se de conferir seus pertences antes de sair.`;
           if (await persistTask(tenant.id, resId, "checkout_amanha", name, phone, payload)) created++;
+
+          // Agendamento Operacional: Lavanderia (Avisar 1 dia antes)
+          if (defaultStaff) {
+            const laundryPayload = `Atenção Lavanderia 🧺\nTemos check-out programado para amanhã do hóspede ${name}.\nReserva: ${resId}\nPor favor, programar recolha e reposição do enxoval.`;
+            if (await persistTask(tenant.id, resId, "laundry_pickup", defaultStaff.name || "Equipe Operacional", defaultStaff.phone, laundryPayload)) created++;
+          }
         }
 
         if (checkOut === dateTodayStr) {
           const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como você fez seu checkout hoje, gostaríamos de saber: como você avalia sua experiência conosco de 1 a 5? (Responda apenas com o número da sua nota)`;
           if (await persistTask(tenant.id, resId, "checkout_hoje", name, phone, payload)) created++;
+
+          // Agendamento Operacional: Faxina (Avisar no dia do check-out)
+          if (defaultStaff) {
+            const cleaningPayload = `Atenção Equipe Limpeza ✨\nO hóspede ${name} fez check-out hoje.\nReserva: ${resId}\nO imóvel está liberado para limpeza e vistoria.`;
+            if (await persistTask(tenant.id, resId, "cleaning_dispatch", defaultStaff.name || "Equipe Operacional", defaultStaff.phone, cleaningPayload)) created++;
+          }
         }
 
         summary.tasksCreated += created;

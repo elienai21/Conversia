@@ -20,8 +20,12 @@ export async function findOrCreateCustomer(
   phone: string,
   name?: string,
   profilePictureUrl?: string,
+  tag?: string,
 ) {
-  const normalized = normalizePhone(phone);
+  // Auto-detect WhatsApp groups by the @g.us suffix
+  const isGroup = phone.includes("@g.us");
+  const effectiveTag = isGroup ? "GROUP_STAFF" : (tag ?? "GUEST");
+  const normalized = isGroup ? phone : normalizePhone(phone);
 
   let customer = await prisma.customer.findUnique({
     where: {
@@ -36,13 +40,20 @@ export async function findOrCreateCustomer(
         phone: normalized,
         name: name ?? phone,
         profilePictureUrl: profilePictureUrl ?? null,
+        tag: effectiveTag,
       },
     });
-  } else if (profilePictureUrl && !customer.profilePictureUrl) {
-    customer = await prisma.customer.update({
-      where: { id: customer.id },
-      data: { profilePictureUrl },
-    });
+  } else {
+    // Update profile picture and/or tag if needed
+    const updates: Record<string, unknown> = {};
+    if (profilePictureUrl && !customer.profilePictureUrl) updates.profilePictureUrl = profilePictureUrl;
+    if (isGroup && customer.tag !== "GROUP_STAFF") updates.tag = "GROUP_STAFF";
+    if (Object.keys(updates).length > 0) {
+      customer = await prisma.customer.update({
+        where: { id: customer.id },
+        data: updates,
+      });
+    }
   }
 
   return customer;

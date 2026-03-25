@@ -3,7 +3,7 @@ import { X, UserCog, Phone, User, Mail, AtSign, Tag } from "lucide-react";
 import { ApiService } from "@/services/api";
 import "./NewCustomerModal.css";
 
-const TAG_OPTIONS = ["VIP", "Lead", "Premium", "Regular", "New"];
+const TAG_OPTIONS = ["VIP", "Lead", "Premium", "Regular", "New", "STAFF", "GROUP_STAFF"];
 
 type CustomerData = {
   id: string;

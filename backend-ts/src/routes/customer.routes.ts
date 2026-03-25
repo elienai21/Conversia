@@ -12,10 +12,13 @@ export async function customerRoutes(app: FastifyInstance): Promise<void> {
     const query = request.query as Record<string, string>;
     const search = query.search?.trim().toLowerCase();
     const filter = query.filter; // "active" | "resolved" | undefined (all)
+    const tag = query.tag?.trim();
+    const tags = tag ? tag.split(",").map((t: string) => t.trim()) : [];
 
     const customers = await prisma.customer.findMany({
       where: {
         tenantId,
+        ...(tags.length > 0 ? { tag: { in: tags } } : {}),
         ...(search
           ? {
               OR: [

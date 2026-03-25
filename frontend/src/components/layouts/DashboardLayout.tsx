@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -106,6 +106,25 @@ export function DashboardLayout() {
             <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <BarChart3 size={20} />
               <span>{t("Analytics")}</span>
+            </NavLink>
+          </div>
+
+          <div className="nav-section-divider">
+            <span className="nav-section-label">OPERAÇÕES</span>
+          </div>
+
+          <div className="nav-section">
+            <NavLink to="/operations" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <HardHat size={20} />
+              <span>Inbox Equipe</span>
+            </NavLink>
+            <NavLink to="/service-orders" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <ClipboardList size={20} />
+              <span>Ordens de Serviço</span>
+            </NavLink>
+            <NavLink to="/staff" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+              <Users size={20} />
+              <span>Equipe Operacional</span>
             </NavLink>
           </div>
 
