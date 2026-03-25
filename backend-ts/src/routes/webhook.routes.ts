@@ -490,21 +490,39 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     // configured to send that same value in the "apikey" header. Any request
     // that doesn't carry the correct key is rejected immediately — preventing
     // spoofed webhook events from external sources.
-    if (config.EVOLUTION_WEBHOOK_SECRET) {
-      const apikey = (request.headers["apikey"] ?? request.headers["x-api-key"]) as string | undefined;
-      if (!apikey || apikey !== config.EVOLUTION_WEBHOOK_SECRET) {
-        // Log all headers so we can see exactly what Evolution API is sending
-        const safeHeaders = Object.fromEntries(
-          Object.entries(request.headers).map(([k, v]) => [
-            k,
-            k.toLowerCase().includes("key") || k.toLowerCase().includes("auth") || k.toLowerCase().includes("token")
-              ? (typeof v === "string" ? `${v.slice(0, 6)}...[${v.length}chars]` : v)
-              : v,
-          ])
-        );
-        logger.warn({ headers: safeHeaders }, `[Evolution WEBHOOK] Rejected: invalid or missing apikey header (ip=${request.ip}). Expected key length=${config.EVOLUTION_WEBHOOK_SECRET.length}, got apikey=${apikey ? `${apikey.slice(0,6)}...[${apikey.length}chars]` : "undefined"}`);
+    // Security: Evolution API does NOT send an apikey header in outgoing webhooks.
+    // Instead, we rely on two complementary layers:
+    //   1. Railway internal network isolation (100.64.0.0/10) — only services
+    //      within the same Railway project can call each other via internal IPs.
+    //   2. Optional EVOLUTION_WEBHOOK_SECRET checked against query ?secret= param
+    //      (useful if the webhook URL is publicly exposed and you want extra protection).
+    //
+    // If the request comes from a Railway internal IP, it is trusted unconditionally.
+    // External requests require the secret query param to match EVOLUTION_WEBHOOK_SECRET.
+    const srcIp = request.ip ?? "";
+    const isRailwayInternal =
+      srcIp.startsWith("100.64.") ||   // RFC 6598 — Railway Wireguard mesh
+      srcIp.startsWith("10.") ||        // RFC 1918
+      srcIp.startsWith("172.16.") ||
+      srcIp.startsWith("172.17.") ||
+      srcIp.startsWith("172.18.") ||
+      srcIp.startsWith("172.19.") ||
+      srcIp.startsWith("172.2") ||      // 172.20–172.31
+      srcIp.startsWith("172.3") ||
+      srcIp.startsWith("192.168.") ||
+      srcIp === "127.0.0.1" ||
+      srcIp === "::1";
+
+    if (!isRailwayInternal && config.EVOLUTION_WEBHOOK_SECRET) {
+      const secretParam = (request.query as Record<string, string>)["secret"] ?? "";
+      if (secretParam !== config.EVOLUTION_WEBHOOK_SECRET) {
+        logger.warn(`[Evolution WEBHOOK] Rejected external request (ip=${srcIp}): missing or wrong secret param`);
         return reply.status(401).send({ detail: "Unauthorized" });
       }
+    }
+
+    if (isRailwayInternal) {
+      logger.debug(`[Evolution WEBHOOK] Trusted internal request from ip=${srcIp}`);
     }
 
     const body = request.body as Record<string, unknown>;
