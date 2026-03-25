@@ -15,6 +15,7 @@ type Conversation = {
   updatedAt: string;
   unreadCount: number;
   lastMessagePreview: string | null;
+  priority?: string;
 };
 
 type Message = {
@@ -55,6 +56,7 @@ type RawConversation = {
   customer: { phone: string; name: string | null; email?: string | null; profile_picture_url?: string | null } | null;
   unread_count?: number;
   last_message_preview?: string | null;
+  priority?: string;
 };
 
 type RawTranslation = {
@@ -101,6 +103,7 @@ function mapConversation(raw: RawConversation): Conversation {
     updatedAt: raw.updated_at,
     unreadCount: raw.unread_count || 0,
     lastMessagePreview: raw.last_message_preview || null,
+    priority: raw.priority || "normal",
   };
 }
 
@@ -765,7 +768,7 @@ export function InboxPage() {
             filteredConversations.map(conv => (
               <div
                 key={conv.id}
-                className={`conversation-card ${activeConversation === conv.id ? 'active' : ''} ${conv.unreadCount > 0 ? 'has-unread' : ''}`}
+                className={`conversation-card ${activeConversation === conv.id ? 'active' : ''} ${conv.unreadCount > 0 ? 'has-unread' : ''} ${conv.priority === 'urgent' ? 'urgent-priority' : ''}`}
                 onClick={() => loadMessages(conv.id)}
               >
                 <div className="conv-avatar">

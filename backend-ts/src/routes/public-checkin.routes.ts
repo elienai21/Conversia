@@ -4,6 +4,8 @@ import { prisma } from "../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+import { saveMessage } from "../services/message.service.js";
+import { notifyAgentsNewMessage } from "../services/push.service.js";
 
 const submitFormSchema = z.object({
   fullName:      z.string().min(2).max(100),
@@ -215,5 +217,85 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.status(200).send({ success: true });
   });
+
+  // ─── POST /public/checkin/:token/upsell ─────────────────────────────────
+  app.post<{ Params: { token: string }; Body: { service: string } }>(
+    "/:token/upsell",
+    async (request, reply) => {
+      const { token } = request.params;
+      const { service } = request.body;
+
+      const task = await prisma.taskQueue.findUnique({
+        where: { id: token },
+      });
+
+      if (!task || task.type !== "checkin_hoje") {
+         // The error returned tells the UI it failed or not.
+        return reply.status(404).send({ detail: "Link não encontrado ou expirou." });
+      }
+
+      const customer = await prisma.customer.findUnique({
+        where: { tenantId_phone: { tenantId: task.tenantId, phone: task.customerPhone } }
+      });
+
+      let conversationId = null;
+      if (customer) {
+        const conv = await prisma.conversation.findFirst({
+           where: { tenantId: task.tenantId, customerId: customer.id },
+           orderBy: { updatedAt: 'desc' }
+        });
+        conversationId = conv?.id;
+      }
+
+      if (!conversationId) {
+        return reply.status(412).send({ detail: "Conversa não localizada." });
+      }
+
+      const messageText = `🎯 *Upsell Solicitado*\nO hóspede solicitou: **${service}**.\nAcione para enviar os detalhes/link de pagamento.`;
+      const message = await saveMessage({
+        conversationId,
+        senderType: "system",
+        text: messageText,
+      });
+
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { status: "queued", priority: "urgent" },
+      });
+
+      const { socket } = request.server.deps;
+
+      socket.emitToConversation(conversationId, "message.new", {
+        id: message.id,
+        conversation_id: message.conversationId,
+        sender_type: message.senderType,
+        original_text: message.originalText,
+        created_at: message.createdAt,
+        translations: [],
+        attachments: [],
+      });
+
+      socket.emitToTenant(task.tenantId, "conversation.updated", {
+        type: "queued",
+        conversationId,
+      });
+
+      let guestNameStr = "Hóspede";
+      if (task.guestFormData) {
+        try {
+          const parsedForm = JSON.parse(task.guestFormData);
+          guestNameStr = parsedForm.fullName || "Hóspede";
+        } catch(e) {}
+      }
+
+      notifyAgentsNewMessage(task.tenantId, {
+        conversationId,
+        customerName: guestNameStr,
+        messagePreview: `Upsell solicitado: ${service}`,
+      });
+
+      return reply.status(200).send({ success: true });
+    }
+  );
 }
 

@@ -83,6 +83,17 @@
   color: var(--text-primary);
 }
 
+.conversation-card.urgent-priority {
+  background: rgba(248, 81, 73, 0.08);border-left: 3px solid #f85149;
+  animation: urgentPulse 2s infinite;
+}
+
+@keyframes urgentPulse {
+  0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.2); }
+  70% { box-shadow: 0 0 0 4px rgba(248, 81, 73, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
+}
+
 .conversation-card.has-unread .conv-preview {
   color: var(--text-primary);
   font-weight: 500;

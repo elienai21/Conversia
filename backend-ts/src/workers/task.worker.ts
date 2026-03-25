@@ -181,7 +181,7 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         }
 
         if (checkOut === dateTodayStr) {
-          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como você fez seu checkout hoje, gostaríamos de sua avaliação.\nComo mimo, oferecemos 10% de desconto na sua próxima viagem conosco usando o cupom RETURN10!`;
+          const payload = `Olá ${name}! Esperamos que sua estadia tenha sido maravilhosa. Como você fez seu checkout hoje, gostaríamos de saber: como você avalia sua experiência conosco de 1 a 5? (Responda apenas com o número da sua nota)`;
           if (await persistTask(tenant.id, resId, "checkout_hoje", name, phone, payload)) created++;
         }
 

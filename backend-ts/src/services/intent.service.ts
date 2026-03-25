@@ -11,6 +11,9 @@ const VALID_INTENTS = [
   "reclamação",
   "humano",
   "parceria",
+  "avaliacao",
+  "vendas",
+  "emergencia",
   "outro",
 ] as const;
 
@@ -30,7 +33,12 @@ export async function detectIntent(
       messages: [
         {
           role: "system",
-          content: `Classify the customer message into exactly one intent: ${VALID_INTENTS.join(", ")}. Reply with ONLY the intent word (lowercase, exact match). Pay special attention to "parceria" if the user wants to offer an apartment, hire property administration, or become a partner.`,
+          content: `Classify the customer message into exactly one intent: ${VALID_INTENTS.join(", ")}. Reply with ONLY the intent word (lowercase, exact match).
+- Use "parceria" if the user wants to offer an apartment, hire property administration, or become a partner.
+- Use "avaliacao" if the user is giving a rating (e.g., numbers 1 to 5, or phrases like "foi nota 10", "detestei").
+- Use "vendas" if the user is interested in buying additional services, upgrades, or asking about prices for purchasing.
+- Use "emergencia" if the user reports an urgent issue (e.g., water leak, no power, locked out, broken item that requires immediate attention).
+- Use "pergunta" for general questions, "agendamento" for booking related matters, and "reclamação" for non-urgent complaints.`,
         },
         { role: "user", content: text },
       ],

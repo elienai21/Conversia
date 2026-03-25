@@ -103,6 +103,7 @@ model Conversation {
   assignedAgentId  String?            @map("assigned_agent_id") @db.Uuid
   channel          String             @default("whatsapp") @map("channel")
   status           String             @default("queued") @map("status")
+  priority         String             @default("normal") @map("priority")
   detectedLanguage String?            @map("detected_language")
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")

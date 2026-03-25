@@ -5,6 +5,7 @@ import { config } from "../config.js";
 import {
   parseIncomingMessage,
   resolveTenant,
+  sendWhatsappMessage,
 } from "../services/whatsapp.service.js";
 import {
   parseIncomingInstagramMessage,
@@ -273,6 +274,49 @@ async function processIncomingMessage(params: {
   // Step 8: Detect intent
   const intent = detectedLang ? await detectIntent(tenant.id, text) : "media";
   logger.info(`[Webhook] Intent detected: ${intent}`);
+
+  const customer = await prisma.customer.findUnique({ where: { id: conversation.customerId } });
+
+  // ---> NEW LOGIC: Intelligent Review Funnel & Emergency Routing
+  if (intent === "avaliacao" && customer?.phone) {
+    const isNegative = text.match(/\b(1|2|3)\b/) || text.toLowerCase().includes("ruim") || text.toLowerCase().includes("péssim") || text.toLowerCase().includes("pessim");
+    const isPositive = text.match(/\b(4|5)\b/) || text.toLowerCase().includes("bom") || text.toLowerCase().includes("ótimo") || text.toLowerCase().includes("otimo") || text.toLowerCase().includes("excelente");
+    
+    if (isNegative) {
+      const apologyMsg = "Poxa, sinto muito que sua experiência não foi perfeita. Já acionei nosso gerente e ele entrará em contato em instantes para entender o que houve e como podemos melhorar.";
+      await sendWhatsappMessage(tenant.id, customer.phone, apologyMsg);
+      await saveMessage({
+        conversationId: conversation.id,
+        senderType: "agent",
+        text: apologyMsg,
+      });
+
+      await prisma.conversation.update({ where: { id: conversation.id }, data: { priority: "urgent", status: "queued" } });
+      SocketService.emitToTenant(tenant.id, "conversation.updated", { type: "queued", conversationId: conversation.id });
+      notifyAgentsNewMessage(tenant.id, { conversationId: conversation.id, customerName: customer.name || customer.phone, messagePreview: "🚨 Avaliação Negativa: " + text });
+      return; 
+    } else if (isPositive) {
+      const reviewLink = process.env.REVIEW_LINK || "https://airbnb.com/review";
+      const reviewMsg = `Que maravilha! Você nos ajudaria muito clicando neste link e deixando essa mesma nota no nosso Airbnb/Google? ${reviewLink}`;
+      await sendWhatsappMessage(tenant.id, customer.phone, reviewMsg);
+      await saveMessage({
+        conversationId: conversation.id,
+        senderType: "agent",
+        text: reviewMsg,
+      });
+      return; 
+    }
+  }
+
+  if (intent === "emergencia") {
+     await prisma.conversation.update({ where: { id: conversation.id }, data: { priority: "urgent", status: "queued" } });
+     SocketService.emitToTenant(tenant.id, "conversation.updated", { type: "queued", conversationId: conversation.id });
+     notifyAgentsNewMessage(tenant.id, { conversationId: conversation.id, customerName: customer?.name || customer?.phone || "cliente", messagePreview: "🚨 EMERGÊNCIA: " + text });
+     
+     if (process.env.MAINTENANCE_WHATSAPP_ID && customer?.phone) {
+        await sendWhatsappMessage(tenant.id, process.env.MAINTENANCE_WHATSAPP_ID, `🚨 Alerta de Manutenção! Cliente ${customer.name || customer.phone} informou uma urgência:\n"${text}"\nAcesse o painel para responder.`);
+     }
+  }
 
   // Step 9: Translate to tenant default language if different
   const tenantLang = tenant.defaultLanguage;

@@ -58,6 +58,26 @@ export function GuestCheckinPage() {
   const [photoBack, setPhotoBack] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const [upsellLoading, setUpsellLoading] = useState<string | null>(null);
+  const [upsellSuccess, setUpsellSuccess] = useState<string | null>(null);
+
+  const handleUpsell = async (serviceName: string) => {
+    try {
+      setUpsellLoading(serviceName);
+      const res = await fetch(`${API_BASE}/api/v1/public/checkin/${token}/upsell`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service: serviceName }),
+      });
+      if (!res.ok) throw new Error("Falha ao solicitar serviço");
+      setUpsellSuccess(serviceName);
+    } catch (e) {
+      alert("Não foi possível solicitar o serviço no momento.");
+    } finally {
+      setUpsellLoading(null);
+    }
+  };
+
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,8 +189,36 @@ export function GuestCheckinPage() {
             Olá <strong>{info?.guestName}</strong>, recebemos suas informações.
             Nossa equipe irá processar e liberar seu acesso em breve.
           </p>
-          <p className="gc-property-name">{info?.propertyName}</p>
-          <p className="gc-hint">Você pode fechar esta janela.</p>
+
+          <div className="gc-upsell-container">
+            <h3>Que tal melhorar sua estadia?</h3>
+            <p className="gc-upsell-subtitle">Selecione um serviço e nossa equipe enviará os detalhes.</p>
+            
+            <div className="gc-upsell-options">
+              {[
+                { id: "early_checkin", label: "Early Check-in", icon: "🕒", desc: "Chegue mais cedo sem preocupações." },
+                { id: "cesta_cafe", label: "Cesta de Café da Manhã", icon: "🥐", desc: "Receba uma cesta recheada ao acordar." },
+                { id: "transfer", label: "Transfer VIP", icon: "🚗", desc: "Motorista particular na sua chegada." }
+              ].map(opt => (
+                <div key={opt.id} className="gc-upsell-card">
+                  <div className="gc-upsell-icon">{opt.icon}</div>
+                  <div className="gc-upsell-details">
+                    <h4>{opt.label}</h4>
+                    <span>{opt.desc}</span>
+                  </div>
+                  <button 
+                    disabled={upsellLoading === opt.label || upsellSuccess === opt.label}
+                    onClick={() => handleUpsell(opt.label)}
+                    className={`gc-upsell-btn ${upsellSuccess === opt.label ? "success" : ""}`}
+                  >
+                    {upsellSuccess === opt.label ? "Solicitado!" : upsellLoading === opt.label ? "Aguarde..." : "Solicitar"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="gc-hint" style={{marginTop: '2rem'}}>Você pode fechar esta janela.</p>
         </div>
       </div>
     );
