@@ -27,6 +27,14 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().default(""),
   EMAIL_FROM: z.string().default(""),
   VAPID_SUBJECT: z.string().default("mailto:admin@conversia.app"),
+  // AES-256-GCM salt used to derive encryption key from SECRET_KEY.
+  // MUST be set in production. Changing this value makes all encrypted
+  // API keys (OpenAI, WhatsApp, Stays) unreadable — never rotate without migration.
+  ENCRYPTION_SALT: z.string().default("conversia-salt-124b"),
+  // Optional secret for Evolution API webhook validation.
+  // Set this to the apikey configured in Evolution API webhook settings.
+  // If empty, signature validation is skipped (backward compatible).
+  EVOLUTION_WEBHOOK_SECRET: z.string().default(""),
 });
 
 export const config = envSchema.parse(process.env);

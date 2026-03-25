@@ -33,6 +33,7 @@ import { SocketService } from "../services/socket.service.js";
 import { tryAutoResponse } from "../services/auto-response.service.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
 import { notifyAgentsNewMessage } from "../services/push.service.js";
+import { redisClient, isRedisAvailable } from "../lib/redis-client.js";
 
 /** Strip codec/parameter info from MIME types like "audio/ogg; codecs=opus" → "audio/ogg" */
 function normalizeMime(mime: string): string {
@@ -40,29 +41,33 @@ function normalizeMime(mime: string): string {
 }
 
 /**
- * In-process dedup cache for incoming messages.
+ * Dedup check for incoming messages — two-tier:
  *
- * The Evolution API sometimes fires "messages.upsert" TWICE for the same
- * message within ~8 ms (race condition). Both calls pass the DB findFirst
- * check before either insert completes, making the P2002 unique-violation
- * the only safety net — but only when the @unique index exists in the DB.
+ * Tier 1 (Redis, preferred): SET NX EX 60 → atomic, survives process restarts.
+ *   Returns true if the key already existed (= duplicate).
  *
- * This Map provides a fast, atomic (single-threaded JS event loop) first
- * layer: the second webhook is rejected instantly without any DB round-trip.
- *
- * TTL: 60 s — well above any realistic duplicate window.
+ * Tier 2 (in-memory Map, fallback when Redis is unavailable): same TTL logic.
+ *   Works because Node.js is single-threaded — the check is atomic within
+ *   one process. Lost on restart, but that's acceptable without Redis.
  */
-const _dedupCache = new Map<string, number>(); // externalId → timestamp (ms)
+const _dedupFallback = new Map<string, number>();
 const DEDUP_TTL_MS = 60_000;
+const DEDUP_TTL_SEC = 60;
 
-function checkAndMarkDuplicate(externalId: string): boolean {
-  const now = Date.now();
-  // Purge stale entries
-  for (const [key, ts] of _dedupCache) {
-    if (now - ts > DEDUP_TTL_MS) _dedupCache.delete(key);
+async function checkAndMarkDuplicate(externalId: string): Promise<boolean> {
+  if (isRedisAvailable()) {
+    // SET key "1" EX 60 NX → returns "OK" if set (new), null if already existed (duplicate)
+    const result = await redisClient.set(`dedup:msg:${externalId}`, "1", "EX", DEDUP_TTL_SEC, "NX");
+    return result === null; // null = already existed = duplicate
   }
-  if (_dedupCache.has(externalId)) return true; // duplicate
-  _dedupCache.set(externalId, now);
+
+  // In-memory fallback
+  const now = Date.now();
+  for (const [key, ts] of _dedupFallback) {
+    if (now - ts > DEDUP_TTL_MS) _dedupFallback.delete(key);
+  }
+  if (_dedupFallback.has(externalId)) return true;
+  _dedupFallback.set(externalId, now);
   return false;
 }
 
@@ -93,11 +98,11 @@ async function processIncomingMessage(params: {
   }
 
   // Step 7: Save message — three-layer dedup strategy:
-  //   Layer 1: in-process Map (atomic, no DB round-trip — handles same-process race condition)
-  //   Layer 2: DB findFirst (handles cross-restart / multi-process cases)
-  //   Layer 3: P2002 unique-violation catch (last resort for any remaining race condition)
-  if (externalMessageId && checkAndMarkDuplicate(externalMessageId)) {
-    logger.info(`[Webhook] Duplicate message skipped (in-memory): ${externalMessageId}`);
+  //   Layer 1: Redis SET NX (atomic, survives restarts) or in-memory Map fallback
+  //   Layer 2: DB findFirst (handles cases where Redis TTL expired between events)
+  //   Layer 3: P2002 unique-violation catch (last resort for concurrent inserts)
+  if (externalMessageId && await checkAndMarkDuplicate(externalMessageId)) {
+    logger.info(`[Webhook] Duplicate message skipped (dedup): ${externalMessageId}`);
     return;
   }
   const existing = await prisma.message.findFirst({ where: { externalId: externalMessageId } });
@@ -480,6 +485,19 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
 
   // ─── Evolution API Webhook ─────────────────────────────
   app.post("/evolution", async (request, reply) => {
+    // Webhook signature validation.
+    // When EVOLUTION_WEBHOOK_SECRET is set, the Evolution API instance must be
+    // configured to send that same value in the "apikey" header. Any request
+    // that doesn't carry the correct key is rejected immediately — preventing
+    // spoofed webhook events from external sources.
+    if (config.EVOLUTION_WEBHOOK_SECRET) {
+      const apikey = (request.headers["apikey"] ?? request.headers["x-api-key"]) as string | undefined;
+      if (!apikey || apikey !== config.EVOLUTION_WEBHOOK_SECRET) {
+        logger.warn(`[Evolution WEBHOOK] Rejected: invalid or missing apikey header (ip=${request.ip})`);
+        return reply.status(401).send({ detail: "Unauthorized" });
+      }
+    }
+
     const body = request.body as Record<string, unknown>;
 
     // === TOP-LEVEL DEBUG: Log EVERY webhook event ===

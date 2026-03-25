@@ -4,7 +4,11 @@ import { config } from "../config.js";
 import { AppError } from "./errors.js";
 
 const ALGORITHM = "aes-256-gcm";
-const KEY = crypto.scryptSync(config.SECRET_KEY, process.env.ENCRYPTION_SALT || "conversia-salt-124b", 32);
+// Key is derived from SECRET_KEY + ENCRYPTION_SALT (both from env).
+// The salt default matches the historical hardcoded value so existing encrypted
+// data in production continues to decrypt correctly after this change.
+// To rotate: set a new ENCRYPTION_SALT in env AND re-encrypt all tenant API keys.
+const KEY = crypto.scryptSync(config.SECRET_KEY, config.ENCRYPTION_SALT, 32);
 
 export function encrypt(text: string): string {
   const iv = crypto.randomBytes(16);

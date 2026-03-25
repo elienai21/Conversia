@@ -7,7 +7,7 @@ import { logger } from "./logger.js";
 
 let redisAvailable = false;
 
-const connection = new Redis(config.REDIS_URL || "redis://localhost:6379", {
+export const connection = new Redis(config.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
   lazyConnect: true,
   retryStrategy(times: number) {
@@ -82,10 +82,46 @@ export const taskQueue = new Queue(TASK_QUEUE_NAME, {
   defaultJobOptions: { removeOnComplete: 5, removeOnFail: 10 },
 });
 
+const TASK_SYNC_LOCK_KEY = "lock:task-sync";
+const TASK_SYNC_LOCK_TTL_SEC = 3600; // 1h — same as sync interval
+
+/**
+ * Runs runDailyTaskSync() under a distributed Redis lock.
+ *
+ * Without this lock, a Railway deploy (or crash+restart) during the hourly
+ * cron window could enqueue a second job while the first is still running,
+ * causing duplicate tasks to be created for the same reservations.
+ *
+ * SET NX EX: atomic — only one process can hold the lock at a time.
+ * The lock is always released in `finally` so a failed sync doesn't block
+ * the next run for a full hour.
+ */
+async function runDailyTaskSyncWithLock(): Promise<void> {
+  if (!redisAvailable) {
+    // Redis unavailable — run without lock (accepts the race condition risk)
+    logger.warn("[TaskWorker] Redis unavailable — running sync without distributed lock");
+    await runDailyTaskSync();
+    return;
+  }
+
+  const acquired = await connection.set(TASK_SYNC_LOCK_KEY, "1", "EX", TASK_SYNC_LOCK_TTL_SEC, "NX");
+  if (!acquired) {
+    logger.info("[TaskWorker] Sync already running (lock held by another process) — skipping");
+    return;
+  }
+
+  try {
+    await runDailyTaskSync();
+  } finally {
+    await connection.del(TASK_SYNC_LOCK_KEY);
+    logger.info("[TaskWorker] Distributed lock released");
+  }
+}
+
 export const taskWorker = new Worker(
   TASK_QUEUE_NAME,
   async () => {
-    await runDailyTaskSync();
+    await runDailyTaskSyncWithLock();
   },
   { connection: connection as any },
 );
