@@ -493,7 +493,16 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
     if (config.EVOLUTION_WEBHOOK_SECRET) {
       const apikey = (request.headers["apikey"] ?? request.headers["x-api-key"]) as string | undefined;
       if (!apikey || apikey !== config.EVOLUTION_WEBHOOK_SECRET) {
-        logger.warn(`[Evolution WEBHOOK] Rejected: invalid or missing apikey header (ip=${request.ip})`);
+        // Log all headers so we can see exactly what Evolution API is sending
+        const safeHeaders = Object.fromEntries(
+          Object.entries(request.headers).map(([k, v]) => [
+            k,
+            k.toLowerCase().includes("key") || k.toLowerCase().includes("auth") || k.toLowerCase().includes("token")
+              ? (typeof v === "string" ? `${v.slice(0, 6)}...[${v.length}chars]` : v)
+              : v,
+          ])
+        );
+        logger.warn({ headers: safeHeaders }, `[Evolution WEBHOOK] Rejected: invalid or missing apikey header (ip=${request.ip}). Expected key length=${config.EVOLUTION_WEBHOOK_SECRET.length}, got apikey=${apikey ? `${apikey.slice(0,6)}...[${apikey.length}chars]` : "undefined"}`);
         return reply.status(401).send({ detail: "Unauthorized" });
       }
     }
