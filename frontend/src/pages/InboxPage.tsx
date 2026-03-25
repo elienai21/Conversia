@@ -316,6 +316,7 @@ export function InboxPage() {
   const [usedSuggestionId, setUsedSuggestionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "urgent">("all");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -714,13 +715,21 @@ export function InboxPage() {
 
   const filteredConversations = conversations
     .filter((conv) => {
+      if (activeTab === "urgent" && conv.priority !== "urgent") return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const name = conv.customer?.name?.toLowerCase() || "";
       const phone = conv.customer?.phone?.toLowerCase() || "";
       return name.includes(q) || phone.includes(q);
     })
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    .sort((a, b) => {
+      // Urgent items always on top if in "all" tab, else fallback to latest
+      if (activeTab === "all") {
+        if (a.priority === "urgent" && b.priority !== "urgent") return -1;
+        if (b.priority === "urgent" && a.priority !== "urgent") return 1;
+      }
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    });
 
   const activeConv = conversations.find(c => c.id === activeConversation);
 
@@ -746,16 +755,30 @@ export function InboxPage() {
     <div className={`inbox-container glass-panel ${activeConversation ? "show-chat" : ""}`}>
       {/* Sidebar - Conversation List */}
       <div className="inbox-sidebar">
-        <div className="inbox-header">
-          <h3>Messages</h3>
+        <div className="inbox-header flex flex-col gap-3">
+          <h3>Mensagens</h3>
           <div className="search-bar">
             <Search size={16} />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Buscar conversas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+          <div className="flex bg-[var(--surface-tertiary)] p-1 rounded-lg">
+            <button 
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === 'all' ? 'bg-[var(--surface-primary)] shadow-sm' : 'text-muted hover:text-[var(--text-primary)]'}`}
+              onClick={() => setActiveTab('all')}
+            >
+              Todas
+            </button>
+            <button 
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === 'urgent' ? 'bg-red-500/10 text-red-500 shadow-sm font-medium' : 'text-muted hover:text-red-400'}`}
+              onClick={() => setActiveTab('urgent')}
+            >
+              🔥 Urgência
+            </button>
           </div>
         </div>
 
@@ -788,9 +811,16 @@ export function InboxPage() {
                       <span className="conv-time">{new Date(conv.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
                   </div>
-                  <span className="conv-preview text-ellipsis">
-                    {conv.lastMessagePreview || <>{channelIcon(conv.channel)} {conv.channel} - {conv.status}</>}
-                  </span>
+                  <div className="conv-preview text-ellipsis flex flex-col gap-1 mt-1">
+                    {conv.priority === 'urgent' && conv.lastMessagePreview?.includes('Avaliação Negativa') && (
+                      <span className="text-red-500 font-bold animate-pulse text-[10px] uppercase tracking-wider bg-red-500/10 rounded px-1.5 py-0.5 w-fit border border-red-500/20">
+                        [ALERTA DE AVALIAÇÃO RUIM - ASSUMIR ATENDIMENTO]
+                      </span>
+                    )}
+                    <span className="truncate text-muted">
+                      {conv.lastMessagePreview || <>{channelIcon(conv.channel)} {conv.channel} - {conv.status}</>}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))

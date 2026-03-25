@@ -67,3 +67,56 @@ export async function notifyAgentsNewMessage(
     logger.warn({ err }, "[Push] notifyAgentsNewMessage failed (non-fatal)");
   }
 }
+
+export interface UpsellPushPayload {
+  conversationId: string;
+  customerName: string;
+  service: string;
+}
+
+/**
+ * Sends a dedicated push notification for upsell purchases.
+ * Uses type "upsell_sold" so the frontend can display a visually distinct notification.
+ */
+export async function notifyAgentsUpsell(
+  tenantId: string,
+  payload: UpsellPushPayload,
+): Promise<void> {
+  try {
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { tenantId },
+      select: { id: true, endpoint: true, p256dh: true, auth: true },
+    });
+
+    if (subscriptions.length === 0) return;
+
+    const keys = await getOrCreateVapidKeys(tenantId);
+    const subject = config.VAPID_SUBJECT;
+
+    const pushData = {
+      type: "upsell_sold",
+      title: `🔔 Nova Venda! ${payload.service}`,
+      body: `${payload.customerName} solicitou: ${payload.service}`,
+      conversationId: payload.conversationId,
+      url: `/conversations/${payload.conversationId}`,
+      timestamp: Date.now(),
+    };
+
+    const expiredIds: string[] = [];
+
+    await Promise.allSettled(
+      subscriptions.map(async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
+        const alive = await sendPushToSubscription(sub, pushData, keys, subject);
+        if (!alive) expiredIds.push(sub.id);
+      }),
+    );
+
+    if (expiredIds.length > 0) {
+      await prisma.pushSubscription.deleteMany({ where: { id: { in: expiredIds } } });
+    }
+
+    logger.info(`[Push] Upsell notification sent to ${subscriptions.length - expiredIds.length} agent(s)`);
+  } catch (err) {
+    logger.warn({ err }, "[Push] notifyAgentsUpsell failed (non-fatal)");
+  }
+}

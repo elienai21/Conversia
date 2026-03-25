@@ -5,7 +5,7 @@ import { logger } from "../lib/logger.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { saveMessage } from "../services/message.service.js";
-import { notifyAgentsNewMessage } from "../services/push.service.js";
+import { notifyAgentsNewMessage, notifyAgentsUpsell } from "../services/push.service.js";
 
 const submitFormSchema = z.object({
   fullName:      z.string().min(2).max(100),
@@ -288,10 +288,18 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
         } catch(e) {}
       }
 
-      notifyAgentsNewMessage(task.tenantId, {
+      // Dedicated upsell push notification (type: upsell_sold)
+      notifyAgentsUpsell(task.tenantId, {
         conversationId,
         customerName: guestNameStr,
-        messagePreview: `Upsell solicitado: ${service}`,
+        service,
+      });
+
+      // Real-time event for sidebar upsell counter
+      socket.emitToTenant(task.tenantId, "upsell.new", {
+        conversationId,
+        customerName: guestNameStr,
+        service,
       });
 
       return reply.status(200).send({ success: true });

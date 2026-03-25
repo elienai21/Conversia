@@ -201,7 +201,7 @@ export function TaskQueuePage() {
   const typeMap: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
     checkin_hoje: { label: "Check-in Hoje", icon: Key, color: "text-amber-500", bg: "bg-amber-500/10" },
     checkin_amanha: { label: "Check-in Amanhã", icon: Key, color: "text-orange-500", bg: "bg-orange-500/10" },
-    checkout_hoje: { label: "Check-out NPS (Hoje)", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10" },
+    checkout_hoje: { label: "Avaliações Pendentes", icon: Sparkles, color: "text-purple-500", bg: "bg-purple-500/10" },
     checkout_amanha: { label: "Check-out Avisos", icon: Sparkles, color: "text-indigo-500", bg: "bg-indigo-500/10" },
   };
 
@@ -356,7 +356,11 @@ export function TaskQueuePage() {
                               {task.customerName.charAt(0).toUpperCase()}
                             </div>
                             <div className="customer-details">
-                              <p>{task.customerName}</p>
+                              <p className="font-medium text-[var(--accent-primary)]">
+                                {task.type === "checkout_hoje" 
+                                  ? `Pedir avaliação para ${task.customerName}` 
+                                  : task.customerName}
+                              </p>
                               <p>{task.customerPhone}</p>
                             </div>
                           </div>

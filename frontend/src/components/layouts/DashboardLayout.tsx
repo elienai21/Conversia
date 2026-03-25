@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -22,6 +22,7 @@ export function DashboardLayout() {
   const { socket } = useSocket();
   const { t } = useTranslation();
   const [openCount, setOpenCount] = useState(0);
+  const [upsellCount, setUpsellCount] = useState(0);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const fetchOpenCount = useCallback(async () => {
@@ -44,9 +45,11 @@ export function DashboardLayout() {
     const refresh = () => fetchOpenCount();
     socket.on("conversation.new", refresh);
     socket.on("conversation.updated", refresh);
+    socket.on("upsell.new", () => setUpsellCount((c) => c + 1));
     return () => {
       socket.off("conversation.new", refresh);
       socket.off("conversation.updated", refresh);
+      socket.off("upsell.new", () => {});
     };
   }, [socket, fetchOpenCount]);
 
@@ -94,6 +97,7 @@ export function DashboardLayout() {
             <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <Target size={20} />
               <span>{t("Missões Diárias")}</span>
+              {upsellCount > 0 && <span className="nav-badge" style={{ background: 'var(--accent-success)' }}>{upsellCount}</span>}
             </NavLink>
             <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <Users size={20} />
@@ -132,9 +136,23 @@ export function DashboardLayout() {
 
         <div className="sidebar-footer">
           <div className="pro-plan-widget">
-            <p className="widget-title">Pro Plan</p>
-            <p className="widget-desc">{user?.tenantId ? "Premium features unlocked." : "You have 14 days left on your trial."}</p>
-            {!user?.tenantId && <button className="widget-btn">Upgrade Now</button>}
+            {upsellCount > 0 ? (
+              <>
+                <p className="widget-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ShoppingBag size={16} style={{ color: 'var(--accent-success)' }} />
+                  Upsells Adquiridos
+                </p>
+                <p className="widget-desc" style={{ color: 'var(--accent-success)', fontWeight: 600, fontSize: '1.25rem' }}>
+                  {upsellCount} venda{upsellCount > 1 ? 's' : ''} hoje
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="widget-title">Pro Plan</p>
+                <p className="widget-desc">{user?.tenantId ? "Premium features unlocked." : "You have 14 days left on your trial."}</p>
+                {!user?.tenantId && <button className="widget-btn">Upgrade Now</button>}
+              </>
+            )}
           </div>
 
           <div className="user-profile-bar">
