@@ -1,161 +1,83 @@
 // src/pages/ServiceOrdersPage.tsx
-// Kanban board for Service Orders (O.S.) management
 import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
 import { ClipboardList, MapPin, Wrench, User, Plus, GripVertical, Hash } from "lucide-react";
+import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 import "./ServiceOrdersPage.css";
 
 type ServiceOrder = {
   id: string;
   sequentialNumber: number;
   location: string;
+  category: string | null;
   description: string;
+  priority: string;
   assignedTo: string | null;
+  guestName: string | null;
+  impactOnStay: string | null;
+  paymentResponsible: string | null;
   status: string;
   createdAt: string;
-  conversation?: {
-    id: string;
-    customer: { name: string | null; phone: string } | null;
-  } | null;
+  conversation?: { id: string; customer: { name: string | null; phone: string } | null } | null;
 };
 
 type RawServiceOrder = {
   id: string;
-  sequential_number?: number;
-  sequentialNumber?: number;
+  sequential_number?: number;  sequentialNumber?: number;
   location: string;
+  category?: string | null;
   description: string;
-  assigned_to?: string | null;
-  assignedTo?: string | null;
+  priority?: string;
+  assigned_to?: string | null;   assignedTo?: string | null;
+  guest_name?: string | null;    guestName?: string | null;
+  impact_on_stay?: string | null; impactOnStay?: string | null;
+  payment_responsible?: string | null; paymentResponsible?: string | null;
   status: string;
-  created_at?: string;
-  createdAt?: string;
-  conversation?: {
-    id: string;
-    customer: { name: string | null; phone: string } | null;
-  } | null;
+  created_at?: string;  createdAt?: string;
+  conversation?: { id: string; customer: { name: string | null; phone: string } | null } | null;
 };
-
-const COLUMNS: { key: string; label: string; color: string; icon: React.ReactNode }[] = [
-  { key: "pending", label: "📋 Pendente", color: "#f59e0b", icon: <ClipboardList size={16} /> },
-  { key: "in_progress", label: "🔧 Em Andamento", color: "#3b82f6", icon: <Wrench size={16} /> },
-  { key: "done", label: "✅ Concluído", color: "#10b981", icon: null },
-  { key: "cancelled", label: "❌ Cancelado", color: "#ef4444", icon: null },
-];
 
 function mapOrder(raw: RawServiceOrder): ServiceOrder {
   return {
     id: raw.id,
     sequentialNumber: raw.sequential_number ?? raw.sequentialNumber ?? 0,
     location: raw.location,
+    category: raw.category ?? null,
     description: raw.description,
+    priority: raw.priority ?? "medium",
     assignedTo: raw.assigned_to ?? raw.assignedTo ?? null,
+    guestName: raw.guest_name ?? raw.guestName ?? null,
+    impactOnStay: raw.impact_on_stay ?? raw.impactOnStay ?? null,
+    paymentResponsible: raw.payment_responsible ?? raw.paymentResponsible ?? null,
     status: raw.status,
     createdAt: raw.created_at ?? raw.createdAt ?? "",
     conversation: raw.conversation ?? null,
   };
 }
 
-type CreateOrderModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onCreated: () => void;
+const COLUMNS: { key: string; label: string; color: string }[] = [
+  { key: "pending",          label: "📋 Pendente",          color: "#f59e0b" },
+  { key: "in_progress",      label: "🔧 Em Andamento",      color: "#3b82f6" },
+  { key: "waiting_material", label: "📦 Aguard. Material",  color: "#8b5cf6" },
+  { key: "done",             label: "✅ Concluído",          color: "#10b981" },
+  { key: "cancelled",        label: "❌ Cancelado",          color: "#ef4444" },
+];
+
+const PRIORITY_BADGE: Record<string, { label: string; cls: string }> = {
+  low:    { label: "Baixa",   cls: "os-prio-low"    },
+  medium: { label: "Média",   cls: "os-prio-medium" },
+  high:   { label: "Alta",    cls: "os-prio-high"   },
+  urgent: { label: "Urgente", cls: "os-prio-urgent" },
 };
 
-function CreateOrderModal({ open, onClose, onCreated }: CreateOrderModalProps) {
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
-  const [assignedPhone, setAssignedPhone] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  if (!open) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!location.trim() || !description.trim()) return;
-
-    setSaving(true);
-    try {
-      await ApiService.post("/service-orders", {
-        location: location.trim(),
-        description: description.trim(),
-        assignedTo: assignedTo.trim() || undefined,
-        assignedPhone: assignedPhone.trim() || undefined,
-      });
-      setLocation("");
-      setDescription("");
-      setAssignedTo("");
-      setAssignedPhone("");
-      onCreated();
-      onClose();
-    } catch {
-      // ignore
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="os-modal-overlay" onClick={onClose}>
-      <div className="os-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Nova Ordem de Serviço</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="os-form-group">
-            <label>📍 Local</label>
-            <input
-              type="text"
-              placeholder="Ex: Casa Praia - Banheiro Suite"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
-          <div className="os-form-group">
-            <label>🔧 Descrição da Tarefa</label>
-            <textarea
-              placeholder="Ex: Trocar chuveiro elétrico"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={3}
-            />
-          </div>
-          <div className="os-form-group">
-            <label>👷 Responsável (opcional)</label>
-            <input
-              type="text"
-              placeholder="Ex: João Eletricista"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-            />
-          </div>
-          <div className="os-form-group">
-            <label>📱 WhatsApp do Responsável (opcional)</label>
-            <input
-              type="text"
-              placeholder="Ex: 5511999998888"
-              value={assignedPhone}
-              onChange={(e) => setAssignedPhone(e.target.value)}
-            />
-          </div>
-          <div className="os-modal-actions">
-            <button type="button" className="os-btn-cancel" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="os-btn-primary" disabled={saving}>
-              {saving ? "Criando..." : "Criar O.S."}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+const IMPACT_BADGE: Record<string, string> = {
+  partial:       "⚠️",
+  blocks_checkin: "🚫",
+};
 
 export function ServiceOrdersPage() {
-  const [orders, setOrders] = useState<ServiceOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders]       = useState<ServiceOrder[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -170,9 +92,7 @@ export function ServiceOrdersPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const getColumnOrders = (status: string) => orders.filter((o) => o.status === status);
 
@@ -189,23 +109,16 @@ export function ServiceOrdersPage() {
   const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
     e.preventDefault();
     if (!draggedId) return;
-
     const order = orders.find((o) => o.id === draggedId);
-    if (!order || order.status === targetStatus) {
-      setDraggedId(null);
-      return;
-    }
+    if (!order || order.status === targetStatus) { setDraggedId(null); return; }
 
-    // Optimistic update
-    setOrders((prev) =>
-      prev.map((o) => (o.id === draggedId ? { ...o, status: targetStatus } : o))
-    );
+    setOrders((prev) => prev.map((o) => (o.id === draggedId ? { ...o, status: targetStatus } : o)));
     setDraggedId(null);
 
     try {
       await ApiService.patch(`/service-orders/${draggedId}`, { status: targetStatus });
     } catch {
-      fetchOrders(); // rollback
+      fetchOrders();
     }
   };
 
@@ -244,40 +157,67 @@ export function ServiceOrdersPage() {
 
                 <div className="os-column-body">
                   {columnOrders.length === 0 ? (
-                    <div className="os-column-empty">
-                      Arraste cards aqui
-                    </div>
+                    <div className="os-column-empty">Arraste cards aqui</div>
                   ) : (
-                    columnOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className={`os-card ${draggedId === order.id ? "os-card-dragging" : ""}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, order.id)}
-                      >
-                        <div className="os-card-header">
-                          <span className="os-card-number">
-                            <Hash size={12} />
-                            {order.sequentialNumber}
-                          </span>
-                          <GripVertical size={14} className="os-card-grip" />
-                        </div>
-                        <div className="os-card-location">
-                          <MapPin size={13} />
-                          <span>{order.location}</span>
-                        </div>
-                        <p className="os-card-desc">{order.description}</p>
-                        {order.assignedTo && (
-                          <div className="os-card-assignee">
-                            <User size={13} />
-                            <span>{order.assignedTo}</span>
+                    columnOrders.map((order) => {
+                      const prio = PRIORITY_BADGE[order.priority] ?? PRIORITY_BADGE.medium;
+                      return (
+                        <div
+                          key={order.id}
+                          className={`os-card ${draggedId === order.id ? "os-card-dragging" : ""}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, order.id)}
+                        >
+                          <div className="os-card-header">
+                            <span className="os-card-number">
+                              <Hash size={11} />
+                              {order.sequentialNumber}
+                            </span>
+                            <div className="os-card-badges">
+                              <span className={`os-prio-badge ${prio.cls}`}>{prio.label}</span>
+                              {order.category && (
+                                <span className="os-cat-badge">{order.category}</span>
+                              )}
+                              {order.impactOnStay && IMPACT_BADGE[order.impactOnStay] && (
+                                <span title={order.impactOnStay}>{IMPACT_BADGE[order.impactOnStay]}</span>
+                              )}
+                            </div>
+                            <GripVertical size={14} className="os-card-grip" />
                           </div>
-                        )}
-                        <div className="os-card-time">
-                          {new Date(order.createdAt).toLocaleDateString("pt-BR")}
+
+                          <div className="os-card-location">
+                            <MapPin size={12} />
+                            <span>{order.location}</span>
+                          </div>
+
+                          <p className="os-card-desc">{order.description}</p>
+
+                          {order.guestName && (
+                            <div className="os-card-guest">🧳 {order.guestName}</div>
+                          )}
+
+                          {order.assignedTo && (
+                            <div className="os-card-assignee">
+                              <User size={12} />
+                              <span>{order.assignedTo}</span>
+                            </div>
+                          )}
+
+                          <div className="os-card-footer">
+                            {order.paymentResponsible && (
+                              <span className="os-payment-badge">
+                                {order.paymentResponsible === "guest" ? "🧳" :
+                                 order.paymentResponsible === "owner" ? "🏠" : "🏢"}
+                                {" "}{order.paymentResponsible}
+                              </span>
+                            )}
+                            <span className="os-card-time">
+                              {new Date(order.createdAt).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -286,7 +226,7 @@ export function ServiceOrdersPage() {
         </div>
       )}
 
-      <CreateOrderModal
+      <ServiceOrderModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={fetchOrders}

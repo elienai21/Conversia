@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
+import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 
 // Internal component types (camelCase)
 type Conversation = {
@@ -323,6 +324,7 @@ export function InboxPage() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: string } | null>(null);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showChatMenu, setShowChatMenu] = useState(false);
+  const [showOsModal, setShowOsModal] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -894,6 +896,9 @@ export function InboxPage() {
                   </button>
                   {showChatMenu && (
                     <div className="chat-menu-dropdown glass-panel">
+                      <button className="chat-menu-item" onClick={() => { setShowChatMenu(false); setShowOsModal(true); }}>
+                        <ClipboardList size={14} /> Abrir O.S.
+                      </button>
                       <button className="chat-menu-item" onClick={handleOpenEmailModal}>
                         <Mail size={14} /> Enviar por email
                       </button>
@@ -1244,6 +1249,14 @@ export function InboxPage() {
           </div>
         </div>
       )}
+
+      {/* Service Order Modal — pre-filled by AI from this conversation */}
+      <ServiceOrderModal
+        open={showOsModal}
+        onClose={() => setShowOsModal(false)}
+        onCreated={() => {}}
+        conversationId={activeConversation ?? undefined}
+      />
 
       {/* Context Menu for message actions */}
       {contextMenu && (

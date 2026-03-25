@@ -7,17 +7,52 @@ import { sendWhatsappMessage } from "../services/whatsapp.service.js";
 interface CreateServiceOrderBody {
   conversationId?: string;
   location: string;
+  origin?: string;
+  category?: string;
+  subcategory?: string;
   description: string;
+  priority?: string;
+  impactOnStay?: string;
+  guestName?: string;
+  reservationCode?: string;
+  paymentResponsible?: string;
   assignedTo?: string;
   assignedPhone?: string;
+  dueDate?: string;
+  notes?: string;
 }
 
 interface UpdateServiceOrderBody {
   status?: string;
   assignedTo?: string;
   location?: string;
+  category?: string;
   description?: string;
+  priority?: string;
+  impactOnStay?: string;
+  paymentResponsible?: string;
+  dueDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  notes?: string;
+  problems?: string;
+  guestName?: string;
+  reservationCode?: string;
 }
+
+const PRIORITY_LABEL: Record<string, string> = {
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  urgent: "URGENTE",
+};
+
+const PRIORITY_EMOJI: Record<string, string> = {
+  low: "🟢",
+  medium: "🔵",
+  high: "🟡",
+  urgent: "🔴",
+};
 
 export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -48,7 +83,23 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: CreateServiceOrderBody }>("/", async (request, reply) => {
     const { prisma, socket } = request.server.deps;
     const tenantId = request.user.tenantId;
-    const { conversationId, location, description, assignedTo, assignedPhone } = request.body;
+    const {
+      conversationId,
+      location,
+      origin,
+      category,
+      subcategory,
+      description,
+      priority = "medium",
+      impactOnStay,
+      guestName,
+      reservationCode,
+      paymentResponsible,
+      assignedTo,
+      assignedPhone,
+      dueDate,
+      notes,
+    } = request.body;
 
     if (!location || !description) {
       return reply.status(400).send({ detail: "location e description são obrigatórios." });
@@ -68,22 +119,37 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
         conversationId: conversationId ?? null,
         sequentialNumber: nextNumber,
         location,
+        origin: origin ?? null,
+        category: category ?? null,
+        subcategory: subcategory ?? null,
         description,
+        priority,
+        impactOnStay: impactOnStay ?? null,
+        guestName: guestName ?? null,
+        reservationCode: reservationCode ?? null,
+        paymentResponsible: paymentResponsible ?? null,
         assignedTo: assignedTo ?? null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        notes: notes ?? null,
         status: "pending",
       },
     });
 
-    logger.info(`[ServiceOrder] #${nextNumber} criada para tenant ${tenantId}`);
+    logger.info(`[ServiceOrder] #${nextNumber} criada para tenant ${tenantId} | cat=${category} | prio=${priority}`);
 
     // If linked to a conversation, insert a system card message
     if (conversationId) {
+      const prioEmoji = PRIORITY_EMOJI[priority] ?? "🔵";
+      const prioLabel = PRIORITY_LABEL[priority] ?? priority;
       const cardText = [
         `🚨 *NOVA ORDEM DE SERVIÇO #${nextNumber}*`,
         `📍 Local: ${location}`,
+        category ? `📂 Categoria: ${category}` : "",
         `🔧 Tarefa: ${description}`,
+        `${prioEmoji} Prioridade: ${prioLabel}`,
         assignedTo ? `👷 Responsável: ${assignedTo}` : "",
-        `\nResponda "Iniciar" quando começar e envie a foto da nota fiscal quando terminar.`,
+        notes ? `📝 Obs: ${notes}` : "",
+        `\nResponda "Iniciar" quando começar e envie a foto quando terminar.`,
       ]
         .filter(Boolean)
         .join("\n");
@@ -107,12 +173,18 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
 
     // If staff phone provided, dispatch WhatsApp message
     if (assignedPhone) {
+      const prioEmoji = PRIORITY_EMOJI[priority] ?? "🔵";
       const whatsappText = [
         `🚨 NOVA ORDEM DE SERVIÇO #${nextNumber}`,
+        `${prioEmoji} Prioridade: ${PRIORITY_LABEL[priority] ?? priority}`,
         `Local: ${location}`,
+        category ? `Categoria: ${category}` : "",
         `Tarefa: ${description}`,
-        `\nPor favor, responda "Iniciar" quando começar e envie a foto da nota fiscal quando terminar.`,
-      ].join("\n");
+        notes ? `Obs: ${notes}` : "",
+        `\nPor favor, responda "Iniciar" quando começar e envie a foto quando terminar.`,
+      ]
+        .filter(Boolean)
+        .join("\n");
 
       try {
         await sendWhatsappMessage(tenantId, assignedPhone, whatsappText);
@@ -125,14 +197,13 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(order);
   });
 
-  // Update a service order (Kanban drag, assign, etc.)
+  // Update a service order (Kanban drag, assign, execution details, etc.)
   app.patch<{ Params: { id: string }; Body: UpdateServiceOrderBody }>(
     "/:id",
     async (request, reply) => {
       const { prisma } = request.server.deps;
       const tenantId = request.user.tenantId;
       const { id } = request.params;
-      const { status, assignedTo, location, description } = request.body;
 
       const existing = await prisma.serviceOrder.findFirst({
         where: { id, tenantId },
@@ -142,21 +213,54 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Ordem de serviço não encontrada." });
       }
 
+      const {
+        status,
+        assignedTo,
+        location,
+        category,
+        description,
+        priority,
+        impactOnStay,
+        paymentResponsible,
+        dueDate,
+        startedAt,
+        completedAt,
+        notes,
+        problems,
+        guestName,
+        reservationCode,
+      } = request.body;
+
       const data: Record<string, unknown> = {};
-      if (status) data.status = status;
+      if (status !== undefined) data.status = status;
       if (assignedTo !== undefined) data.assignedTo = assignedTo;
-      if (location) data.location = location;
-      if (description) data.description = description;
+      if (location !== undefined) data.location = location;
+      if (category !== undefined) data.category = category;
+      if (description !== undefined) data.description = description;
+      if (priority !== undefined) data.priority = priority;
+      if (impactOnStay !== undefined) data.impactOnStay = impactOnStay;
+      if (paymentResponsible !== undefined) data.paymentResponsible = paymentResponsible;
+      if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+      if (startedAt !== undefined) data.startedAt = startedAt ? new Date(startedAt) : null;
+      if (completedAt !== undefined) data.completedAt = completedAt ? new Date(completedAt) : null;
+      if (notes !== undefined) data.notes = notes;
+      if (problems !== undefined) data.problems = problems;
+      if (guestName !== undefined) data.guestName = guestName;
+      if (reservationCode !== undefined) data.reservationCode = reservationCode;
 
-      const updated = await prisma.serviceOrder.update({
-        where: { id },
-        data,
-      });
+      // Auto-set timestamps on status transitions
+      if (status === "in_progress" && !existing.startedAt) {
+        data.startedAt = new Date();
+      }
+      if (status === "done" && !existing.completedAt) {
+        data.completedAt = new Date();
+      }
 
-      logger.info(`[ServiceOrder] #${existing.sequentialNumber} atualizada para status=${updated.status}`);
+      const updated = await prisma.serviceOrder.update({ where: { id }, data });
+
+      logger.info(`[ServiceOrder] #${existing.sequentialNumber} → status=${updated.status}`);
 
       return reply.send(updated);
     },
   );
 }
-

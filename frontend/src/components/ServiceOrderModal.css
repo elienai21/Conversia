@@ -1,0 +1,300 @@
+/* ServiceOrderModal.css */
+
+.osm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  animation: osm-fade 0.2s ease;
+  padding: 1rem;
+}
+
+@keyframes osm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.osm-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  animation: osm-slide 0.25s ease;
+}
+
+@keyframes osm-slide {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Header */
+.osm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.osm-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.osm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 0.25rem;
+  border-radius: 6px;
+  display: flex;
+  transition: color 0.15s;
+}
+
+.osm-close:hover { color: var(--text-primary); }
+
+/* AI Banner */
+.osm-ai-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(99, 102, 241, 0.07);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+  flex-wrap: wrap;
+}
+
+.osm-ai-banner--used {
+  background: rgba(16, 185, 129, 0.06);
+  border-bottom-color: rgba(16, 185, 129, 0.15);
+}
+
+.osm-ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: var(--accent-primary, #6366f1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.osm-ai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.osm-ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  color: var(--accent-primary, #6366f1);
+  font-weight: 600;
+}
+
+.osm-ai-done {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--accent-success, #10b981);
+  font-weight: 600;
+}
+
+.osm-ai-redo {
+  background: none;
+  border: 1px solid var(--accent-success, #10b981);
+  color: var(--accent-success, #10b981);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.osm-ai-redo:hover {
+  background: var(--accent-success, #10b981);
+  color: #fff;
+}
+
+.osm-ai-error {
+  font-size: 0.78rem;
+  color: var(--accent-error, #ef4444);
+}
+
+/* Form */
+.osm-form {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.osm-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.osm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.osm-field--grow { flex: 1; min-width: 0; }
+.osm-field--200  { width: 200px; flex-shrink: 0; }
+.osm-field--160  { width: 160px; flex-shrink: 0; }
+
+.osm-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.osm-req {
+  color: var(--accent-error, #ef4444);
+  margin-left: 2px;
+}
+
+.osm-field input,
+.osm-field select,
+.osm-field textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+}
+
+.osm-field input:focus,
+.osm-field select:focus,
+.osm-field textarea:focus {
+  border-color: var(--accent-primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* AI-filled fields get a subtle green tint */
+.osm-ai-filled {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  background: rgba(16, 185, 129, 0.04) !important;
+}
+
+/* Priority select color */
+.osm-priority-low    { color: #10b981; }
+.osm-priority-medium { color: #3b82f6; }
+.osm-priority-high   { color: #f59e0b; }
+.osm-priority-urgent { color: #ef4444; font-weight: 700; }
+
+/* Actions */
+.osm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.osm-btn-cancel {
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.osm-btn-cancel:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.osm-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.3rem;
+  border-radius: 8px;
+  background: var(--accent-primary, #6366f1);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.osm-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.osm-btn-prio-urgent { background: #ef4444; }
+.osm-btn-prio-urgent:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
+.osm-btn-prio-high   { background: #f59e0b; }
+.osm-btn-prio-high:hover:not(:disabled)   { box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); }
+
+.osm-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner */
+.osm-spin {
+  animation: osm-rotate 0.8s linear infinite;
+}
+
+@keyframes osm-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .osm-modal {
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .osm-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .osm-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .osm-field--200,
+  .osm-field--160 {
+    width: 100%;
+  }
+}

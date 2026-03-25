@@ -297,18 +297,46 @@ model ConversationRead {
 }
 
 model ServiceOrder {
-  id               String        @id @default(uuid()) @db.Uuid
-  tenantId         String        @map("tenant_id") @db.Uuid
-  conversationId   String?       @map("conversation_id") @db.Uuid
-  sequentialNumber Int           @map("sequential_number")
-  location         String        @map("location")
-  description      String        @map("description")
-  assignedTo       String?       @map("assigned_to")
-  status           String        @default("pending") @map("status")
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
-  tenant           Tenant        @relation(fields: [tenantId], references: [id])
-  conversation     Conversation? @relation(fields: [conversationId], references: [id])
+  id                 String        @id @default(uuid()) @db.Uuid
+  tenantId           String        @map("tenant_id") @db.Uuid
+  conversationId     String?       @map("conversation_id") @db.Uuid
+  sequentialNumber   Int           @map("sequential_number")
+
+  // Identification
+  location           String        @map("location")
+  origin             String?       @map("origin")              // hóspede | proprietário | limpeza | vistoria | equipe_interna
+
+  // Type
+  category           String?       @map("category")            // limpeza | manutenção | vistoria | enxoval | check-in | check-out | suporte | reposição | emergência | outro
+  subcategory        String?       @map("subcategory")
+  description        String        @map("description")
+  priority           String        @default("medium") @map("priority") // low | medium | high | urgent
+
+  // Impact
+  impactOnStay       String?       @map("impact_on_stay")      // none | partial | blocks_checkin
+  guestName          String?       @map("guest_name")
+  reservationCode    String?       @map("reservation_code")
+  paymentResponsible String?       @map("payment_responsible") // guest | vivare | owner
+
+  // Responsible
+  assignedTo         String?       @map("assigned_to")
+
+  // Planning
+  dueDate            DateTime?     @map("due_date")
+
+  // Execution
+  startedAt          DateTime?     @map("started_at")
+  completedAt        DateTime?     @map("completed_at")
+  notes              String?       @map("notes")
+  problems           String?       @map("problems")
+
+  // Status & timestamps
+  status             String        @default("pending") @map("status")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  tenant             Tenant        @relation(fields: [tenantId], references: [id])
+  conversation       Conversation? @relation(fields: [conversationId], references: [id])
 
   @@index([tenantId, status], map: "ix_service_orders_tenant_status")
   @@map("service_orders")

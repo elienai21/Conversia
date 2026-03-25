@@ -509,4 +509,111 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  // Suggest service order (O.S.) fields using AI based on conversation history
+  app.post<{ Params: { conversationId: string } }>(
+    "/:conversationId/suggest-os",
+    async (request, reply) => {
+      const { prisma } = request.server.deps;
+      const user = request.user;
+      const { conversationId } = request.params;
+
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            take: 30,
+            select: { senderType: true, originalText: true },
+          },
+          customer: { select: { name: true, phone: true } },
+        },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      const tenantSettings = await prisma.tenantSettings.findUnique({ where: { tenantId: user.tenantId } });
+      let apiKey = config.OPENAI_API_KEY;
+      if (tenantSettings?.openaiApiKey) {
+        try { apiKey = decrypt(tenantSettings.openaiApiKey); } catch { /* fallback */ }
+      }
+
+      if (!apiKey) {
+        return reply.status(503).send({ detail: "OpenAI API key not configured" });
+      }
+
+      const history = conversation.messages
+        .filter((m) => m.originalText?.trim())
+        .map((m) => `${m.senderType === "customer" ? "Cliente" : "Atendente"}: ${m.originalText}`)
+        .join("\n");
+
+      const customerName = conversation.customer?.name || "cliente";
+
+      try {
+        const openai = new OpenAI({ apiKey });
+        logger.info(`[SuggestOS] calling OpenAI for conversation ${conversationId}, msgs=${conversation.messages.length}`);
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `Você é um especialista em operações de hospedagem. Analise a conversa e preencha os campos de uma Ordem de Serviço (O.S.) em JSON.
+
+Responda APENAS com JSON válido neste formato exato:
+{
+  "location": "unidade/apartamento/local mencionado (string)",
+  "category": "limpeza|manutenção|vistoria|enxoval|check-in|check-out|suporte|reposição|emergência|outro",
+  "description": "descrição resumida do problema ou demanda (máx 100 chars)",
+  "priority": "low|medium|high|urgent",
+  "origin": "hóspede|proprietário|limpeza|vistoria|equipe_interna",
+  "impactOnStay": "none|partial|blocks_checkin",
+  "guestName": "nome do hóspede se mencionado, senão vazio",
+  "paymentResponsible": "guest|vivare|owner",
+  "notes": "observações adicionais relevantes (máx 200 chars)"
+}
+
+Regras:
+- priority "urgent" apenas para emergências reais (vazamento, incêndio, acidente)
+- priority "high" para problemas que afetam a estadia atual
+- priority "medium" para manutenções programáveis
+- priority "low" para melhorias e limpezas de rotina
+- Se não tiver informação suficiente para um campo, use o valor padrão mais razoável`,
+            },
+            {
+              role: "user",
+              content: `Conversa com ${customerName}:\n\n${history}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 400,
+          temperature: 0.3,
+        });
+
+        const raw = completion.choices[0].message.content || "{}";
+        logger.info(`[SuggestOS] raw response: ${raw.slice(0, 300)}`);
+
+        let suggestion: Record<string, string> = {};
+        try { suggestion = JSON.parse(raw); } catch { /* leave empty */ }
+
+        return reply.send({
+          location: suggestion.location || "",
+          category: suggestion.category || "outro",
+          description: suggestion.description || "",
+          priority: suggestion.priority || "medium",
+          origin: suggestion.origin || "hóspede",
+          impactOnStay: suggestion.impactOnStay || "none",
+          guestName: suggestion.guestName || customerName,
+          paymentResponsible: suggestion.paymentResponsible || "vivare",
+          notes: suggestion.notes || "",
+        });
+      } catch (err: unknown) {
+        logger.error({ err }, "[SuggestOS] OpenAI error");
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        return reply.status(502).send({ detail: msg });
+      }
+    },
+  );
 }

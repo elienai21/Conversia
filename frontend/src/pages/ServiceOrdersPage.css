@@ -222,11 +222,68 @@
   color: var(--accent-info, #3b82f6);
 }
 
+.os-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+}
+
 .os-card-time {
   font-size: 0.68rem;
   color: var(--text-tertiary);
-  text-align: right;
-  margin-top: 0.35rem;
+}
+
+.os-card-guest {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+/* ─── Badge row ─── */
+.os-card-badges {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  flex: 1;
+  margin: 0 0.4rem;
+  flex-wrap: wrap;
+}
+
+.os-prio-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.os-prio-low    { background: rgba(16,185,129,0.12); color: #10b981; }
+.os-prio-medium { background: rgba(59,130,246,0.12); color: #3b82f6; }
+.os-prio-high   { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.os-prio-urgent { background: rgba(239,68,68,0.15);  color: #ef4444; animation: os-pulse 1.2s ease-in-out infinite; }
+
+@keyframes os-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+.os-cat-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  text-transform: capitalize;
+}
+
+.os-payment-badge {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  text-transform: capitalize;
 }
 
 /* ─── Create Modal ─── */
