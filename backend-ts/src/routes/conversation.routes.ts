@@ -33,6 +33,7 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
 
     const where: Record<string, unknown> = {
       tenantId: user.tenantId,
+      deletedAt: null, // exclude soft-deleted conversations
     };
 
     // Agents only see their assigned conversations
@@ -101,6 +102,44 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
       last_message_preview: c.messages[0]?.originalText?.substring(0, 80) || null,
     }));
 
+    return reply.send(result);
+  });
+
+  // GET /conversations/unread-summary
+  // Returns unread counts for all scopes in one query.
+  // Replaces 3 separate API calls from DashboardLayout (main + operations + owners).
+  app.get("/unread-summary", async (request, reply) => {
+    const { prisma } = request.server.deps;
+    const user = request.user;
+
+    const rows = await prisma.$queryRaw<{ scope: string; count: bigint }[]>`
+      SELECT
+        CASE
+          WHEN cu.role = 'staff'  THEN 'operations'
+          WHEN cu.role = 'owner'  THEN 'owners'
+          ELSE 'main'
+        END AS scope,
+        COUNT(DISTINCT c.id)::bigint AS count
+      FROM conversations c
+      JOIN customers cu ON cu.id = c.customer_id
+      LEFT JOIN conversation_reads cr
+        ON cr.conversation_id = c.id AND cr.user_id = ${user.id}::uuid
+      WHERE c.tenant_id = ${user.tenantId}::uuid
+        AND c.deleted_at IS NULL
+        AND EXISTS (
+          SELECT 1 FROM messages m
+          WHERE m.conversation_id = c.id
+            AND m.sender_type = 'customer'
+            AND m.deleted_at IS NULL
+            AND (cr.last_read_at IS NULL OR m.created_at > cr.last_read_at)
+        )
+      GROUP BY scope
+    `;
+
+    const result = { main: 0, operations: 0, owners: 0 };
+    for (const row of rows) {
+      if (row.scope in result) result[row.scope as keyof typeof result] = Number(row.count);
+    }
     return reply.send(result);
   });
 
@@ -239,24 +278,12 @@ export async function conversationRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Conversation not found" });
       }
 
-      // Delete in order: translations -> suggestions -> attachments -> messages -> reads -> conversation
-      await prisma.messageTranslation.deleteMany({
-        where: { message: { conversationId } },
-      });
-      await prisma.aISuggestion.deleteMany({
-        where: { message: { conversationId } },
-      });
-      await prisma.messageAttachment.deleteMany({
-        where: { message: { conversationId } },
-      });
-      await prisma.message.deleteMany({
-        where: { conversationId },
-      });
-      await prisma.conversationRead.deleteMany({
-        where: { conversationId },
-      });
-      await prisma.conversation.delete({
+      // Soft-delete: mark as deleted instead of hard-removing.
+      // This preserves audit trail and avoids cascading FK errors.
+      // Hard delete is available via admin tooling if needed.
+      await prisma.conversation.update({
         where: { id: conversationId },
+        data: { deletedAt: new Date() },
       });
 
       socket.emitToTenant(user.tenantId, "conversation.updated", {

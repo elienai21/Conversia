@@ -1,4 +1,5 @@
 import type { Conversation } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { type Result, ok, fail } from "../lib/result.js";
 import { NotFoundError, ValidationError } from "../lib/errors.js";
@@ -39,36 +40,47 @@ export async function findOrCreateCustomer(
 
   const normalized = isGroup ? phone : normalizePhone(phone);
 
+  // findUnique first (fast path — most calls hit an existing customer)
   let customer = await prisma.customer.findUnique({
-    where: {
-      tenantId_phone: { tenantId, phone: normalized },
-    },
+    where: { tenantId_phone: { tenantId, phone: normalized } },
   });
 
   if (!customer) {
-    customer = await prisma.customer.create({
-      data: {
-        tenantId,
-        phone: normalized,
-        name: name ?? phone,
-        profilePictureUrl: profilePictureUrl ?? null,
-        tag: effectiveTag,
-        role: effectiveRole,
-      },
-    });
-  } else {
-    // Update profile picture, tag and/or role if needed
-    const updates: Record<string, unknown> = {};
-    if (profilePictureUrl && !customer.profilePictureUrl) updates.profilePictureUrl = profilePictureUrl;
-    if (isGroup && customer.tag !== "GROUP_STAFF") updates.tag = "GROUP_STAFF";
-    if (role && customer.role !== role) updates.role = role;
-
-    if (Object.keys(updates).length > 0) {
-      customer = await prisma.customer.update({
-        where: { id: customer.id },
-        data: updates,
+    try {
+      customer = await prisma.customer.create({
+        data: {
+          tenantId,
+          phone: normalized,
+          name: name ?? phone,
+          profilePictureUrl: profilePictureUrl ?? null,
+          tag: effectiveTag,
+          role: effectiveRole,
+        },
       });
+    } catch (err) {
+      // P2002 = unique constraint violation → two webhooks created the same customer
+      // concurrently. Fetch the winner and continue with the update path below.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        customer = await prisma.customer.findUniqueOrThrow({
+          where: { tenantId_phone: { tenantId, phone: normalized } },
+        });
+      } else {
+        throw err;
+      }
     }
+  }
+
+  // Conditionally update mutable fields on existing customers
+  const updates: Record<string, unknown> = {};
+  if (profilePictureUrl && !customer.profilePictureUrl) updates.profilePictureUrl = profilePictureUrl;
+  if (isGroup && customer.tag !== "GROUP_STAFF") updates.tag = "GROUP_STAFF";
+  if (role && customer.role !== role) updates.role = role;
+
+  if (Object.keys(updates).length > 0) {
+    customer = await prisma.customer.update({
+      where: { id: customer.id },
+      data: updates,
+    });
   }
 
   return customer;

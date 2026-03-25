@@ -48,6 +48,7 @@ import { AppError } from "../lib/errors.js";
 
 import { crmTools } from "./ai-tools.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
+import { executeCrmToolCall } from "./crm-tools.service.js";
 import { generateEmbedding } from "./embedding.service.js";
 import { logger } from "../lib/logger.js";
 
@@ -346,39 +347,8 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
                 logger.info(`[Copilot] Generated checkout link for listing ${args.listingId}: ${checkoutUrl}`);
               }
             } else {
-              // All other tools require the CRM adapter
-              const adapterResult = await CrmAdapterFactory.getAdapter(tenantId);
-
-              if (!adapterResult.ok) {
-                resultJson = JSON.stringify({ error: adapterResult.error.message });
-              } else {
-                const adapter = adapterResult.value;
-
-                if (fnName === "search_available_listings") {
-                  const res = await adapter.searchListings({ from: args.from, to: args.to, guests: args.guests });
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "calculate_price") {
-                  const res = await adapter.calculatePrice({ listingIds: args.listingIds, from: args.from, to: args.to, guests: args.guests });
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "get_reservation_details") {
-                  const res = await adapter.getReservation(args.reservationCode);
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "fetch_checkin_details") {
-                  const res = await adapter.getCheckinDetails(args.reservationCode);
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "get_all_properties") {
-                  const res = await adapter.getProperties();
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "get_listing_details") {
-                  const res = await adapter.getListing(args.listingId);
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else if (fnName === "get_house_rules") {
-                  const res = await adapter.getHouseRules(args.listingId);
-                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-                } else {
-                  resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });
-                }
-              }
+              // All other CRM tools delegate to the shared executor
+              resultJson = await executeCrmToolCall(tenantId, fnName, args as Record<string, unknown>);
             }
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Unknown error";

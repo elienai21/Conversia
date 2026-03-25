@@ -11,15 +11,28 @@ export interface TaskSyncSummary {
 }
 
 // Triggers: 'checkin', 'checkout'
+/**
+ * Returns "YYYY-MM-DD" in the given IANA timezone (e.g. "America/Sao_Paulo").
+ * Falls back to UTC if the timezone is invalid.
+ */
+function toDateStrInTz(d: Date, tz: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return d.toISOString().split("T")[0]; // UTC fallback
+  }
+}
+
 export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
   logger.info("[TaskWorker] Iniciando sincronização diária de missões...");
 
-  const today = new Date();
-  const dateTodayStr = toDateStr(today);
-
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dateTomorrowStr = toDateStr(tomorrow);
+  // Dates will be resolved per-tenant using each tenant's configured timezone
+  const now = new Date();
 
   const summary: TaskSyncSummary = {
     tenantsScanned: 0,
@@ -39,9 +52,22 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
         continue;
       }
 
+      // Use tenant-specific timezone for date calculations.
+      // A hotel in GMT-3 should process check-ins for the local date, not UTC.
+      const tenantSettings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: tenant.id },
+        select: { timezone: true },
+      });
+      const tz = tenantSettings?.timezone ?? "America/Sao_Paulo";
+
+      const dateTodayStr = toDateStrInTz(now, tz);
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateTomorrowStr = toDateStrInTz(tomorrow, tz);
+
       const crm = adapterRes.value;
       logger.info(
-        `[TaskWorker] Buscando reservas para Tenant ${tenant.id} | filtro local: checkin/checkout em ${dateTodayStr} ou ${dateTomorrowStr}`
+        `[TaskWorker] Tenant ${tenant.id} | tz=${tz} | filtro: checkin/checkout em ${dateTodayStr} ou ${dateTomorrowStr}`
       );
 
       // Buscar equipe operacional (para direcionar O.S. e alertas de faxina/lavanderia)
@@ -227,10 +253,6 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
 
 /** Accepts ISO string ("2025-01-15T00:00:00.000Z") or already-plain date ("2025-01-15") */
 function extractDateStr(value: unknown): string | null {

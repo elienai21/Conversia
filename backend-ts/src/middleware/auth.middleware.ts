@@ -1,10 +1,26 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import type { User } from "@prisma/client";
+import { redisClient, isRedisAvailable } from "../lib/redis-client.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     user: User;
   }
+}
+
+/** Redis key prefix for the JWT revocation blacklist */
+export const JWT_BLACKLIST_PREFIX = "jwt:bl:";
+
+/**
+ * Adds a JWT to the revocation blacklist.
+ * TTL is set to the token's remaining lifetime so Redis auto-expires the entry.
+ * @param token  raw JWT string
+ * @param expSec Unix timestamp (seconds) when the token expires
+ */
+export async function revokeToken(token: string, expSec: number): Promise<void> {
+  if (!isRedisAvailable()) return; // graceful degradation
+  const ttl = Math.max(expSec - Math.floor(Date.now() / 1000), 1);
+  await redisClient.set(`${JWT_BLACKLIST_PREFIX}${token}`, "1", "EX", ttl);
 }
 
 export async function authMiddleware(
@@ -24,6 +40,14 @@ export async function authMiddleware(
 
   try {
     const payload = auth.decodeAccessToken(token);
+
+    // Check JWT revocation blacklist (populated on logout or user deactivation)
+    if (isRedisAvailable()) {
+      const revoked = await redisClient.exists(`${JWT_BLACKLIST_PREFIX}${token}`);
+      if (revoked) {
+        return reply.status(401).send({ detail: "Token revogado. Faça login novamente." });
+      }
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },

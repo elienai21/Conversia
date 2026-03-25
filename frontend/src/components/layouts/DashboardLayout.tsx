@@ -29,14 +29,13 @@ export function DashboardLayout() {
 
   const fetchOpenCount = useCallback(async () => {
     try {
-      const [convsMain, convsOps, convsOwner] = await Promise.all([
-        ApiService.get<ConversationSummary[]>("/conversations"),
-        ApiService.get<ConversationSummary[]>("/conversations?scope=operations"),
-        ApiService.get<ConversationSummary[]>("/conversations?scope=owners"),
-      ]);
-      setOpenCount(convsMain.filter((c) => (c.unread_count ?? 0) > 0).length);
-      setOpsCount(convsOps.filter((c) => (c.unread_count ?? 0) > 0).length);
-      setOwnersCount(convsOwner.filter((c) => (c.unread_count ?? 0) > 0).length);
+      // Single query returns all scope counts — avoids 3 separate API calls
+      const summary = await ApiService.get<{ main: number; operations: number; owners: number }>(
+        "/conversations/unread-summary"
+      );
+      setOpenCount(summary.main);
+      setOpsCount(summary.operations);
+      setOwnersCount(summary.owners);
     } catch {
       // silently ignore
     }

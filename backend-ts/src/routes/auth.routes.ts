@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken";
 import { config } from "../config.js";
 import {
   loginRequestSchema,
@@ -8,6 +9,7 @@ import {
   refreshTokenRequestSchema,
   type LoginResponse,
 } from "../schemas/auth.schema.js";
+import { authMiddleware, revokeToken } from "../middleware/auth.middleware.js";
 
 const googleClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
@@ -160,6 +162,26 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         tenantId: user.tenantId,
       },
     });
+  });
+
+  // POST /auth/logout — revokes the current access token immediately.
+  // The token is added to a Redis blacklist with TTL = remaining token lifetime.
+  // After this call, any request with the same token returns 401.
+  app.post("/logout", { onRequest: authMiddleware }, async (request, reply) => {
+    const authHeader = request.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (token) {
+      try {
+        const decoded = jwt.decode(token) as { exp?: number } | null;
+        const expSec = decoded?.exp ?? Math.floor(Date.now() / 1000) + config.ACCESS_TOKEN_EXPIRE_MINUTES * 60;
+        await revokeToken(token, expSec);
+      } catch {
+        // Non-fatal — logout still succeeds even if blacklist fails
+      }
+    }
+
+    return reply.status(204).send();
   });
 
   app.post("/password-reset/request", async (request, reply) => {

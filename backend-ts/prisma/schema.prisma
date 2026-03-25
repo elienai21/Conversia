@@ -107,6 +107,7 @@ model Conversation {
   status           String             @default("queued") @map("status")
   priority         String             @default("normal") @map("priority")
   detectedLanguage String?            @map("detected_language")
+  deletedAt        DateTime?          @map("deleted_at")  // soft-delete: null = active, set = archived
   createdAt        DateTime           @default(now()) @map("created_at")
   updatedAt        DateTime           @updatedAt @map("updated_at")
   assignedAgent    User?              @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
@@ -134,7 +135,7 @@ model Message {
   suggestion       AISuggestion?
   attachments      MessageAttachment[]
   translations     MessageTranslation[]
-  conversation     Conversation         @relation(fields: [conversationId], references: [id])
+  conversation     Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId], map: "ix_messages_conversation")
   @@map("messages")
@@ -150,7 +151,7 @@ model MessageAttachment {
   sourceUrl       String?  @map("source_url")
   providerMediaId String?  @map("provider_media_id")
   createdAt       DateTime @default(now()) @map("created_at")
-  message         Message  @relation(fields: [messageId], references: [id])
+  message         Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([messageId], map: "ix_message_attachments_message")
   @@map("message_attachments")
@@ -164,7 +165,7 @@ model MessageTranslation {
   translatedText String   @map("translated_text")
   provider       String   @map("provider")
   createdAt      DateTime @default(now()) @map("created_at")
-  message        Message  @relation(fields: [messageId], references: [id])
+  message        Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, targetLanguage], map: "ix_translations_message_target")
   @@map("message_translations")
@@ -180,7 +181,7 @@ model AISuggestion {
   finalText          String?  @map("final_text")
   createdAt          DateTime @default(now()) @map("created_at")
   agent              User     @relation(fields: [agentId], references: [id])
-  message            Message  @relation(fields: [messageId], references: [id])
+  message            Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("ai_suggestions")
 }
@@ -228,6 +229,7 @@ model TenantSettings {
   instagramVerifyToken      String?  @map("instagram_verify_token")
   enableAutoResponse        Boolean   @default(false) @map("enable_auto_response")
   autoResponseIntents       String?   @map("auto_response_intents")
+  timezone                  String    @default("America/Sao_Paulo") @map("timezone") // IANA timezone for task date calculations
   lastTaskSyncAt            DateTime? @map("last_task_sync_at")
   vapidPublicKey            String?   @map("vapid_public_key")
   vapidPrivateKey           String?   @map("vapid_private_key")
