@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { BarChart3, MessageSquare, Users, Zap, Clock, TrendingUp, Bot } from "lucide-react";
-import { ApiService } from "@/services/api";
+import { BarChart3, MessageSquare, Users, Zap, Clock, TrendingUp, Bot, Download } from "lucide-react";
+import { ApiService, API_URL } from "@/services/api";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useTheme } from "@/contexts/ThemeContext";
 import "./AnalyticsPage.css";
@@ -35,13 +35,54 @@ function formatDuration(seconds: number): string {
   return `${h}h ${m % 60}m`;
 }
 
+async function downloadCsv(endpoint: string, filename: string) {
+  const token = localStorage.getItem("conversia_token");
+  const tenantId = localStorage.getItem("conversia_tenant_id");
+
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (tenantId) headers["x-tenant-id"] = tenantId;
+
+  const response = await fetch(`${API_URL}${endpoint}`, { headers });
+  if (!response.ok) throw new Error("Export failed");
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [volume7d, setVolume7d] = useState<VolumePoint[]>([]);
   const [volume30d, setVolume30d] = useState<VolumePoint[]>([]);
   const [period, setPeriod] = useState<"7" | "30">("7");
+  const [exporting, setExporting] = useState<string | null>(null);
   const { theme } = useTheme();
+
+  const handleExport = async (type: "overview" | "volume") => {
+    const days = type === "volume" ? period : undefined;
+    const endpoint = type === "overview"
+      ? "/analytics/export/overview"
+      : `/analytics/export/volume?days=${days}`;
+    const today = new Date().toISOString().split("T")[0];
+    const filename = type === "overview"
+      ? `analytics-overview-${today}.csv`
+      : `analytics-volume-${days}d-${today}.csv`;
+
+    setExporting(type);
+    try {
+      await downloadCsv(endpoint, filename);
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setExporting(null);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -99,6 +140,15 @@ export function AnalyticsPage() {
           <h1 className="text-3xl font-semibold mb-1">Analytics</h1>
           <p className="text-muted">Performance overview and conversation insights.</p>
         </div>
+        <button
+          className="export-btn"
+          onClick={() => handleExport("overview")}
+          disabled={exporting === "overview" || isLoading}
+          title="Export KPI summary as CSV"
+        >
+          <Download size={15} />
+          {exporting === "overview" ? "Exporting…" : "Export Overview"}
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -173,12 +223,23 @@ export function AnalyticsPage() {
               <BarChart3 size={18} className="text-brand-primary" />
               Conversation Volume
             </h2>
-            <div className="period-toggle">
-              <button className={period === "7" ? "active" : ""} onClick={() => setPeriod("7")}>
-                7 days
-              </button>
-              <button className={period === "30" ? "active" : ""} onClick={() => setPeriod("30")}>
-                30 days
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <div className="period-toggle">
+                <button className={period === "7" ? "active" : ""} onClick={() => setPeriod("7")}>
+                  7 days
+                </button>
+                <button className={period === "30" ? "active" : ""} onClick={() => setPeriod("30")}>
+                  30 days
+                </button>
+              </div>
+              <button
+                className="export-btn export-btn--sm"
+                onClick={() => handleExport("volume")}
+                disabled={exporting === "volume"}
+                title="Export volume data as CSV"
+              >
+                <Download size={13} />
+                {exporting === "volume" ? "…" : "CSV"}
               </button>
             </div>
           </div>

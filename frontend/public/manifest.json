@@ -7,12 +7,22 @@
   "background_color": "#0F172A",
   "theme_color": "#3B82F6",
   "orientation": "any",
+  "lang": "pt-BR",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Conversas",
+      "url": "/conversations",
+      "description": "Ver conversas ativas"
+    }
+  ],
+  "categories": ["business", "productivity"]
 }

@@ -25,6 +25,7 @@ import { evolutionRoutes } from "./routes/evolution.routes.js";
 import { quickReplyRoutes } from "./routes/quick-reply.routes.js";
 import { taskRoutes } from "./routes/task.routes.js";
 import { publicCheckinRoutes } from "./routes/public-checkin.routes.js";
+import { pushRoutes } from "./routes/push.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
 import { runDailyTaskSync } from "./workers/task.worker.js";
 import { scheduleTaskSync } from "./lib/queue.js";
@@ -67,10 +68,20 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   app.setErrorHandler(errorHandler);
 
   app.get("/health", async () => {
-    const health: { status: string; db: string; redis: string } = {
+    const health: {
+      status: string;
+      db: string;
+      redis: string;
+      openai: string;
+      whatsapp: string;
+      timestamp: string;
+    } = {
       status: "ok",
       db: "ok",
       redis: "ok",
+      openai: config.OPENAI_API_KEY ? "configured" : "not_configured",
+      whatsapp: config.WHATSAPP_API_TOKEN ? "configured" : "not_configured",
+      timestamp: new Date().toISOString(),
     };
 
     try {
@@ -83,8 +94,9 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
     try {
       await redis.ping();
     } catch {
-      health.status = "degraded";
-      health.redis = "error";
+      // Redis is optional — degraded but not fatal
+      health.status = health.status === "ok" ? "degraded" : health.status;
+      health.redis = "unavailable";
     }
 
     return health;
@@ -114,6 +126,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(taskRoutes, { prefix: "/api/v1/tasks" });
   // Public (unauthenticated) guest check-in form routes — no authMiddleware
   await app.register(publicCheckinRoutes, { prefix: "/public/checkin" });
+  await app.register(pushRoutes, { prefix: "/api/v1/push" });
 
   // Job Agendador de Missões (CRM Sync) = a cada 1 hora via BullMQ
   await scheduleTaskSync();

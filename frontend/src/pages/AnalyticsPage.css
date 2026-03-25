@@ -190,6 +190,39 @@
   color: var(--text-muted);
 }
 
+/* Export Buttons */
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--brand-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-btn--sm {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: var(--radius-md);
+}
+
 /* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .analytics-page {

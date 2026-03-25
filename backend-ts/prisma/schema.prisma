@@ -70,6 +70,7 @@ model User {
   suggestions                AISuggestion[]
   conversations              Conversation[]     @relation("AssignedAgent")
   conversationReads          ConversationRead[]
+  pushSubscriptions          PushSubscription[]
   tenant                     Tenant             @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, email], map: "ix_users_tenant_email")
@@ -224,9 +225,27 @@ model TenantSettings {
   enableAutoResponse        Boolean   @default(false) @map("enable_auto_response")
   autoResponseIntents       String?   @map("auto_response_intents")
   lastTaskSyncAt            DateTime? @map("last_task_sync_at")
+  vapidPublicKey            String?   @map("vapid_public_key")
+  vapidPrivateKey           String?   @map("vapid_private_key")
   tenant                    Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_settings")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  endpoint  String   @map("endpoint")
+  p256dh    String   @map("p256dh")
+  auth      String   @map("auth")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint], map: "ix_push_sub_user_endpoint")
+  @@index([tenantId], map: "ix_push_sub_tenant")
+  @@map("push_subscriptions")
 }
 
 model KnowledgeBase {

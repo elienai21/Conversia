@@ -31,6 +31,7 @@ import { logger } from "../lib/logger.js";
 import { SocketService } from "../services/socket.service.js";
 import { tryAutoResponse } from "../services/auto-response.service.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
+import { notifyAgentsNewMessage } from "../services/push.service.js";
 
 /** Strip codec/parameter info from MIME types like "audio/ogg; codecs=opus" → "audio/ogg" */
 function normalizeMime(mime: string): string {
@@ -225,6 +226,14 @@ async function processIncomingMessage(params: {
       logger.error({ err }, `[Webhook] FAILED to save attachment: type=${attachment.type}`);
     }
   }
+
+  // Push notification to agents (fire-and-forget — never blocks the webhook response)
+  // customerName is resolved lazily inside notifyAgentsNewMessage
+  notifyAgentsNewMessage(tenant.id, {
+    conversationId: conversation.id,
+    customerName: null,
+    messagePreview: text || "[mídia]",
+  });
 
   // Emit real-time event for the new message
   SocketService.emitToConversation(conversation.id, "message.new", {

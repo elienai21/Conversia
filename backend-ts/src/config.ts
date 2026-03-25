@@ -26,6 +26,7 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRE_DAYS: z.coerce.number().default(30),
   RESEND_API_KEY: z.string().default(""),
   EMAIL_FROM: z.string().default(""),
+  VAPID_SUBJECT: z.string().default("mailto:admin@conversia.app"),
 });
 
 export const config = envSchema.parse(process.env);

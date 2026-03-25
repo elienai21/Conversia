@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { io, type Socket } from "socket.io-client";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "@/services/api";
+import { isPushSupported, getNotificationPermission, subscribeToPush } from "@/services/push-notifications";
 
 const WS_URL = API_URL.replace(/\/api\/v1$/, "");
 
@@ -18,6 +19,25 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Auto-subscribe to push notifications after login (only if permission not yet decided)
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    if (!isPushSupported()) return;
+    if (getNotificationPermission() === "denied") return;
+
+    // Wait for the SW to be ready, then subscribe (2s delay avoids fighting page load)
+    const timer = setTimeout(async () => {
+      // Only auto-prompt if permission hasn't been granted yet;
+      // if already granted, silently re-register the subscription
+      const result = await subscribeToPush();
+      if (result === "subscribed") {
+        console.info("[Push] Push notifications active");
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
