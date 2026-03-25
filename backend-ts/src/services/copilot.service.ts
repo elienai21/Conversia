@@ -274,12 +274,15 @@ export async function generateSuggestionWorker(
   }
 
   // 7. Build system prompt
+  const checkoutLinkInstruction = `
+REGRA DE LINKS: Sempre que apresentar imóveis disponíveis (após search_available_listings), chame generate_checkout_link para cada imóvel e inclua o link gerado na resposta ao atendente no formato: 🔗 [Nome do Imóvel](URL) ou "Link de reserva: URL". Isso permite que o atendente envie o link diretamente ao cliente.`;
+
   let systemPrompt = customSystemPrompt
-    ? `${customSystemPrompt}${knowledgeContext}\n\nReply in ${agentLanguage}.`
+    ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}\n\nReply in ${agentLanguage}.`
     : `You are a helpful customer service agent assistant.
 Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${knowledgeContext}
 IMPORTANT INTENT: Se o cliente quiser oferecer um imóvel para sua empresa administrar (Intenção de Parceria), a resposta sempre deve focar em agendar uma reunião comercial de apresentação, solicitando horário.
-Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.
+Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.${checkoutLinkInstruction}
 Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
   // 8. AI Execution Loop (Function Calling)
@@ -323,37 +326,58 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
           let resultJson = "";
           try {
             const args = JSON.parse(toolCall.function.arguments);
-            const adapterResult = await CrmAdapterFactory.getAdapter(tenantId);
-            
-            if (!adapterResult.ok) {
-              resultJson = JSON.stringify({ error: adapterResult.error.message });
-            } else {
-              const adapter = adapterResult.value;
-              const fnName = toolCall.function.name;
+            const fnName = toolCall.function.name;
 
-              if (fnName === "search_available_listings") {
-                const res = await adapter.searchListings({ from: args.from, to: args.to, guests: args.guests });
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "calculate_price") {
-                const res = await adapter.calculatePrice({ listingIds: args.listingIds, from: args.from, to: args.to, guests: args.guests });
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "get_reservation_details") {
-                const res = await adapter.getReservation(args.reservationCode);
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "fetch_checkin_details") {
-                const res = await adapter.getCheckinDetails(args.reservationCode);
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "get_all_properties") {
-                const res = await adapter.getProperties();
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "get_listing_details") {
-                const res = await adapter.getListing(args.listingId);
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
-              } else if (fnName === "get_house_rules") {
-                const res = await adapter.getHouseRules(args.listingId);
-                resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+            if (fnName === "generate_checkout_link") {
+              // Does NOT need the CRM adapter — just the tenant's Stays domain
+              const staysDomain = tenantSettings?.staysnetDomain;
+              if (!staysDomain) {
+                resultJson = JSON.stringify({ error: "Stays.net domain não configurado para este tenant." });
               } else {
-                resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });
+                // Standard Stays.net direct booking URL pattern:
+                // https://{domain}/ota/booking?listing={id}&checkin={from}&checkout={to}&adults={guests}
+                const checkoutUrl =
+                  `https://${staysDomain}/ota/booking` +
+                  `?listing=${encodeURIComponent(args.listingId)}` +
+                  `&checkin=${encodeURIComponent(args.from)}` +
+                  `&checkout=${encodeURIComponent(args.to)}` +
+                  `&adults=${encodeURIComponent(args.guests)}`;
+                resultJson = JSON.stringify({ checkoutUrl, listingId: args.listingId });
+                logger.info(`[Copilot] Generated checkout link for listing ${args.listingId}: ${checkoutUrl}`);
+              }
+            } else {
+              // All other tools require the CRM adapter
+              const adapterResult = await CrmAdapterFactory.getAdapter(tenantId);
+
+              if (!adapterResult.ok) {
+                resultJson = JSON.stringify({ error: adapterResult.error.message });
+              } else {
+                const adapter = adapterResult.value;
+
+                if (fnName === "search_available_listings") {
+                  const res = await adapter.searchListings({ from: args.from, to: args.to, guests: args.guests });
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "calculate_price") {
+                  const res = await adapter.calculatePrice({ listingIds: args.listingIds, from: args.from, to: args.to, guests: args.guests });
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "get_reservation_details") {
+                  const res = await adapter.getReservation(args.reservationCode);
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "fetch_checkin_details") {
+                  const res = await adapter.getCheckinDetails(args.reservationCode);
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "get_all_properties") {
+                  const res = await adapter.getProperties();
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "get_listing_details") {
+                  const res = await adapter.getListing(args.listingId);
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else if (fnName === "get_house_rules") {
+                  const res = await adapter.getHouseRules(args.listingId);
+                  resultJson = JSON.stringify(res.ok ? res.value : { error: res.error.message });
+                } else {
+                  resultJson = JSON.stringify({ error: `Unknown tool: ${fnName}` });
+                }
               }
             }
           } catch (err: unknown) {

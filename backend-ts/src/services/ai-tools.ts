@@ -5,7 +5,7 @@ export const crmTools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "search_available_listings",
-      description: "Pesquisa disponibilidade de propriedades no CRM. Use sempre que o cliente perguntar se tem vaga ou quais estao disponiveis. Retorna apenas as propriedades DISPONÍVEIS para a data.",
+      description: "Pesquisa disponibilidade de propriedades no CRM. Use sempre que o cliente perguntar se tem vaga ou quais estao disponiveis. Retorna apenas as propriedades DISPONÍVEIS para a data. IMPORTANTE: Após obter os resultados, para cada imóvel disponível, chame generate_checkout_link para gerar o link de reserva e inclua-o na sua resposta ao atendente.",
       parameters: {
         type: "object",
         properties: {
@@ -121,6 +121,29 @@ export const crmTools: ChatCompletionTool[] = [
           },
         },
         required: ["listingId"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_checkout_link",
+      description: "Gera o link de reserva/checkout direto de um imóvel no site do cliente (Stays.net). Use SEMPRE após search_available_listings ou calculate_price para fornecer o link de pagamento ao cliente. O link gerado deve ser incluído na sugestão de resposta para que o atendente possa enviá-lo ao cliente.",
+      parameters: {
+        type: "object",
+        properties: {
+          listingId: {
+            type: "string",
+            description: "O ID do imóvel/anúncio (campo '_id' ou 'id' retornado pelo search_available_listings ou get_all_properties).",
+          },
+          from: { type: "string", description: "Data de check-in no formato YYYY-MM-DD" },
+          to: { type: "string", description: "Data de check-out no formato YYYY-MM-DD" },
+          guests: {
+            type: "integer",
+            description: "Número de hóspedes adultos.",
+          },
+        },
+        required: ["listingId", "from", "to", "guests"],
       },
     },
   },
