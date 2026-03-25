@@ -1,7 +1,8 @@
 import { config } from "./config.js";
 import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
-import { copilotWorker } from "./lib/queue.js";
+import { copilotWorker, taskWorker } from "./lib/queue.js";
+import { startCronJobs } from "./lib/cron.js";
 import { SocketService } from "./services/socket.service.js";
 import { buildApp } from "./app.js";
 
@@ -61,6 +62,10 @@ async function start(): Promise<void> {
     // Initialize WebSockets using the Fastify raw HTTP server
     SocketService.initialize(app.server);
     app.log.info("WebSocket Server Initialized");
+
+    // Start scheduled cron jobs (e.g. daily task sync at 03:00)
+    startCronJobs();
+    app.log.info("Cron jobs initialized");
   } catch (err) {
     app.log.error({ err }, "Failed to start server");
     process.exit(1);
@@ -70,6 +75,7 @@ async function start(): Promise<void> {
 // Graceful shutdown
 async function shutdown(): Promise<void> {
   await copilotWorker.close();
+  await taskWorker.close();
   await app.close();
   await prisma.$disconnect();
   redis.disconnect();

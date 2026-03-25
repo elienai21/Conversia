@@ -80,6 +80,9 @@ export interface ICrmAdapter {
   getClient(clientId: string): Promise<Result<unknown, AppError>>;
   getSearchFilter(): Promise<Result<unknown, AppError>>;
 
+  // Write-back: update guest/client data in the CRM
+  updateClient(clientId: string, data: Record<string, unknown>): Promise<Result<unknown, AppError>>;
+
   // Diagnostics
   testConnection(): Promise<Result<boolean, AppError>>;
 }

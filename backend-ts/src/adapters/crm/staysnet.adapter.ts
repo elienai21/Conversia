@@ -225,6 +225,14 @@ export class StaysNetAdapter implements ICrmAdapter {
     return this.wrapRequest(() => this.apiRequest("GET", "/booking/searchfilter"));
   }
 
+  // --- Write-back ---
+  async updateClient(clientId: string, data: Record<string, unknown>): Promise<Result<unknown, AppError>> {
+    return this.wrapRequest(
+      () => this.apiRequest("PATCH", `/booking/clients/${clientId}`, data),
+      false // don't sanitize PII on write-back
+    );
+  }
+
   // --- Diagnostics ---
   async testConnection(): Promise<Result<boolean, AppError>> {
     try {

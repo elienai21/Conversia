@@ -117,7 +117,7 @@ export async function taskRoutes(app: FastifyInstance): Promise<void> {
     return reply.send(updated);
   });
 
-  // POST /tasks/approve — approve and send tasks
+  // POST /tasks/approve — approve and send tasks (with rate limiting)
   app.post("/approve", async (request, reply) => {
     const { services, socket } = request.server.deps;
     const user = request.user;
@@ -135,76 +135,101 @@ export async function taskRoutes(app: FastifyInstance): Promise<void> {
       },
     });
 
-    for (const task of tasks) {
-      // 1. Resolve Customer by Phone
-      let customer = await prisma.customer.findFirst({
-        where: { tenantId: user.tenantId, phone: task.customerPhone },
-      });
-
-      if (!customer) {
-        customer = await prisma.customer.create({
-          data: {
-            tenantId: user.tenantId,
-            phone: task.customerPhone,
-            name: task.customerName,
-          },
-        });
-      }
-
-      // 2. Resolve Conversation
-      const { conversation, isNew } = await services.findOrCreateConversation(
-        user.tenantId,
-        customer.id,
-        "whatsapp"
-      );
-
-      if (conversation.status !== "active") {
-        await prisma.conversation.update({
-          where: { id: conversation.id },
-          data: { status: "active" },
-        });
-      }
-
-      if (!conversation.assignedAgentId) {
-        await services.assignConversationToAgent(conversation.id, user.id);
-      }
-
-      // 3. Persist the Chat Message
-      const message = await services.saveMessage({
-        conversationId: conversation.id,
-        senderType: "agent",
-        senderId: user.id,
-        text: task.messagePayload,
-        detectedLanguage: user.preferredLanguage || "pt",
-      });
-
-      // 4. Send via WhatsApp
-      await services.sendWhatsappMessage(user.tenantId, customer.phone, task.messagePayload);
-
-      // 5. Mark task as sent
-      await prisma.taskQueue.update({
-        where: { id: task.id },
-        data: { status: "sent" },
-      });
-
-      // 6. Broadcast realtime events
-      socket.emitToTenant(user.tenantId, "conversation.updated", {
-        type: isNew ? "new" : "replied",
-        conversationId: conversation.id,
-      });
-
-      socket.emitToConversation(conversation.id, "message.new", {
-        id: message.id,
-        conversation_id: message.conversationId,
-        sender_type: message.senderType,
-        original_text: message.originalText,
-        detected_language: message.detectedLanguage,
-        created_at: message.createdAt,
-        translations: [],
-      });
+    if (tasks.length === 0) {
+      return reply.status(200).send({ success: true, queued: 0 });
     }
 
-    return reply.status(200).send({ success: true, processed: tasks.length });
+    // Respond immediately — process sends in background with rate limiting
+    reply.status(202).send({ success: true, queued: tasks.length });
+
+    const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    setImmediate(async () => {
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        try {
+          // 1. Resolve Customer by Phone
+          let customer = await prisma.customer.findFirst({
+            where: { tenantId: user.tenantId, phone: task.customerPhone },
+          });
+
+          if (!customer) {
+            customer = await prisma.customer.create({
+              data: {
+                tenantId: user.tenantId,
+                phone: task.customerPhone,
+                name: task.customerName,
+              },
+            });
+          }
+
+          // 2. Resolve Conversation
+          const { conversation, isNew } = await services.findOrCreateConversation(
+            user.tenantId,
+            customer.id,
+            "whatsapp"
+          );
+
+          if (conversation.status !== "active") {
+            await prisma.conversation.update({
+              where: { id: conversation.id },
+              data: { status: "active" },
+            });
+          }
+
+          if (!conversation.assignedAgentId) {
+            await services.assignConversationToAgent(conversation.id, user.id);
+          }
+
+          // 3. Persist the Chat Message
+          const message = await services.saveMessage({
+            conversationId: conversation.id,
+            senderType: "agent",
+            senderId: user.id,
+            text: task.messagePayload,
+            detectedLanguage: user.preferredLanguage || "pt",
+          });
+
+          // 4. Send via WhatsApp
+          await services.sendWhatsappMessage(user.tenantId, customer.phone, task.messagePayload);
+
+          // 5. Mark task as sent
+          await prisma.taskQueue.update({
+            where: { id: task.id },
+            data: { status: "sent" },
+          });
+
+          // 6. Broadcast realtime events
+          socket.emitToTenant(user.tenantId, "conversation.updated", {
+            type: isNew ? "new" : "replied",
+            conversationId: conversation.id,
+          });
+
+          socket.emitToConversation(conversation.id, "message.new", {
+            id: message.id,
+            conversation_id: message.conversationId,
+            sender_type: message.senderType,
+            original_text: message.originalText,
+            detected_language: message.detectedLanguage,
+            created_at: message.createdAt,
+            translations: [],
+          });
+
+          logger.info(`[TaskRoutes] Task ${task.id} enviada com sucesso (${i + 1}/${tasks.length})`);
+        } catch (err) {
+          logger.error({ err, taskId: task.id }, "[TaskRoutes] Falha no envio da task");
+        }
+
+        // Rate limit: wait 3 seconds between sends (skip delay after last task)
+        if (i < tasks.length - 1) {
+          await delay(3000);
+        }
+      }
+
+      logger.info(`[TaskRoutes] Processamento em background concluído: ${tasks.length} task(s)`);
+    });
+
+    return reply;
   });
 
   // DELETE /tasks/:id — cancel a task

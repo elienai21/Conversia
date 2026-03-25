@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
+import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 
 const submitFormSchema = z.object({
   fullName:      z.string().min(2).max(100),
@@ -14,6 +15,74 @@ const submitFormSchema = z.object({
   photoDocFront: z.string().optional(), // base64 dataURL
   photoDocBack:  z.string().optional(), // base64 dataURL
 });
+
+/**
+ * Fire-and-forget: syncs submitted guest data back to the CRM (Stays.net).
+ * Fetches the reservation to find `_idclient`, then PATCHes the client record.
+ */
+async function writeBackToCrm(
+  taskId: string,
+  tenantId: string,
+  reservationId: string,
+  formFields: { fullName: string; document: string; documentType: string; nationality?: string; birthDate?: string; phone?: string },
+  photoFrontUrl: string | null,
+  photoBackUrl: string | null,
+): Promise<void> {
+  const adapterRes = await CrmAdapterFactory.getAdapter(tenantId);
+  if (!adapterRes.ok) {
+    logger.warn(`[WriteBack] task ${taskId}: CRM não configurado — ${adapterRes.error.message}`);
+    return;
+  }
+
+  const crm = adapterRes.value;
+
+  // 1. Fetch reservation to get _idclient
+  const resResult = await crm.getReservation(reservationId);
+  if (!resResult.ok) {
+    logger.warn(`[WriteBack] task ${taskId}: Falha ao buscar reserva ${reservationId} — ${resResult.error.message}`);
+    return;
+  }
+
+  const reservation = resResult.value as Record<string, unknown>;
+  const clientId = String(reservation["_idclient"] ?? reservation["clientId"] ?? "");
+  if (!clientId) {
+    logger.warn(`[WriteBack] task ${taskId}: Reserva ${reservationId} sem _idclient — write-back ignorado`);
+    return;
+  }
+
+  // 2. Build update payload for Stays.net client
+  const updateData: Record<string, unknown> = {};
+
+  // Name
+  const nameParts = formFields.fullName.split(" ");
+  updateData["fName"] = nameParts[0] ?? formFields.fullName;
+  updateData["lName"] = nameParts.slice(1).join(" ") || "";
+
+  // Document
+  if (formFields.documentType === "cpf") {
+    updateData["cpf"] = formFields.document;
+  } else {
+    updateData["document"] = formFields.document;
+    updateData["documentType"] = formFields.documentType;
+  }
+
+  if (formFields.nationality) updateData["nationality"] = formFields.nationality;
+  if (formFields.birthDate) updateData["birthDate"] = formFields.birthDate;
+  if (formFields.phone) updateData["phone"] = formFields.phone;
+
+  // Document photo URLs (stored as custom fields or notes depending on CRM support)
+  if (photoFrontUrl) updateData["documentPhotoFront"] = photoFrontUrl;
+  if (photoBackUrl) updateData["documentPhotoBack"] = photoBackUrl;
+
+  // 3. PATCH the client
+  const updateRes = await crm.updateClient(clientId, updateData);
+  if (!updateRes.ok) {
+    logger.warn(`[WriteBack] task ${taskId}: Falha ao atualizar cliente ${clientId} — ${updateRes.error.message}`);
+    return;
+  }
+
+  logger.info(`[WriteBack] task ${taskId}: Dados do hóspede sincronizados com sucesso (cliente ${clientId})`);
+}
 
 export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
   // No authMiddleware — these routes are intentionally public
@@ -72,7 +141,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
 
     const task = await prisma.taskQueue.findUnique({
       where: { magicToken: token },
-      select: { id: true, status: true, guestFormAt: true, tenantId: true },
+      select: { id: true, status: true, guestFormAt: true, tenantId: true, reservationId: true },
     });
 
     if (!task) {
@@ -139,6 +208,12 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
 
     logger.info(`[PublicCheckin] Formulário enviado — task ${task.id} | tenant ${task.tenantId}`);
 
+    // Fire-and-forget: sync guest data back to CRM (non-blocking)
+    writeBackToCrm(task.id, task.tenantId, task.reservationId, formFields, photoFrontUrl, photoBackUrl).catch((err) =>
+      logger.warn({ err }, `[PublicCheckin] Write-back falhou para task ${task.id}`)
+    );
+
     return reply.status(200).send({ success: true });
   });
 }
+
