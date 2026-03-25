@@ -334,14 +334,14 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
               if (!staysDomain) {
                 resultJson = JSON.stringify({ error: "Stays.net domain não configurado para este tenant." });
               } else {
-                // Standard Stays.net direct booking URL pattern:
-                // https://{domain}/ota/booking?listing={id}&checkin={from}&checkout={to}&adults={guests}
+                // Stays.net checkout URL pattern (confirmed):
+                // https://{domain}/customer/pt/booking?id={listingId}&from={from}&to={to}&persons={guests}
                 const checkoutUrl =
-                  `https://${staysDomain}/ota/booking` +
-                  `?listing=${encodeURIComponent(args.listingId)}` +
-                  `&checkin=${encodeURIComponent(args.from)}` +
-                  `&checkout=${encodeURIComponent(args.to)}` +
-                  `&adults=${encodeURIComponent(args.guests)}`;
+                  `https://${staysDomain}/customer/pt/booking` +
+                  `?id=${encodeURIComponent(args.listingId)}` +
+                  `&from=${encodeURIComponent(args.from)}` +
+                  `&to=${encodeURIComponent(args.to)}` +
+                  `&persons=${encodeURIComponent(args.guests)}`;
                 resultJson = JSON.stringify({ checkoutUrl, listingId: args.listingId });
                 logger.info(`[Copilot] Generated checkout link for listing ${args.listingId}: ${checkoutUrl}`);
               }
