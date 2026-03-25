@@ -41,16 +41,16 @@ export async function pushRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send({ ok: true });
   });
 
-  // DELETE /subscribe
+  // DELETE /subscribe?endpoint=...
   // Removes a PushSubscription when the user disables notifications.
   app.delete("/subscribe", async (request, reply) => {
     const user = request.user;
-    const body = request.body as { endpoint?: string };
-    if (!body?.endpoint) {
-      return reply.status(422).send({ detail: "endpoint required" });
+    const query = request.query as { endpoint?: string };
+    if (!query?.endpoint) {
+      return reply.status(422).send({ detail: "endpoint query param required" });
     }
     await prisma.pushSubscription.deleteMany({
-      where: { userId: user.id, endpoint: body.endpoint },
+      where: { userId: user.id, endpoint: query.endpoint },
     });
     return reply.status(204).send();
   });

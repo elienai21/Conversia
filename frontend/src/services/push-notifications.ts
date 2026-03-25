@@ -49,7 +49,8 @@ export async function subscribeToPush(): Promise<"subscribed" | "denied" | "unsu
     if (!sub) {
       sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        // .buffer converts Uint8Array → ArrayBuffer, required by PushManager typings
+        applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
       });
     }
 
@@ -79,7 +80,8 @@ export async function unsubscribeFromPush(): Promise<void> {
     const sub = await registration.pushManager.getSubscription();
     if (!sub) return;
 
-    await ApiService.delete("/push/subscribe", { endpoint: sub.endpoint });
+    // Pass endpoint as query param — ApiService.delete 2nd arg is RequestInit, not a body object
+    await ApiService.delete(`/push/subscribe?endpoint=${encodeURIComponent(sub.endpoint)}`);
     await sub.unsubscribe();
   } catch (err) {
     console.error("[Push] Unsubscribe failed:", err);
