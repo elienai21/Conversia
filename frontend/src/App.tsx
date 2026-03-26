@@ -5,6 +5,8 @@ import { SocketProvider } from "./contexts/SocketContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { BillingPage } from "./pages/BillingPage";
 import { DashboardLayout } from "./components/layouts/DashboardLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { InboxPage } from "./pages/InboxPage";
@@ -56,6 +58,9 @@ function App() {
                 <Route path="/signup" element={<SignupPage />} />
               </Route>
 
+              {/* Password reset — public but NOT redirected when authenticated */}
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+
               {/* Protected Main SaaS Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
@@ -70,6 +75,7 @@ function App() {
                   <Route path="/owners" element={<OwnersInboxPage />} />
                   <Route path="/service-orders" element={<ServiceOrdersPage />} />
                   <Route path="/staff" element={<StaffPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
                 </Route>
               </Route>
 

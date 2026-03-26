@@ -24,6 +24,11 @@ export const signupRequestSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(1),
+  new_password: z.string().min(8).max(128),
+});
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;

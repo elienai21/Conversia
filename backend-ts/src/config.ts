@@ -35,6 +35,15 @@ const envSchema = z.object({
   // Set this to the apikey configured in Evolution API webhook settings.
   // If empty, signature validation is skipped (backward compatible).
   EVOLUTION_WEBHOOK_SECRET: z.string().default(""),
+  // ── Stripe billing ────────────────────────────────────────────────────────
+  // Leave empty to disable billing integration.
+  STRIPE_SECRET_KEY: z.string().default(""),
+  STRIPE_WEBHOOK_SECRET: z.string().default(""),
+  // Price IDs from Stripe Dashboard (monthly BRL recurring prices).
+  STRIPE_PRICE_STARTER: z.string().default(""),
+  STRIPE_PRICE_PROFESSIONAL: z.string().default(""),
+  STRIPE_PRICE_SCALE: z.string().default(""),
+  STRIPE_PRICE_ENTERPRISE: z.string().default(""),
 });
 
 export const config = envSchema.parse(process.env);

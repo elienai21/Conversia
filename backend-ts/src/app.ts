@@ -27,6 +27,7 @@ import { taskRoutes } from "./routes/task.routes.js";
 import { publicCheckinRoutes } from "./routes/public-checkin.routes.js";
 import { pushRoutes } from "./routes/push.routes.js";
 import { serviceOrderRoutes } from "./routes/serviceorder.routes.js";
+import { billingRoutes } from "./routes/billing.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
 import { runDailyTaskSync } from "./workers/task.worker.js";
 import { scheduleTaskSync } from "./lib/queue.js";
@@ -44,6 +45,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
     // Webhooks externos e formulário público de checkin ficam isentos do rate limit
     allowList: (request) =>
       request.url.startsWith("/api/v1/webhook") ||
+      request.url.startsWith("/api/v1/billing/webhook") ||
       request.url.startsWith("/public/checkin"),
     // Por tenant autenticado; fallback para IP
     keyGenerator: (request) => {
@@ -129,6 +131,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(publicCheckinRoutes, { prefix: "/public/checkin" });
   await app.register(pushRoutes, { prefix: "/api/v1/push" });
   await app.register(serviceOrderRoutes, { prefix: "/api/v1/service-orders" });
+  await app.register(billingRoutes, { prefix: "/api/v1/billing" });
 
   // Job Agendador de Missões (CRM Sync) = a cada 1 hora via BullMQ
   await scheduleTaskSync();

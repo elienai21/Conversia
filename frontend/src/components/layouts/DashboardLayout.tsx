@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { ApiService } from "@/services/api";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { OnboardingWizard } from "@/components/OnboardingWizard";
 import "./DashboardLayout.css";
 
 
@@ -143,6 +144,10 @@ export function DashboardLayout() {
               </div>
 
               <div className="nav-section">
+                <NavLink to="/billing" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <CreditCard size={20} />
+                  <span>Plano & Cobrança</span>
+                </NavLink>
                 <NavLink to="/settings" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
                   <Settings size={20} />
                   <span>{t("Settings")}</span>
@@ -216,6 +221,7 @@ export function DashboardLayout() {
       />
 
       <InstallPrompt />
+      {user?.role === "admin" && <OnboardingWizard />}
     </div>
   );
 }

@@ -10,24 +10,36 @@ datasource db {
 }
 
 model Tenant {
-  id                        String          @id @default(uuid()) @db.Uuid
-  name                      String          @map("name")
-  slug                      String          @unique @map("slug")
-  whatsappPhoneNumberId     String?         @map("whatsapp_phone_number_id")
-  whatsappBusinessAccountId String?         @map("whatsapp_business_account_id")
-  defaultLanguage           String          @default("en") @map("default_language")
-  createdAt                 DateTime        @default(now()) @map("created_at")
-  updatedAt                 DateTime        @updatedAt @map("updated_at")
-  instagramPageId           String?         @map("instagram_page_id")
-  usageLogs                 AIUsageLog[]
-  conversations             Conversation[]
-  customers                 Customer[]
-  knowledgeBase             KnowledgeBase[]
-  quickReplies              QuickReply[]
-  taskQueues                TaskQueue[]
-  serviceOrders             ServiceOrder[]
-  settings                  TenantSettings?
-  users                     User[]
+  id                       String          @id @default(uuid()) @db.Uuid
+  name                     String          @map("name")
+  slug                     String          @unique @map("slug")
+  whatsappPhoneNumberId    String?         @map("whatsapp_phone_number_id")
+  whatsappBusinessAccountId String?        @map("whatsapp_business_account_id")
+  defaultLanguage          String          @default("en") @map("default_language")
+  // ── Billing ──────────────────────────────────────────
+  // plan: trial | starter | professional | scale | enterprise
+  plan                     String          @default("trial") @map("plan")
+  // planStatus: trial | active | past_due | cancelled
+  planStatus               String          @default("trial") @map("plan_status")
+  trialEndsAt              DateTime?       @map("trial_ends_at")
+  stripeCustomerId         String?         @map("stripe_customer_id")
+  stripeSubscriptionId     String?         @map("stripe_subscription_id")
+  // ── Onboarding ───────────────────────────────────────
+  // 0=new 1=whatsapp 2=ai 3=team 4=done
+  onboardingStep           Int             @default(0) @map("onboarding_step")
+  // ─────────────────────────────────────────────────────
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+  instagramPageId          String?         @map("instagram_page_id")
+  usageLogs                AIUsageLog[]
+  conversations            Conversation[]
+  customers                Customer[]
+  knowledgeBase            KnowledgeBase[]
+  quickReplies             QuickReply[]
+  taskQueues               TaskQueue[]
+  serviceOrders            ServiceOrder[]
+  settings                 TenantSettings?
+  users                    User[]
 
   @@map("tenants")
 }

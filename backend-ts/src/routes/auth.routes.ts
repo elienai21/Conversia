@@ -5,6 +5,7 @@ import { config } from "../config.js";
 import {
   loginRequestSchema,
   passwordResetRequestSchema,
+  passwordResetConfirmSchema,
   googleLoginRequestSchema,
   refreshTokenRequestSchema,
   signupRequestSchema,
@@ -214,11 +215,16 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
     // Atomic transaction: create tenant + settings + admin user
     const user = await prisma.$transaction(async (tx) => {
+      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
       const tenant = await tx.tenant.create({
         data: {
           name: company_name,
           slug,
           defaultLanguage: "pt",
+          plan: "trial",
+          planStatus: "trial",
+          trialEndsAt,
+          onboardingStep: 0,
         },
       });
 
@@ -289,6 +295,60 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({
       detail: "If an account exists for this email, a password reset link will be sent shortly.",
     });
+  });
+
+  // POST /auth/password-reset/confirm — receives the token from the email link and sets the new password.
+  app.post("/password-reset/confirm", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
+
+    const parsed = passwordResetConfirmSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(422).send({ detail: "Dados inválidos. Verifique o token e a senha." });
+    }
+
+    const { token, new_password } = parsed.data;
+
+    // Decode + validate the JWT reset token
+    let payload: { sub: string; tenant_id: string; purpose: string };
+    try {
+      payload = auth.decodePasswordResetToken(token);
+    } catch {
+      return reply.status(400).send({ detail: "Link inválido ou expirado. Solicite um novo link de redefinição." });
+    }
+
+    if (payload.purpose !== "password_reset") {
+      return reply.status(400).send({ detail: "Token inválido." });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.isActive) {
+      return reply.status(404).send({ detail: "Usuário não encontrado ou desativado." });
+    }
+
+    if (user.tenantId !== payload.tenant_id) {
+      return reply.status(400).send({ detail: "Token inválido." });
+    }
+
+    const passwordHash = await hashPassword(new_password);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    // Invalidate the reset token so it can't be used again (treat it like an access token)
+    try {
+      const decoded = jwt.decode(token) as { exp?: number } | null;
+      const expSec = decoded?.exp ?? Math.floor(Date.now() / 1000) + 3600;
+      await revokeToken(token, expSec);
+    } catch {
+      // Non-fatal — password was already updated
+    }
+
+    return reply.send({ detail: "Senha redefinida com sucesso. Você já pode fazer login." });
   });
 }
 

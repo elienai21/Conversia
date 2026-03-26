@@ -9,7 +9,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
   app.addHook("onRequest", requireAdmin);
 
-  // GET /me — tenant info
+  // GET /me — tenant info including billing + onboarding state
   app.get("/me", async (request) => {
     const tenant = await prisma.tenant.findUniqueOrThrow({
       where: { id: request.user.tenantId },
@@ -20,6 +20,12 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       slug: tenant.slug,
       default_language: tenant.defaultLanguage,
       created_at: tenant.createdAt.toISOString(),
+      // Billing
+      plan: tenant.plan,
+      plan_status: tenant.planStatus,
+      trial_ends_at: tenant.trialEndsAt?.toISOString() ?? null,
+      // Onboarding
+      onboarding_step: tenant.onboardingStep,
     };
   });
 
@@ -397,5 +403,28 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     });
 
     return reply.status(204).send();
+  });
+
+  // ── PATCH /me/onboarding — advance (or skip) the onboarding step ──────────
+  // step: 1=WhatsApp 2=AI 3=Team 4=Done (also accepts "skip" to jump to 4)
+  app.patch("/me/onboarding", async (request, reply) => {
+    const body = request.body as { step?: number; skip?: boolean };
+
+    let nextStep: number;
+    if (body.skip) {
+      nextStep = 4; // mark completed/skipped
+    } else if (typeof body.step === "number" && body.step >= 1 && body.step <= 4) {
+      nextStep = body.step;
+    } else {
+      return reply.status(422).send({ detail: "Invalid step value. Use 1–4 or skip:true." });
+    }
+
+    const tenant = await prisma.tenant.update({
+      where: { id: request.user.tenantId },
+      data: { onboardingStep: nextStep },
+      select: { onboardingStep: true },
+    });
+
+    return reply.send({ onboarding_step: tenant.onboardingStep });
   });
 }
