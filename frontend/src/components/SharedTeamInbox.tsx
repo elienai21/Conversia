@@ -8,6 +8,7 @@ import {
   Search, Send, ArrowLeft, Check, CheckCheck, Loader2,
   Sparkles, Camera, MessageCircle, Volume2, ChevronDown, Globe,
   Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList,
+  Wand2,
 } from "lucide-react";
 import "@/pages/InboxPage.css";
 import { AudioRecorder } from "@/components/AudioRecorder";
@@ -163,6 +164,7 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
   const [isLoadingEmailSuggestion, setIsLoadingEmailSuggestion] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuggestionError, setEmailSuggestionError] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
 
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConvRef = useRef<string | null>(null);
@@ -350,6 +352,23 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
       setActiveConversation(null); setMessages([]); fetchConversations();
     } catch (e) { console.error(e); }
     setShowChatMenu(false);
+  };
+
+  // Polish text with AI
+  const handlePolishText = async () => {
+    if (!activeConversation || !replyText.trim()) return;
+    setIsPolishing(true);
+    try {
+      const res = await ApiService.post<{ polished_text: string }>(
+        `/conversations/${activeConversation}/polish-text`,
+        { text: replyText.trim() }
+      );
+      if (res.polished_text) setReplyText(res.polished_text);
+    } catch (err) {
+      console.error("Polish failed:", err);
+    } finally {
+      setIsPolishing(false);
+    }
   };
 
   // Secure media
@@ -756,6 +775,17 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
                   rows={Math.max(1, Math.min(5, replyText.split("\n").length))}
                   style={{ resize: "none", paddingTop: "12px", paddingBottom: "12px", lineHeight: "1.4" }}
                 />
+                {replyText.trim() && (
+                  <button
+                    className="attach-btn"
+                    onClick={handlePolishText}
+                    disabled={isPolishing || isSending}
+                    title="Polir texto com IA (correção gramatical)"
+                    style={{ color: isPolishing ? "var(--brand-primary)" : undefined }}
+                  >
+                    {isPolishing ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                  </button>
+                )}
                 <button className="send-btn" disabled={(!replyText.trim() && !pendingFile) || isSending} onClick={handleSendMessage}>
                   {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                 </button>

@@ -4,6 +4,7 @@ import { hashPassword } from "../lib/auth.js";
 import { encrypt, decrypt, maskApiKey } from "../lib/encryption.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 import { updateTenantSchema, updateIntegrationsSchema, updateAISettingsSchema } from "../schemas/tenant.schema.js";
+import { getAiModeStatus } from "../services/business-hours.service.js";
 
 export async function tenantRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -238,6 +239,13 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       auto_response_intents: settings?.autoResponseIntents
         ? JSON.parse(settings.autoResponseIntents)
         : [],
+      auto_response_mode: settings?.autoResponseMode || "manual",
+      business_hours_start: settings?.businessHoursStart || "08:00",
+      business_hours_end: settings?.businessHoursEnd || "18:00",
+      business_hours_days: settings?.businessHoursDays
+        ? JSON.parse(settings.businessHoursDays)
+        : [1, 2, 3, 4, 5],
+      emergency_phone_number: settings?.emergencyPhoneNumber || null,
     };
   });
 
@@ -255,6 +263,11 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.ai_max_tokens !== undefined) data.aiMaxTokens = parsed.data.ai_max_tokens;
     if (parsed.data.enable_auto_response !== undefined) data.enableAutoResponse = parsed.data.enable_auto_response;
     if (parsed.data.auto_response_intents !== undefined) data.autoResponseIntents = JSON.stringify(parsed.data.auto_response_intents);
+    if (parsed.data.auto_response_mode !== undefined) data.autoResponseMode = parsed.data.auto_response_mode;
+    if (parsed.data.business_hours_start !== undefined) data.businessHoursStart = parsed.data.business_hours_start;
+    if (parsed.data.business_hours_end !== undefined) data.businessHoursEnd = parsed.data.business_hours_end;
+    if (parsed.data.business_hours_days !== undefined) data.businessHoursDays = JSON.stringify(parsed.data.business_hours_days);
+    if (parsed.data.emergency_phone_number !== undefined) data.emergencyPhoneNumber = parsed.data.emergency_phone_number;
 
     const settings = await prisma.tenantSettings.upsert({
       where: { tenantId: request.user.tenantId },
@@ -271,6 +284,58 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       auto_response_intents: settings.autoResponseIntents
         ? JSON.parse(settings.autoResponseIntents)
         : [],
+      auto_response_mode: settings.autoResponseMode,
+      business_hours_start: settings.businessHoursStart,
+      business_hours_end: settings.businessHoursEnd,
+      business_hours_days: settings.businessHoursDays
+        ? JSON.parse(settings.businessHoursDays)
+        : [1, 2, 3, 4, 5],
+      emergency_phone_number: settings.emergencyPhoneNumber,
+    };
+  });
+
+  // GET /me/ai-mode-status — quick AI mode status for dashboard toggle
+  app.get("/me/ai-mode-status", async (request) => {
+    const status = await getAiModeStatus(request.user.tenantId);
+    return {
+      mode: status.mode,
+      is_auto_response_active: status.isAutoResponseActive,
+      business_hours_start: status.businessHoursStart,
+      business_hours_end: status.businessHoursEnd,
+      business_hours_days: status.businessHoursDays,
+      timezone: status.timezone,
+    };
+  });
+
+  // PATCH /me/ai-mode — quick toggle for dashboard
+  app.patch("/me/ai-mode", async (request, reply) => {
+    const body = request.body as { mode?: string };
+    const mode = body.mode;
+
+    if (!mode || !["manual", "auto", "scheduled"].includes(mode)) {
+      return reply.status(422).send({ detail: "Invalid mode. Use: manual, auto, or scheduled" });
+    }
+
+    // Also sync legacy enableAutoResponse for backward compat
+    const enableAutoResponse = mode === "auto";
+
+    const settings = await prisma.tenantSettings.upsert({
+      where: { tenantId: request.user.tenantId },
+      create: {
+        tenantId: request.user.tenantId,
+        autoResponseMode: mode,
+        enableAutoResponse,
+      },
+      update: {
+        autoResponseMode: mode,
+        enableAutoResponse,
+      },
+    });
+
+    const status = await getAiModeStatus(request.user.tenantId);
+    return {
+      mode: settings.autoResponseMode,
+      is_auto_response_active: status.isAutoResponseActive,
     };
   });
 

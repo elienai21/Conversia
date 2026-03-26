@@ -7,6 +7,9 @@ import {
 } from "../schemas/suggestion.schema.js";
 import { enqueueSuggestionJob } from "../services/copilot.service.js";
 
+import { polishText } from "../services/polish-text.service.js";
+import { getRecentMessages } from "../services/message.service.js";
+
 export async function copilotRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
 
@@ -73,6 +76,44 @@ export async function copilotRoutes(app: FastifyInstance): Promise<void> {
       });
 
       // Note: Full suggestion body is no longer returned instantly
+    },
+  );
+
+  // POST /:conversationId/polish-text — polish/correct agent text before sending
+  app.post<{ Params: { conversationId: string } }>(
+    "/:conversationId/polish-text",
+    async (request, reply) => {
+      const user = request.user;
+      const { conversationId } = request.params;
+      const body = request.body as { text?: string };
+
+      if (!body.text?.trim()) {
+        return reply.status(422).send({ detail: "Text is required" });
+      }
+
+      // Verify conversation belongs to agent's tenant
+      const conversation = await prisma.conversation.findFirst({
+        where: { id: conversationId, tenantId: user.tenantId },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ detail: "Conversation not found" });
+      }
+
+      // Get recent messages for context
+      const recentMessages = await getRecentMessages(conversationId, 6);
+      const context = recentMessages
+        .reverse()
+        .map((m) => `[${m.senderType}]: ${m.originalText}`)
+        .join("\n");
+
+      const result = await polishText({
+        tenantId: user.tenantId,
+        text: body.text.trim(),
+        context: context || undefined,
+      });
+
+      return reply.send({ polished_text: result.polishedText });
     },
   );
 }

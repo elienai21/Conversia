@@ -40,6 +40,7 @@ model Tenant {
   serviceOrders            ServiceOrder[]
   settings                 TenantSettings?
   users                    User[]
+  auditLogs                AuditLog[]
 
   @@map("tenants")
 }
@@ -79,6 +80,8 @@ model User {
   isOnline                   Boolean            @default(false) @map("is_online")
   isActive                   Boolean            @default(true) @map("is_active")
   maxConcurrentConversations Int                @default(5) @map("max_concurrent_conversations")
+  emailVerifiedAt            DateTime?          @map("email_verified_at")
+  termsAcceptedAt            DateTime?          @map("terms_accepted_at")
   createdAt                  DateTime           @default(now()) @map("created_at")
   suggestions                AISuggestion[]
   conversations              Conversation[]     @relation("AssignedAgent")
@@ -241,6 +244,11 @@ model TenantSettings {
   instagramVerifyToken      String?  @map("instagram_verify_token")
   enableAutoResponse        Boolean   @default(false) @map("enable_auto_response")
   autoResponseIntents       String?   @map("auto_response_intents")
+  autoResponseMode          String    @default("manual") @map("auto_response_mode") // manual | auto | scheduled
+  businessHoursStart        String    @default("08:00") @map("business_hours_start")
+  businessHoursEnd          String    @default("18:00") @map("business_hours_end")
+  businessHoursDays         String    @default("[1,2,3,4,5]") @map("business_hours_days") // JSON array of weekday numbers (0=Sun, 6=Sat)
+  emergencyPhoneNumber      String?   @map("emergency_phone_number")
   timezone                  String    @default("America/Sao_Paulo") @map("timezone") // IANA timezone for task date calculations
   lastTaskSyncAt            DateTime? @map("last_task_sync_at")
   vapidPublicKey            String?   @map("vapid_public_key")
@@ -352,4 +360,23 @@ model ServiceOrder {
 
   @@index([tenantId, status], map: "ix_service_orders_tenant_status")
   @@map("service_orders")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @map("action")      // e.g. "user.login", "settings.update", "os.create"
+  entityType String?  @map("entity_type") // e.g. "conversation", "service_order", "user"
+  entityId   String?  @map("entity_id")
+  metadata   Json?    @map("metadata")    // arbitrary context (changed fields, etc.)
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId], map: "ix_audit_logs_tenant")
+  @@index([tenantId, createdAt(sort: Desc)], map: "ix_audit_logs_timeline")
+  @@map("audit_logs")
 }

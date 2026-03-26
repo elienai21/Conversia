@@ -355,6 +355,39 @@
   text-decoration: underline;
 }
 
+/* Terms checkbox */
+.signup-terms-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+  margin-top: var(--spacing-2);
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--glass-bg, rgba(255,255,255,0.03));
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.06));
+  transition: border-color 0.2s;
+}
+
+.signup-terms-checkbox:hover {
+  border-color: var(--brand-primary, #6366f1);
+}
+
+.signup-terms-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand-primary, #6366f1);
+  flex-shrink: 0;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.signup-terms-checkbox span {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* ── Mobile ───────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .signup-container {

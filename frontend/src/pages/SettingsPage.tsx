@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ShieldAlert, Settings, Webhook, BookOpen, Users, Bot, Zap } from "lucide-react";
+import { ShieldAlert, Settings, Webhook, BookOpen, Users, Bot, Zap, Clock } from "lucide-react";
 import { GeneralTab } from "./settings/GeneralTab";
 import { IntegrationsTab } from "./settings/IntegrationsTab";
 import { KnowledgeBaseTab } from "./settings/KnowledgeBaseTab";
 import { TeamTab } from "./settings/TeamTab";
 import { AISettingsTab } from "./settings/AISettingsTab";
 import { QuickRepliesTab } from "./settings/QuickRepliesTab";
+import { BusinessHoursTab } from "./settings/BusinessHoursTab";
 import "./SettingsPage.css";
 
-type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai" | "quick-replies";
+type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai" | "quick-replies" | "business-hours";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export function SettingsPage() {
       case "team": return <TeamTab />;
       case "ai": return <AISettingsTab />;
       case "quick-replies": return <QuickRepliesTab />;
+      case "business-hours": return <BusinessHoursTab />;
       default: return null;
     }
   };
@@ -79,6 +81,12 @@ export function SettingsPage() {
             onClick={() => setActiveTab("quick-replies")}
           >
             <Zap size={18} /> Quick Replies
+          </button>
+          <button
+            className={`settings-tab-btn ${activeTab === "business-hours" ? "active" : ""}`}
+            onClick={() => setActiveTab("business-hours")}
+          >
+            <Clock size={18} /> Horário de Atendimento
           </button>
         </nav>
       </div>

@@ -49,6 +49,7 @@ export function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -100,6 +101,10 @@ export function SignupPage() {
       setError("A senha deve ter pelo menos 8 caracteres.");
       return;
     }
+    if (!termsAccepted) {
+      setError("Você deve aceitar os Termos de Uso e a Política de Privacidade para continuar.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -112,6 +117,7 @@ export function SignupPage() {
         full_name: fullName.trim(),
         email: email.trim().toLowerCase(),
         password,
+        terms_accepted: true,
       });
 
       login(result.access_token, { ...result.user, isOnline: true }, result.refresh_token);
@@ -338,12 +344,21 @@ export function SignupPage() {
               </button>
             </div>
 
-            <p className="signup-legal">
-              Ao criar uma conta você concorda com os{" "}
-              <a href="#" className="signup-legal-link">termos de uso</a>{" "}
-              e{" "}
-              <a href="#" className="signup-legal-link">política de privacidade</a>.
-            </p>
+            <label className="signup-terms-checkbox">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => { setTermsAccepted(e.target.checked); setError(""); }}
+                required
+              />
+              <span>
+                Li e aceito os{" "}
+                <Link to="/terms" target="_blank" className="signup-legal-link">Termos de Uso</Link>{" "}
+                e a{" "}
+                <Link to="/privacy" target="_blank" className="signup-legal-link">Política de Privacidade</Link>{" "}
+                (obrigatório pela LGPD)
+              </span>
+            </label>
           </form>
         )}
       </div>

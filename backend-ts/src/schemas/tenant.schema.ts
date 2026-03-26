@@ -28,4 +28,9 @@ export const updateAISettingsSchema = z.object({
   ai_max_tokens: z.number().int().min(50).max(2000).optional(),
   enable_auto_response: z.boolean().optional(),
   auto_response_intents: z.array(z.string()).optional(),
+  auto_response_mode: z.enum(["manual", "auto", "scheduled"]).optional(),
+  business_hours_start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  business_hours_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  business_hours_days: z.array(z.number().int().min(0).max(6)).optional(),
+  emergency_phone_number: z.string().nullable().optional(),
 });

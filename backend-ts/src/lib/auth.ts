@@ -73,3 +73,25 @@ export function decodeRefreshToken(token: string): RefreshTokenPayload {
   }
   return decoded;
 }
+
+export interface EmailVerificationTokenPayload extends TokenPayload {
+  purpose: "email_verification";
+}
+
+/** Creates a signed JWT to verify an email address. Expires in 24 hours. */
+export function createEmailVerificationToken(userId: string, tenantId: string): string {
+  const payload: EmailVerificationTokenPayload = {
+    sub: userId,
+    tenant_id: tenantId,
+    purpose: "email_verification",
+  };
+  return jwt.sign(payload, config.SECRET_KEY, { expiresIn: "24h" });
+}
+
+export function decodeEmailVerificationToken(token: string): EmailVerificationTokenPayload {
+  const decoded = jwt.verify(token, config.SECRET_KEY) as EmailVerificationTokenPayload;
+  if (decoded.purpose !== "email_verification") {
+    throw new Error("Invalid token purpose");
+  }
+  return decoded;
+}

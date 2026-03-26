@@ -351,9 +351,35 @@ async function processIncomingMessage(params: {
      await prisma.conversation.update({ where: { id: conversation.id }, data: { priority: "urgent", status: "queued" } });
      SocketService.emitToTenant(tenant.id, "conversation.updated", { type: "queued", conversationId: conversation.id });
      notifyAgentsNewMessage(tenant.id, { conversationId: conversation.id, customerName: customer?.name || customer?.phone || "cliente", messagePreview: "🚨 EMERGÊNCIA: " + text });
-     
-     if (process.env.MAINTENANCE_WHATSAPP_ID && customer?.phone) {
-        await sendWhatsappMessage(tenant.id, process.env.MAINTENANCE_WHATSAPP_ID, `🚨 Alerta de Manutenção! Cliente ${customer.name || customer.phone} informou uma urgência:\n"${text}"\nAcesse o painel para responder.`);
+
+     // Enhanced: auto-reply + emergency phone alert when in auto-response mode
+     const { resolveAutoResponseEnabled } = await import("../services/business-hours.service.js");
+     const autoSettings = await prisma.tenantSettings.findUnique({ where: { tenantId: tenant.id } });
+     const isAutoMode = resolveAutoResponseEnabled({
+       autoResponseMode: autoSettings?.autoResponseMode || "manual",
+       enableAutoResponse: autoSettings?.enableAutoResponse ?? false,
+       timezone: autoSettings?.timezone || "America/Sao_Paulo",
+       businessHoursStart: autoSettings?.businessHoursStart || "08:00",
+       businessHoursEnd: autoSettings?.businessHoursEnd || "18:00",
+       businessHoursDays: autoSettings?.businessHoursDays || "[1,2,3,4,5]",
+     });
+
+     if (isAutoMode && customer?.phone) {
+       const emergencyMsg = "🚨 Entendi que se trata de uma emergência. Estou acionando o gerente de plantão imediatamente. Aguarde, por favor.";
+       void (async () => {
+         try {
+           await sendWhatsappMessage(tenant.id, customer.phone, emergencyMsg);
+           await saveMessage({ conversationId: conversation.id, senderType: "system", text: emergencyMsg });
+         } catch (err) { logger.error({ err }, "[Webhook] Erro ao enviar resposta de emergência"); }
+       })();
+     }
+
+     // Send alert to configured emergency phone number
+     const emergencyPhone = autoSettings?.emergencyPhoneNumber;
+     if (emergencyPhone) {
+       void sendWhatsappMessage(tenant.id, emergencyPhone, `🚨 EMERGÊNCIA! Cliente ${customer?.name || customer?.phone || "desconhecido"} reportou:\n"${text}"\nAcesse o painel para responder.`).catch((err) => logger.error({ err }, "[Webhook] Erro ao enviar alerta de emergência"));
+     } else if (process.env.MAINTENANCE_WHATSAPP_ID && customer?.phone) {
+       await sendWhatsappMessage(tenant.id, process.env.MAINTENANCE_WHATSAPP_ID, `🚨 Alerta de Manutenção! Cliente ${customer.name || customer.phone} informou uma urgência:\n"${text}"\nAcesse o painel para responder.`);
      }
   }
 

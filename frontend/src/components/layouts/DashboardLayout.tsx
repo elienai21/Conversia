@@ -10,6 +10,8 @@ import { ApiService } from "@/services/api";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
+import { VerificationBanner } from "@/components/VerificationBanner";
+import { AiModeToggle } from "@/components/AiModeToggle";
 import "./DashboardLayout.css";
 
 
@@ -85,6 +87,8 @@ export function DashboardLayout() {
             <p className="brand-subtitle">AI Assistant</p>
           </div>
         </div>
+
+        <AiModeToggle />
 
         <nav className="sidebar-nav">
           <div className="nav-section">
@@ -209,7 +213,10 @@ export function DashboardLayout() {
 
       {/* Main Content Area */}
       <main className="dashboard-main">
-        <Outlet />
+        <VerificationBanner />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <Outlet />
+        </div>
       </main>
 
       <NewCustomerModal

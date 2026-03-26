@@ -14,6 +14,8 @@ import { logger } from "../lib/logger.js";
 import { executeCrmToolCall } from "./crm-tools.service.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 
+import { resolveAutoResponseEnabled } from "./business-hours.service.js";
+
 /**
  * Attempts to auto-respond to a customer message using the knowledge base + CRM tools.
  * Returns true if an auto-response was sent, false if it should fall through to agent assignment.
@@ -26,13 +28,22 @@ export async function tryAutoResponse(params: {
 }): Promise<boolean> {
   const { tenantId, conversationId, intent, detectedLang } = params;
 
-  // 1. Check tenant settings
+  // 1. Check tenant settings & resolve auto-response mode
   const settings = await prisma.tenantSettings.findUnique({
     where: { tenantId },
   });
 
-  if (!settings?.enableAutoResponse) {
-    logger.info(`[AutoResponse] Disabled for tenant ${tenantId} (enableAutoResponse=${settings?.enableAutoResponse})`);
+  const shouldAutoRespond = resolveAutoResponseEnabled({
+    autoResponseMode: settings?.autoResponseMode || "manual",
+    enableAutoResponse: settings?.enableAutoResponse ?? false,
+    timezone: settings?.timezone || "America/Sao_Paulo",
+    businessHoursStart: settings?.businessHoursStart || "08:00",
+    businessHoursEnd: settings?.businessHoursEnd || "18:00",
+    businessHoursDays: settings?.businessHoursDays || "[1,2,3,4,5]",
+  });
+
+  if (!shouldAutoRespond) {
+    logger.info(`[AutoResponse] Disabled for tenant ${tenantId} (mode=${settings?.autoResponseMode || "manual"})`);
     return false;
   }
 

@@ -13,6 +13,7 @@ import {
 } from "../schemas/auth.schema.js";
 import { authMiddleware, revokeToken } from "../middleware/auth.middleware.js";
 import { hashPassword } from "../lib/auth.js";
+import { logAudit } from "../lib/audit.js";
 
 const googleClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
@@ -63,6 +64,14 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
         tenantId: user.tenantId,
       },
     };
+
+    void logAudit({
+      tenantId: user.tenantId,
+      userId: user.id,
+      action: "user.login",
+      ipAddress: request.ip,
+      userAgent: request.headers["user-agent"],
+    });
 
     return reply.send(result);
   });
@@ -191,7 +200,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
   // Creates a new tenant + admin user in one atomic transaction.
   // Rate limited at the nginx/railway level; no additional IP throttle here.
   app.post("/signup", async (request, reply) => {
-    const { prisma, auth } = request.server.deps;
+    const { prisma, auth, services } = request.server.deps;
 
     const parsed = signupRequestSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -200,6 +209,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const { company_name, full_name, email, password } = parsed.data;
+    const termsAcceptedAt = new Date();
 
     // Check for duplicate email (prevent creating multiple tenants with same admin email)
     const existing = await prisma.user.findFirst({ where: { email } });
@@ -247,9 +257,19 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
           role: "admin",
           preferredLanguage: "pt",
           isActive: true,
+          termsAcceptedAt,
         },
       });
     });
+
+    // Send email verification (non-fatal — user can resend later)
+    try {
+      const verifyToken = auth.createEmailVerificationToken(user.id, user.tenantId);
+      const verifyUrl = `${config.FRONTEND_URL}/verify-email?token=${encodeURIComponent(verifyToken)}`;
+      await services.sendVerificationEmail(user.email, verifyUrl);
+    } catch (emailErr) {
+      app.log.warn({ emailErr }, "[Auth] Failed to send verification email after signup");
+    }
 
     const token = auth.createAccessToken(user.id, user.tenantId);
     const refreshToken = auth.createRefreshToken(user.id, user.tenantId);
@@ -267,7 +287,80 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       },
     };
 
+    void logAudit({
+      tenantId: user.tenantId,
+      userId: user.id,
+      action: "user.signup",
+      metadata: { company_name },
+      ipAddress: request.ip,
+      userAgent: request.headers["user-agent"],
+    });
+
     return reply.status(201).send(result);
+  });
+
+  // ─── Email Verification ──────────────────────────────────
+  // GET /auth/verify-email?token=... — marks emailVerifiedAt on user
+  app.get("/verify-email", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
+    const { token } = request.query as { token?: string };
+
+    if (!token) {
+      return reply.status(400).send({ detail: "Token ausente." });
+    }
+
+    let payload: { sub: string; tenant_id: string; purpose: string };
+    try {
+      payload = auth.decodeEmailVerificationToken(token);
+    } catch {
+      return reply.status(400).send({ detail: "Link inválido ou expirado. Solicite um novo." });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user || user.tenantId !== payload.tenant_id) {
+      return reply.status(404).send({ detail: "Usuário não encontrado." });
+    }
+
+    if (user.emailVerifiedAt) {
+      return reply.send({ detail: "E-mail já verificado anteriormente." });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date() },
+    });
+
+    return reply.send({ detail: "E-mail verificado com sucesso! Você já pode usar todos os recursos." });
+  });
+
+  // POST /auth/resend-verification — resends the verification email
+  app.post("/resend-verification", { onRequest: authMiddleware }, async (request, reply) => {
+    const { prisma, auth, services } = request.server.deps;
+
+    const user = await prisma.user.findUnique({
+      where: { id: request.user.id },
+      select: { id: true, tenantId: true, email: true, emailVerifiedAt: true },
+    });
+
+    if (!user) {
+      return reply.status(404).send({ detail: "Usuário não encontrado." });
+    }
+
+    if (user.emailVerifiedAt) {
+      return reply.status(400).send({ detail: "E-mail já verificado." });
+    }
+
+    const verifyToken = auth.createEmailVerificationToken(user.id, user.tenantId);
+    const verifyUrl = `${config.FRONTEND_URL}/verify-email?token=${encodeURIComponent(verifyToken)}`;
+
+    try {
+      await services.sendVerificationEmail(user.email, verifyUrl);
+    } catch (emailErr) {
+      app.log.error({ emailErr }, "[Auth] Failed to resend verification email");
+      return reply.status(503).send({ detail: "Falha ao enviar e-mail. Tente novamente em alguns minutos." });
+    }
+
+    return reply.send({ detail: "E-mail de verificação reenviado. Verifique sua caixa de entrada." });
   });
 
   app.post("/password-reset/request", async (request, reply) => {

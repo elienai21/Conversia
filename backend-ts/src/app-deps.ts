@@ -9,6 +9,8 @@ import {
   verifyPassword,
   createRefreshToken,
   decodeRefreshToken,
+  createEmailVerificationToken,
+  decodeEmailVerificationToken,
 } from "./lib/auth.js";
 import { findOrCreateConversation, updateConversationStatus } from "./services/conversation.service.js";
 import { assignConversationToAgent } from "./services/assignment.service.js";
@@ -34,6 +36,8 @@ export interface AppDeps {
     createPasswordResetToken: typeof createPasswordResetToken;
     decodeAccessToken: typeof decodeAccessToken;
     decodePasswordResetToken: typeof decodePasswordResetToken;
+    createEmailVerificationToken: typeof createEmailVerificationToken;
+    decodeEmailVerificationToken: typeof decodeEmailVerificationToken;
   };
   services: {
     findOrCreateConversation: typeof findOrCreateConversation;
@@ -49,6 +53,7 @@ export interface AppDeps {
     sendInstagramMessage: typeof sendInstagramMessage;
     decrypt: typeof decrypt;
     sendPasswordResetEmail: (email: string, resetUrl: string) => Promise<void>;
+    sendVerificationEmail: (email: string, verifyUrl: string) => Promise<void>;
   };
   socket: Pick<typeof SocketService, "emitToTenant" | "emitToConversation">;
 }
@@ -69,6 +74,8 @@ export const defaultAppDeps: AppDeps = {
     createPasswordResetToken,
     decodeAccessToken,
     decodePasswordResetToken,
+    createEmailVerificationToken,
+    decodeEmailVerificationToken,
   },
   services: {
     findOrCreateConversation,
@@ -85,6 +92,9 @@ export const defaultAppDeps: AppDeps = {
     decrypt,
     sendPasswordResetEmail: async (email, resetUrl) => {
       logger.info(`[Auth] Password reset requested for ${email}: ${resetUrl}`);
+    },
+    sendVerificationEmail: async (email, verifyUrl) => {
+      logger.info(`[Auth] Email verification requested for ${email}: ${verifyUrl}`);
     },
   },
   socket: {

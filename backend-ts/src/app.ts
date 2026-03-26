@@ -28,6 +28,7 @@ import { publicCheckinRoutes } from "./routes/public-checkin.routes.js";
 import { pushRoutes } from "./routes/push.routes.js";
 import { serviceOrderRoutes } from "./routes/serviceorder.routes.js";
 import { billingRoutes } from "./routes/billing.routes.js";
+import { auditRoutes } from "./routes/audit.routes.js";
 import { attachAppDeps, type AppDeps } from "./app-deps.js";
 import { runDailyTaskSync } from "./workers/task.worker.js";
 import { scheduleTaskSync } from "./lib/queue.js";
@@ -132,6 +133,7 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
   await app.register(pushRoutes, { prefix: "/api/v1/push" });
   await app.register(serviceOrderRoutes, { prefix: "/api/v1/service-orders" });
   await app.register(billingRoutes, { prefix: "/api/v1/billing" });
+  await app.register(auditRoutes, { prefix: "/api/v1/audit-logs" });
 
   // Job Agendador de Missões (CRM Sync) = a cada 1 hora via BullMQ
   await scheduleTaskSync();

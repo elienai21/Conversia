@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2 } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
@@ -332,6 +332,7 @@ export function InboxPage() {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
   const [isLoadingEmailSuggestion, setIsLoadingEmailSuggestion] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuggestionError, setEmailSuggestionError] = useState(false);
@@ -550,6 +551,23 @@ export function InboxPage() {
       console.error(e);
     }
     setShowChatMenu(false);
+  };
+
+  // Polish text with AI
+  const handlePolishText = async () => {
+    if (!activeConversation || !replyText.trim()) return;
+    setIsPolishing(true);
+    try {
+      const res = await ApiService.post<{ polished_text: string }>(
+        `/conversations/${activeConversation}/polish-text`,
+        { text: replyText.trim() }
+      );
+      if (res.polished_text) setReplyText(res.polished_text);
+    } catch (err) {
+      console.error("Polish failed:", err);
+    } finally {
+      setIsPolishing(false);
+    }
   };
 
   const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
@@ -1133,6 +1151,17 @@ export function InboxPage() {
                   lineHeight: "1.4"
                 }}
               />
+              {replyText.trim() && (
+                <button
+                  className="attach-btn"
+                  onClick={handlePolishText}
+                  disabled={isPolishing || isSending}
+                  title="Polir texto com IA (correção gramatical)"
+                  style={{ color: isPolishing ? "var(--brand-primary)" : undefined }}
+                >
+                  {isPolishing ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                </button>
+              )}
               <button
                 className="send-btn"
                 disabled={(!replyText.trim() && !pendingFile) || isSending}
