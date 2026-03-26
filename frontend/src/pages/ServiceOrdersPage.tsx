@@ -1,7 +1,7 @@
 // src/pages/ServiceOrdersPage.tsx
 import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
-import { ClipboardList, MapPin, Wrench, User, Plus, GripVertical, Hash } from "lucide-react";
+import { ClipboardList, MapPin, User, Plus, GripVertical, Hash } from "lucide-react";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 import "./ServiceOrdersPage.css";
 

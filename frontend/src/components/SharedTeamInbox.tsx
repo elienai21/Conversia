@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import {
-  Search, Send, ArrowLeft, Users, Check, CheckCheck, Loader2,
+  Search, Send, ArrowLeft, Check, CheckCheck, Loader2,
   Sparkles, Camera, MessageCircle, Volume2, ChevronDown, Globe,
   Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList,
 } from "lucide-react";

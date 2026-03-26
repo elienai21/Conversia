@@ -10,11 +10,6 @@ import { ApiService } from "@/services/api";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
 import "./DashboardLayout.css";
 
-type ConversationSummary = {
-  id: string;
-  status: string;
-  unread_count?: number;
-};
 
 export function DashboardLayout() {
   const { user, logout } = useAuth();
