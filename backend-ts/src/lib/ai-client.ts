@@ -14,6 +14,7 @@ import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import { config } from "../config.js";
 import { logger } from "./logger.js";
+import { checkAiTokenLimit, logAiUsage } from "../services/ai-usage.service.js";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool" | "developer" | "function";
@@ -33,6 +34,8 @@ export interface ChatResult {
 }
 
 interface ChatOptions {
+  tenantId?: string;            // ID do tenant para controle de cotas SaaS
+  serviceName?: string;         // Nome do serviço (copilot, auto-response, polish)
   apiKey?: string;              // Tenant-specific OpenAI key (already decrypted)
   model?: string;               // e.g. "gpt-4o-mini"
   messages: ChatMessage[];
@@ -62,29 +65,62 @@ function shouldFallbackToGemini(err: unknown): boolean {
  * Tries OpenAI first, falls back to Gemini.
  */
 export async function chatCompletion(opts: ChatOptions): Promise<ChatResult> {
-  const openaiKey = opts.apiKey || config.OPENAI_API_KEY;
-  const geminiKey = config.GEMINI_API_KEY;
+  let openaiKey = opts.apiKey || config.OPENAI_API_KEY;
+  let geminiKey = config.GEMINI_API_KEY;
+  let isManagedKey = false;
+
+  if (opts.tenantId) {
+    const quota = await checkAiTokenLimit(opts.tenantId);
+    if (!quota.allowed) {
+      if (quota.providerType === "managed") {
+        throw new Error(`AI Limit Exceeded: Você utilizou ${quota.usage} de ${quota.limit} tokens inclusos no seu plano.`);
+      } else {
+        throw new Error(`Você precisa configurar a sua chave da OpenAI nas Configurações, ou atualizar seu plano para habilitar a IA Inclusa.`);
+      }
+    }
+    isManagedKey = quota.providerType === "managed";
+    if (quota.providerType === "custom" && quota.apiKey) {
+      openaiKey = quota.apiKey;
+    } else if (isManagedKey) {
+      openaiKey = config.OPENAI_API_KEY; // Force global base key
+    }
+  }
+
   const model = normalizeModel(opts.model || config.OPENAI_MODEL || "gpt-4o-mini");
+
+  let result: ChatResult;
 
   // 1. Try OpenAI
   if (openaiKey) {
     try {
-      return await callOpenAI({ ...opts, apiKey: openaiKey, model });
+      result = await callOpenAI({ ...opts, apiKey: openaiKey, model });
     } catch (err) {
       if (geminiKey && shouldFallbackToGemini(err)) {
         logger.warn({ err }, `[AI Client] OpenAI failed (model=${model}), falling back to Gemini`);
+        result = await callGemini(opts, geminiKey);
       } else {
         throw err; // No Gemini key or non-retryable error
       }
     }
+  } else if (geminiKey) {
+    // 2. Fallback to Gemini
+    result = await callGemini(opts, geminiKey);
+  } else {
+    throw new Error("No AI provider configured. Set OPENAI_API_KEY or GEMINI_API_KEY.");
   }
 
-  // 2. Fallback to Gemini
-  if (geminiKey) {
-    return await callGemini(opts, geminiKey);
+  // 3. Log Token Usage for managed plans Let it run detached.
+  if (opts.tenantId && isManagedKey) {
+    logAiUsage({
+      tenantId: opts.tenantId,
+      service: opts.serviceName || "chat_completion",
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+    }).catch(e => logger.error({ err: e }, "[AI Client] Failed to log AI usage"));
   }
 
-  throw new Error("No AI provider configured. Set OPENAI_API_KEY or GEMINI_API_KEY.");
+  return result;
 }
 
 /** Call OpenAI Chat Completions API */

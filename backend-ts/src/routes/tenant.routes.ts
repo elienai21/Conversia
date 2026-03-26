@@ -5,6 +5,7 @@ import { encrypt, decrypt, maskApiKey } from "../lib/encryption.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 import { updateTenantSchema, updateIntegrationsSchema, updateAISettingsSchema } from "../schemas/tenant.schema.js";
 import { getAiModeStatus } from "../services/business-hours.service.js";
+import { checkAiTokenLimit } from "../services/ai-usage.service.js";
 
 export async function tenantRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -230,6 +231,10 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     const settings = await prisma.tenantSettings.findUnique({
       where: { tenantId: request.user.tenantId },
     });
+    
+    // Check usage to return alongside settings
+    const usageResult = await checkAiTokenLimit(request.user.tenantId);
+
     return {
       openai_model: settings?.openaiModel || "gpt-4.1-mini",
       ai_temperature: settings?.aiTemperature ?? 0.7,
@@ -246,6 +251,10 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         ? JSON.parse(settings.businessHoursDays)
         : [1, 2, 3, 4, 5],
       emergency_phone_number: settings?.emergencyPhoneNumber || null,
+      use_global_ai_key: settings?.useGlobalAiKey ?? false,
+      ai_monthly_token_limit: usageResult.limit,
+      ai_monthly_token_usage: usageResult.usage,
+      ai_provider_mode: usageResult.providerType,
     };
   });
 
@@ -268,6 +277,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.business_hours_end !== undefined) data.businessHoursEnd = parsed.data.business_hours_end;
     if (parsed.data.business_hours_days !== undefined) data.businessHoursDays = JSON.stringify(parsed.data.business_hours_days);
     if (parsed.data.emergency_phone_number !== undefined) data.emergencyPhoneNumber = parsed.data.emergency_phone_number;
+    if (parsed.data.use_global_ai_key !== undefined) data.useGlobalAiKey = parsed.data.use_global_ai_key;
 
     const settings = await prisma.tenantSettings.upsert({
       where: { tenantId: request.user.tenantId },
@@ -291,6 +301,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         ? JSON.parse(settings.businessHoursDays)
         : [1, 2, 3, 4, 5],
       emergency_phone_number: settings.emergencyPhoneNumber,
+      use_global_ai_key: settings.useGlobalAiKey,
     };
   });
 

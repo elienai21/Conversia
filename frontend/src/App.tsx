@@ -21,6 +21,8 @@ import { OwnersInboxPage } from "./pages/OwnersInboxPage";
 import { ServiceOrdersPage } from "./pages/ServiceOrdersPage";
 import { StaffPage } from "./pages/StaffPage";
 
+import { ReloadPrompt } from "./components/ReloadPrompt";
+
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 const ProtectedRoute = () => {
@@ -48,6 +50,7 @@ function App() {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
+            <ReloadPrompt />
             <Routes>
               {/* Totalmente público — sem auth, sem layout interno */}
               <Route path="/checkin/:token" element={<GuestCheckinPage />} />

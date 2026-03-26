@@ -33,4 +33,5 @@ export const updateAISettingsSchema = z.object({
   business_hours_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   business_hours_days: z.array(z.number().int().min(0).max(6)).optional(),
   emergency_phone_number: z.string().nullable().optional(),
+  use_global_ai_key: z.boolean().optional(),
 });

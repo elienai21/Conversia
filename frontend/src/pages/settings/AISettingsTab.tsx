@@ -9,6 +9,10 @@ type AISettingsInfo = {
   ai_max_tokens: number;
   enable_auto_response: boolean;
   auto_response_intents: string[];
+  use_global_ai_key: boolean;
+  ai_monthly_token_limit: number;
+  ai_monthly_token_usage: number;
+  ai_provider_mode: "managed" | "custom";
 };
 
 const AVAILABLE_INTENTS = [
@@ -31,6 +35,10 @@ export function AISettingsTab() {
   const [maxTokens, setMaxTokens] = useState(200);
   const [enableAutoResponse, setEnableAutoResponse] = useState(false);
   const [autoResponseIntents, setAutoResponseIntents] = useState<string[]>([]);
+  
+  const [useGlobalAiKey, setUseGlobalAiKey] = useState(false);
+  const [tokenLimit, setTokenLimit] = useState(50000);
+  const [tokenUsage, setTokenUsage] = useState(0);
 
   useEffect(() => {
     ApiService.get<AISettingsInfo>("/tenants/me/ai-settings")
@@ -41,6 +49,10 @@ export function AISettingsTab() {
         setMaxTokens(res.ai_max_tokens);
         setEnableAutoResponse(res.enable_auto_response);
         setAutoResponseIntents(res.auto_response_intents || []);
+        
+        setUseGlobalAiKey(res.use_global_ai_key ?? false);
+        setTokenLimit(res.ai_monthly_token_limit ?? 50000);
+        setTokenUsage(res.ai_monthly_token_usage ?? 0);
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
@@ -57,6 +69,7 @@ export function AISettingsTab() {
         ai_max_tokens: maxTokens,
         enable_auto_response: enableAutoResponse,
         auto_response_intents: autoResponseIntents,
+        use_global_ai_key: useGlobalAiKey,
       });
       alert("AI Settings saved successfully!");
     } catch (error) {
@@ -79,6 +92,70 @@ export function AISettingsTab() {
       </div>
 
       <form className="settings-form" onSubmit={handleSave}>
+
+        {/* Gestão de Cota (SaaS AI) */}
+        <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-[var(--glass-border)] mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap size={20} className="text-[var(--brand-primary)]" />
+            <h2 className="text-lg font-medium">Provedor de Inteligência Artificial</h2>
+          </div>
+          
+          <div className="flex flex-col gap-4">
+            <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--glass-border)] transition-colors hover:border-[var(--brand-primary)]">
+              <input
+                type="radio"
+                name="aiProviderMode"
+                checked={useGlobalAiKey}
+                onChange={() => setUseGlobalAiKey(true)}
+                style={{ accentColor: 'var(--brand-primary)', width: 18, height: 18 }}
+              />
+              <div className="flex-1">
+                <span className="block text-base font-medium">Conversia AI (Incluso no Plano)</span>
+                <span className="block text-sm text-[var(--text-muted)] mt-1">Use a cota da plataforma como modelo "Plug & Play". Nenhuma conta externa necessária.</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--glass-border)] transition-colors hover:border-[var(--brand-primary)]">
+              <input
+                type="radio"
+                name="aiProviderMode"
+                checked={!useGlobalAiKey}
+                onChange={() => setUseGlobalAiKey(false)}
+                style={{ accentColor: 'var(--brand-primary)', width: 18, height: 18 }}
+              />
+              <div className="flex-1">
+                <span className="block text-base font-medium">Chave Personalizada (OpenAI API Key)</span>
+                <span className="block text-sm text-[var(--text-muted)] mt-1">Conecte sua própria conta para uso ilimitado (faturado direto a você). Vá em Configurações &gt; Integrações para colar sua chave.</span>
+              </div>
+            </label>
+          </div>
+
+          {useGlobalAiKey && (
+            <div className="mt-6 pt-6 border-t border-[var(--glass-border)]">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-medium">Consumo da Franquia neste mês:</span>
+                <span className="text-sm font-semibold" style={{ color: tokenUsage > tokenLimit ? 'var(--status-danger)' : 'var(--brand-primary)' }}>
+                  {tokenUsage.toLocaleString()} / {tokenLimit.toLocaleString()} tokens
+                </span>
+              </div>
+              <div className="w-full h-3 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                <div 
+                  className="h-full transition-all duration-500"
+                  style={{ 
+                    width: `${Math.min((tokenUsage / tokenLimit) * 100, 100)}%`, 
+                    backgroundColor: tokenUsage > tokenLimit ? 'var(--status-danger)' : 'var(--brand-primary)' 
+                  }}
+                />
+              </div>
+              {tokenUsage >= tokenLimit && (
+                <p className="text-xs text-[var(--status-danger)] mt-2 font-medium">
+                  ⚠️ Limite mensal excedido. O Chatbot automático ou co-piloto deixará de funcionar até a virada do mês, exceto se você inserir sua chave própria.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="form-group">
           <label>OpenAI Model</label>
           <select value={model} onChange={(e) => setModel(e.target.value)}>

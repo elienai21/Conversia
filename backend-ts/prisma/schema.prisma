@@ -235,6 +235,8 @@ model TenantSettings {
   aiTemperature             Float    @default(0.7) @map("ai_temperature")
   aiSystemPrompt            String?  @map("ai_system_prompt")
   aiMaxTokens               Int      @default(200) @map("ai_max_tokens")
+  useGlobalAiKey            Boolean  @default(false) @map("use_global_ai_key")
+  aiMonthlyTokenLimit       Int      @default(50000) @map("ai_monthly_token_limit")
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
   staysnetClientId          String?  @map("staysnet_client_id")
