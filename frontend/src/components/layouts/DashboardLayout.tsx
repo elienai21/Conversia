@@ -8,6 +8,7 @@ import { useSocket } from "@/contexts/SocketContext";
 import { useTranslation } from "react-i18next";
 import { ApiService } from "@/services/api";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import "./DashboardLayout.css";
 
 
@@ -90,9 +91,9 @@ export function DashboardLayout() {
               <LayoutDashboard size={20} />
               <span>{t("Dashboard")}</span>
             </NavLink>
-            <NavLink to="/inbox" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/inbox" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <MessageSquare size={20} />
-              <span>{t("Messages")}</span>
+              <span>Hóspedes</span>
               {openCount > 0 && <span className="nav-badge">{openCount > 99 ? "99+" : openCount}</span>}
             </NavLink>
             <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
@@ -120,18 +121,18 @@ export function DashboardLayout() {
               <span>Inbox Diretoria</span>
               {ownersCount > 0 && <span className="nav-badge">{ownersCount > 99 ? "99+" : ownersCount}</span>}
             </NavLink>
-            <NavLink to="/operations" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/operations" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <HardHat size={20} />
-              <span>Inbox Equipe</span>
+              <span>Equipe</span>
               {opsCount > 0 && <span className="nav-badge">{opsCount > 99 ? "99+" : opsCount}</span>}
             </NavLink>
-            <NavLink to="/service-orders" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/service-orders" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <ClipboardList size={20} />
-              <span>Ordens de Serviço</span>
+              <span>O.S.</span>
             </NavLink>
-            <NavLink to="/staff" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+            <NavLink to="/staff" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <Users size={20} />
-              <span>Equipe Operacional</span>
+              <span>Staff</span>
             </NavLink>
           </div>
 
@@ -142,7 +143,7 @@ export function DashboardLayout() {
               </div>
 
               <div className="nav-section">
-                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                <NavLink to="/settings" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
                   <Settings size={20} />
                   <span>{t("Settings")}</span>
                 </NavLink>
@@ -210,10 +211,11 @@ export function DashboardLayout() {
         open={showNewCustomer}
         onClose={() => setShowNewCustomer(false)}
         onCreated={() => {
-          // Force a page reload if on the customers page so the list refreshes
           window.dispatchEvent(new CustomEvent("customer-created"));
         }}
       />
+
+      <InstallPrompt />
     </div>
   );
 }

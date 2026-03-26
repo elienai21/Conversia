@@ -1,11 +1,13 @@
 {
   "name": "Conversia",
   "short_name": "Conversia",
-  "description": "AI-powered multilingual hotel customer service",
-  "start_url": "/",
+  "description": "Atendimento hoteleiro com IA multilíngue",
+  "start_url": "/inbox",
+  "id": "/inbox",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#0F172A",
-  "theme_color": "#3B82F6",
+  "theme_color": "#0F172A",
   "orientation": "any",
   "lang": "pt-BR",
   "scope": "/",
@@ -14,15 +16,35 @@
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Conversas",
-      "url": "/conversations",
-      "description": "Ver conversas ativas"
+      "name": "Hóspedes",
+      "short_name": "Hóspedes",
+      "url": "/inbox",
+      "description": "Conversas com hóspedes"
+    },
+    {
+      "name": "Equipe Operacional",
+      "short_name": "Equipe",
+      "url": "/operations",
+      "description": "Inbox da equipe operacional"
+    },
+    {
+      "name": "Ordens de Serviço",
+      "short_name": "O.S.",
+      "url": "/service-orders",
+      "description": "Gerenciar ordens de serviço"
     }
   ],
-  "categories": ["business", "productivity"]
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false
 }

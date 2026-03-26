@@ -275,7 +275,7 @@
     flex-direction: column;
   }
 
-  /* Hide the full sidebar on mobile */
+  /* Sidebar becomes fixed bottom tab bar */
   .dashboard-sidebar {
     position: fixed;
     bottom: 0;
@@ -285,6 +285,7 @@
     height: auto;
     margin: 0;
     padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     flex-direction: row;
     border-radius: 0;
     border: none;
@@ -303,11 +304,13 @@
     flex-direction: row;
     justify-content: space-around;
     align-items: center;
-    padding: var(--spacing-2) 0;
+    padding: 6px 0;
     gap: 0;
     width: 100%;
+    overflow: hidden;
   }
 
+  /* Hide all nav items on mobile by default */
   .nav-section {
     display: contents;
   }
@@ -316,38 +319,65 @@
     display: none;
   }
 
-  .new-customer-btn {
-    display: none;
-  }
-
+  /* Hide non-priority items on mobile */
   .nav-item {
+    display: none;
     flex-direction: column;
-    gap: 2px;
-    padding: var(--spacing-2) var(--spacing-3);
-    font-size: 0.65rem;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 12px;
+    min-width: 52px;
+    min-height: 52px;
+    font-size: 0.62rem;
     border-radius: var(--radius-sm);
     position: relative;
+    color: var(--text-muted);
   }
 
-  .nav-item.active::before {
-    display: none;
+  /* Only show items marked with data-mobile-show */
+  .nav-item[data-mobile-show] {
+    display: flex;
   }
 
+  /* Active indicator: dot above the icon */
   .nav-item.active {
     background: transparent;
+    color: var(--brand-primary);
   }
 
-  .nav-item span:first-of-type:not(.nav-badge) {
-    font-size: 0.65rem;
+  .nav-item.active::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+  }
+
+  .nav-item span:not(.nav-badge) {
+    font-size: 0.62rem;
+    font-weight: 500;
+  }
+
+  .nav-item.active span:not(.nav-badge) {
+    font-weight: 700;
   }
 
   .nav-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 4px;
+    right: 6px;
     min-width: 16px;
     height: 16px;
     font-size: 0.6rem;
+  }
+
+  .new-customer-btn {
+    display: none;
   }
 
   .sidebar-footer {
@@ -360,8 +390,12 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--spacing-3) var(--spacing-4);
+    padding-top: calc(var(--spacing-3) + env(safe-area-inset-top, 0px));
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 40;
   }
 
   .mobile-header .brand-logo {
@@ -374,10 +408,11 @@
     gap: var(--spacing-3);
   }
 
-  /* Main content adjusts for top header + bottom tab bar */
+  /* Main content: between top header and bottom tab bar */
   .dashboard-main {
     padding: 0;
-    height: calc(100vh - 56px - 60px); /* header + tab bar */
+    /* 56px top header + 58px bottom tab bar + safe-area */
+    height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
   }
 }
