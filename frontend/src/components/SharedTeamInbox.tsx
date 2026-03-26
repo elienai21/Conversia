@@ -30,6 +30,8 @@ type Conversation = {
 type Message = {
   id: string;
   senderType: "customer" | "agent" | "system";
+  senderPhone?: string | null;
+  senderName?: string | null;
   originalText: string;
   createdAt: string;
   status?: "sent" | "delivered" | "read";
@@ -98,6 +100,8 @@ function mapMessage(raw: RawMessage): Message {
   const translation = raw.translations?.[0];
   return {
     id: raw.id, senderType: raw.sender_type,
+    senderPhone: (raw as any).sender_phone,
+    senderName: (raw as any).sender_name,
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
     status: (raw.status as Message["status"]) || "sent",
@@ -642,6 +646,11 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
                   onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, messageId: msg.id }); }}
                 >
                   <div className="message-bubble">
+                    {msg.senderType === "customer" && msg.senderName && (
+                      <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
+                        ~ {msg.senderName}
+                      </div>
+                    )}
                     {renderMessageText(msg)}
                     {renderAttachments(msg)}
                     {msg.translatedTo && (

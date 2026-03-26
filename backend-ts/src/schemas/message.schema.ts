@@ -27,6 +27,8 @@ export interface MessageOut {
   conversation_id: string;
   sender_type: string;
   sender_id: string | null;
+  sender_phone?: string | null;
+  sender_name?: string | null;
   original_text: string;
   detected_language: string | null;
   status: string;

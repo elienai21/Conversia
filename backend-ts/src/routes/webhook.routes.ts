@@ -85,6 +85,8 @@ async function processIncomingMessage(params: {
   whatsappMessageKey?: Record<string, unknown>;
   /** Full WhatsApp message data object – used by Evolution API for media decryption */
   whatsappMessageData?: Record<string, unknown>;
+  participantPhone?: string;
+  participantName?: string;
 }): Promise<void> {
   const { tenant, conversation, text, externalMessageId, isNewConversation, attachments = [], whatsappMessageKey, whatsappMessageData } = params;
 
@@ -128,6 +130,8 @@ async function processIncomingMessage(params: {
       text,
       detectedLanguage: detectedLang ?? undefined,
       externalId: externalMessageId,
+      senderPhone: params.participantPhone,
+      senderName: params.participantName,
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -648,6 +652,8 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
             attachments: incoming.attachments,
             whatsappMessageKey: incoming.whatsappMessageKey,
             whatsappMessageData: incoming.whatsappMessageData,
+            participantPhone: incoming.participantPhone,
+            participantName: incoming.participantName,
           });
         } catch (err) {
           request.server.log.error(err, "[Evolution Webhook] Background processing error");

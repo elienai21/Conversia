@@ -7,6 +7,8 @@ export async function saveMessage(params: {
   text: string;
   detectedLanguage?: string;
   externalId?: string;
+  senderPhone?: string;
+  senderName?: string;
 }) {
   const message = await prisma.message.create({
     data: {
@@ -16,6 +18,8 @@ export async function saveMessage(params: {
       originalText: params.text,
       detectedLanguage: params.detectedLanguage ?? null,
       externalId: params.externalId ?? null,
+      senderPhone: params.senderPhone ?? null,
+      senderName: params.senderName ?? null,
     },
   });
 

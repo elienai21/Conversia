@@ -4,6 +4,7 @@ import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSi
 import { StartConversationModal } from "@/components/StartConversationModal";
 import { EditCustomerModal } from "@/components/EditCustomerModal";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
+import { NewGroupModal } from "@/components/NewGroupModal";
 import "./CustomersPage.css";
 
 type CustomerItem = {
@@ -75,6 +76,7 @@ export function StaffPage() {
   const [msgCustomer, setMsgCustomer] = useState<CustomerItem | null>(null);
   const [editCustomer, setEditCustomer] = useState<CustomerItem | null>(null);
   const [showNewStaff, setShowNewStaff] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDeleteCustomer = async (customer: CustomerItem) => {
@@ -174,6 +176,12 @@ export function StaffPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <button 
+            className="px-4 py-2 border border-brand-primary text-brand-primary rounded-md hover:bg-brand-primary/10 font-medium transition-colors"
+            onClick={() => setShowNewGroup(true)}
+          >
+            Novo Grupo
+          </button>
           <button 
             className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary-hover font-medium transition-colors"
             onClick={() => setShowNewStaff(true)}
@@ -340,6 +348,13 @@ export function StaffPage() {
         open={showNewStaff}
         onClose={() => setShowNewStaff(false)}
         onCreated={fetchStaff}
+      />
+
+      <NewGroupModal
+        open={showNewGroup}
+        onClose={() => setShowNewGroup(false)}
+        onCreated={fetchStaff}
+        staffList={staffList}
       />
     </div>
   );

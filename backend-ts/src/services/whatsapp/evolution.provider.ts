@@ -77,15 +77,22 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       if (!text) return [];
 
       let from = key.remoteJid as string;
-      // Strip WhatsApp suffixes
+      // Strip WhatsApp suffixes for the main group ID
       from = from.split("@")[0];
+
+      // Extract actual participant if it's a group message
+      const participantRaw = (key?.participant as string) || (msgData.participant as string);
+      const participantPhone = participantRaw ? participantRaw.split("@")[0] : undefined;
+      const participantName = msgData.pushName as string | undefined;
 
       return [
         {
           from,
           messageId: key.id as string,
           text,
-          displayName: msgData.pushName as string | undefined,
+          displayName: participantName, // Keep backward compatibility
+          participantPhone,
+          participantName,
           providerId: body.instance as string,
           attachments,
           whatsappMessageKey: key as Record<string, unknown>,
@@ -96,6 +103,53 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       logger.error({ err }, "Evolution parseWebhook error");
       return [];
     }
+  }
+
+  async createGroup(tenantId: string, subject: string, participants: string[]): Promise<string> {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+    });
+
+    const rawUrl = settings?.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const instanceName = settings?.evolutionInstanceName;
+    const rawToken = settings?.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+    if (!rawUrl || !instanceName || !apikey) {
+      throw new Error("[Evolution] Missing config for creating group.");
+    }
+
+    const serverUrl = normalizeEvolutionUrl(rawUrl);
+    const url = `${serverUrl}/group/create/${instanceName}`;
+
+    // Format numbers: '5511999999999' -> '5511999999999@s.whatsapp.net'
+    const formattedParticipants = participants.map(p => p.includes("@") ? p : `${p}@s.whatsapp.net`);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: apikey,
+      },
+      body: JSON.stringify({
+        subject,
+        participants: formattedParticipants,
+      }),
+    });
+
+    if (!response.ok) {
+      const bodyText = await response.text();
+      throw new Error(`Evolution createGroup failed (${response.status}): ${bodyText}`);
+    }
+
+    const result = await response.json() as { id?: string, groupMetadata?: { id?: string } };
+    const groupId = result.id || result.groupMetadata?.id;
+    
+    if (!groupId) {
+      throw new Error("Evolution API returned ok, but no group ID found in response");
+    }
+
+    return groupId;
   }
 
   async sendMessage(tenantId: string, to: string, text: string): Promise<void> {

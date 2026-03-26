@@ -20,6 +20,10 @@ export interface IncomingWhatsappMessage {
   whatsappMessageKey?: Record<string, unknown>;
   /** The full WhatsApp message data object – used for fetching media via getBase64FromMediaMessage */
   whatsappMessageData?: Record<string, unknown>;
+  /** The phone number of the specific participant who sent the message (if in a group) */
+  participantPhone?: string;
+  /** The push name of the specific participant who sent the message (if in a group) */
+  participantName?: string;
 }
 
 export interface MediaPayload {
@@ -46,4 +50,11 @@ export interface IWhatsAppProvider {
    * Send a media message to a recipient.
    */
   sendMedia(tenantId: string, to: string, media: MediaPayload): Promise<void>;
+
+  /**
+   * Creates a WhatsApp Group with the given participants.
+   * Participants should be phone numbers.
+   * Returns the newly created Group's JID (Platform-specific ID, usually ...@g.us).
+   */
+  createGroup?(tenantId: string, subject: string, participants: string[]): Promise<string>;
 }

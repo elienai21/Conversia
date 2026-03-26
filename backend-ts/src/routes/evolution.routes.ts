@@ -288,4 +288,57 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
       }
     },
   );
+
+  // 5. Create a WhatsApp Group
+  app.post<{ Body: { subject: string; participants: string[] } }>(
+    "/groups",
+    async (request, reply) => {
+      const user = request.user;
+      const { subject, participants } = request.body;
+
+      if (!subject || !participants || participants.length === 0) {
+        return reply.status(400).send({ detail: "Subject and participants are required" });
+      }
+
+      const settings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: user.tenantId },
+      });
+
+      if (!settings || settings.whatsappProvider !== "evolution") {
+        return reply.status(400).send({ detail: "Only Evolution API supports group creation currently" });
+      }
+
+      try {
+        const { EvolutionWhatsAppProvider } = await import("../services/whatsapp/evolution.provider.js");
+        const provider = new EvolutionWhatsAppProvider();
+
+        const groupId = await provider.createGroup(user.tenantId, subject, participants);
+        const normalizedGroupId = groupId.split("@")[0];
+
+        // Register the new group as a Customer so it appears in the Inbox
+        const existing = await prisma.customer.findUnique({
+          where: {
+            tenantId_phone: { tenantId: user.tenantId, phone: normalizedGroupId }
+          }
+        });
+
+        if (!existing) {
+          await prisma.customer.create({
+            data: {
+              tenantId: user.tenantId,
+              phone: normalizedGroupId,
+              name: subject,
+              tag: "GROUP_STAFF",
+              role: "staff"
+            }
+          });
+        }
+
+        return reply.send({ success: true, groupId: normalizedGroupId });
+      } catch (err) {
+        logger.error({ err }, "[Evolution] Failed to create group");
+        return reply.status(500).send({ detail: "Failed to create group via Provider" });
+      }
+    }
+  );
 }
