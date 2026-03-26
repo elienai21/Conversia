@@ -5,6 +5,7 @@ import { decrypt } from "../lib/encryption.js";
 import { getRecentMessages } from "./message.service.js";
 import { logAiUsage } from "./usage-log.service.js";
 import { SocketService } from "./socket.service.js";
+import { chatCompletion, ChatMessage } from "../lib/ai-client.js";
 
 /**
  * Validates actual image magic bytes to detect encrypted/corrupt data.
@@ -51,42 +52,6 @@ import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { executeCrmToolCall } from "./crm-tools.service.js";
 import { generateEmbedding } from "./embedding.service.js";
 import { logger } from "../lib/logger.js";
-
-/**
- * Calls an OpenAI completion with automatic retry on 429 (rate limit).
- *
- * Strategy: exponential backoff — 3 s, 6 s, 12 s (max 2 retries).
- * Respects the `Retry-After` header when present.
- * Does NOT retry on 400 / 401 / 404 — those are permanent errors.
- */
-async function openaiWithRetry(
-  fn: () => Promise<OpenAI.Chat.Completions.ChatCompletion>,
-  maxRetries = 2,
-): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err: unknown) {
-      lastErr = err;
-      const e = err as Record<string, unknown>;
-      const status = Number(e?.status ?? 0);
-      // Only retry on 429; surface everything else immediately
-      if (status !== 429 || attempt >= maxRetries) throw err;
-
-      // Respect Retry-After header if the SDK exposes it, otherwise use backoff
-      const retryAfterHeader =
-        (e?.headers as Record<string, string> | undefined)?.["retry-after"];
-      const delaySec = retryAfterHeader
-        ? Math.min(Number(retryAfterHeader), 30)
-        : 3 * Math.pow(2, attempt); // 3 s → 6 s → 12 s
-
-      logger.warn(`[Copilot] Rate limited (429) — retrying in ${delaySec}s (attempt ${attempt + 1}/${maxRetries})`);
-      await new Promise((r) => setTimeout(r, delaySec * 1_000));
-    }
-  }
-  throw lastErr;
-}
 
 // The public sync function just enqueues the request (Event-Driven AI)
 export async function enqueueSuggestionJob(
@@ -187,31 +152,20 @@ export async function generateSuggestionWorker(
   }
   logger.info(`[Copilot] Using API key source="${keySource}", model="${model}" for tenant ${tenantId}`);
 
-  if (!apiKey) {
-    logger.error("[Copilot] No OpenAI API key available. Aborting suggestion.");
-    SocketService.emitToConversation(message.conversationId, "suggestion.ready", {
-      messageId: message.id,
-      suggestion: {
-        id: `err-${Date.now()}`,
-        suggestionText: "⚠️ Chave da OpenAI não configurada. Acesse Configurações → Integrações para salvar sua chave.",
-        wasUsed: false,
-      },
-    });
-    return fail(new AppError("OpenAI API key not configured", 400));
-  }
-
-  const openai = new OpenAI({ apiKey });
+  // Copilot doesn't strictly abort anymore if key is missing here, as ai-client
+  // will fallback to GEMINI_API_KEY. We simply pass the available key.
 
   // Vision is supported by gpt-4o, gpt-4-turbo, gpt-4-vision, and gpt-4.1 family
-  const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision|gpt-4\.1/.test(model);
+  // If we fallback to gemini, gemini-2.0-flash also supports vision.
+  const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision|gpt-4\.1|gemini/.test(model) || !!config.GEMINI_API_KEY;
 
   // 6. Get last 10 messages for context (with attachments)
   const recentMessages = await getRecentMessages(message.conversationId, 10);
 
-  const conversationContext: OpenAI.ChatCompletionMessageParam[] = [];
+  const conversationContext: ChatMessage[] = [];
   for (const m of recentMessages.reverse()) {
     const role = m.senderType === "customer" ? ("user" as const) : ("assistant" as const);
-    const contentParts: OpenAI.ChatCompletionContentPart[] = [];
+    const contentParts: any[] = [];
 
     // Base text (skip placeholder tags like [image])
     const baseText = m.originalText?.match(/^\[(image|video|audio|document)\]$/) ? "" : m.originalText;
@@ -249,6 +203,8 @@ export async function generateSuggestionWorker(
         }
       } else if (att.type === "audio") {
         try {
+          if (!apiKey) throw new Error("No OpenAI key for Whisper");
+          const openai = new OpenAI({ apiKey });
           const ext = mimeType.split("/")[1]?.split(";")[0] || "ogg";
           const audioFile = await toFile(Buffer.from(b64, "base64"), att.fileName || `audio.${ext}`, { type: mimeType });
           const transcription = await openai.audio.transcriptions.create({ file: audioFile, model: "whisper-1" });
@@ -287,41 +243,42 @@ Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, o
 Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
   // 8. AI Execution Loop (Function Calling)
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
+  const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
     ...conversationContext,
   ];
 
   let suggestionText = "I'll be happy to help you.";
   let finalUsage = { prompt_tokens: 0, completion_tokens: 0 };
+  let providerUsed = "openai";
 
   try {
     // We allow up to 5 loop iterations to prevent infinite loops if tools misbehave
     for (let i = 0; i < 5; i++) {
-      const response = await openaiWithRetry(() =>
-        openai.chat.completions.create({
-          model,
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          tools: crmTools,
-          tool_choice: "auto",
-        })
-      );
+      const result = await chatCompletion({
+        apiKey,
+        model,
+        messages,
+        temperature,
+        maxTokens,
+        tools: crmTools,
+      });
 
-      if (response.usage) {
-        finalUsage.prompt_tokens += response.usage.prompt_tokens;
-        finalUsage.completion_tokens += response.usage.completion_tokens;
+      if (result.inputTokens) {
+        finalUsage.prompt_tokens += result.inputTokens;
+        finalUsage.completion_tokens += result.outputTokens;
+      }
+      providerUsed = result.provider;
+
+      if (result.messageParams) {
+        messages.push(result.messageParams as ChatMessage);
+      } else if (result.text) {
+        messages.push({ role: "assistant", content: result.text });
       }
 
-      const responseMessage = response.choices[0]?.message;
-      if (!responseMessage) break;
-
-      messages.push(responseMessage); // Important: always append the assistant's response
-
-      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+      if (result.tool_calls && result.tool_calls.length > 0) {
         // Tool Call Execution Phase
-        for (const toolCall of responseMessage.tool_calls) {
+        for (const toolCall of result.tool_calls) {
           if (toolCall.type !== "function") continue;
           
           let resultJson = "";
@@ -365,7 +322,7 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
         // Continue the loop: LLM reads the tool messages and decides the next action
       } else {
         // No more tool calls, we have our final text
-        suggestionText = responseMessage.content?.trim() || suggestionText;
+        suggestionText = result.text || suggestionText;
         break; 
       }
     }

@@ -1,14 +1,16 @@
-import OpenAI from "openai";
 import { config } from "../config.js";
 import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/encryption.js";
 import { logAiUsage } from "./usage-log.service.js";
 import { logger } from "../lib/logger.js";
+import { chatCompletion } from "../lib/ai-client.js";
 
 /**
  * Takes raw text from the operator and returns a polished version
  * with grammar corrections and improved professional communication.
  * Does NOT add new information — only refines what was written.
+ *
+ * Uses OpenAI with automatic Gemini fallback.
  */
 export async function polishText(params: {
   tenantId: string;
@@ -23,14 +25,8 @@ export async function polishText(params: {
 
   const apiKey = settings?.openaiApiKey
     ? decrypt(settings.openaiApiKey)
-    : config.OPENAI_API_KEY;
+    : undefined; // ai-client will use global env as fallback
 
-  if (!apiKey) {
-    logger.warn(`[PolishText] No OpenAI API key for tenant ${tenantId}`);
-    return { polishedText: text };
-  }
-
-  const openai = new OpenAI({ apiKey });
   const model = settings?.openaiModel || config.OPENAI_MODEL;
 
   const systemPrompt = `Você é um assistente de escrita profissional. Sua tarefa é:
@@ -44,7 +40,7 @@ export async function polishText(params: {
 
 Retorne APENAS o texto corrigido, sem explicações ou comentários.`;
 
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
+  const messages: Array<{ role: "system" | "user"; content: string }> = [
     { role: "system", content: systemPrompt },
   ];
 
@@ -58,33 +54,33 @@ Retorne APENAS o texto corrigido, sem explicações ou comentários.`;
   messages.push({ role: "user", content: text });
 
   try {
-    const response = await openai.chat.completions.create({
+    const result = await chatCompletion({
+      apiKey,
       model,
       messages,
       temperature: 0.3,
-      max_tokens: 500,
+      maxTokens: 500,
     });
 
-    const usage = response.usage;
-    if (usage) {
+    if (result.inputTokens > 0) {
       await logAiUsage({
         tenantId,
         service: "polish_text",
-        model,
-        inputTokens: usage.prompt_tokens,
-        outputTokens: usage.completion_tokens,
+        model: result.model,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
       });
     }
 
-    const polished = response.choices[0]?.message?.content?.trim();
+    const polished = result.text;
     if (!polished) {
       return { polishedText: text };
     }
 
-    logger.info(`[PolishText] Polished text for tenant ${tenantId}: "${text.substring(0, 50)}..." → "${polished.substring(0, 50)}..."`);
+    logger.info(`[PolishText] via ${result.provider} (${result.model}): "${text.substring(0, 50)}..." → "${polished.substring(0, 50)}..."`);
     return { polishedText: polished };
   } catch (err) {
-    logger.error({ err }, "[PolishText] OpenAI error");
+    logger.error({ err }, "[PolishText] AI error");
     return { polishedText: text };
   }
 }

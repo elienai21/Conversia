@@ -54,10 +54,12 @@ const _dedupFallback = new Map<string, number>();
 const DEDUP_TTL_MS = 60_000;
 const DEDUP_TTL_SEC = 60;
 
-async function checkAndMarkDuplicate(externalId: string): Promise<boolean> {
+async function checkAndMarkDuplicate(conversationId: string, externalId: string): Promise<boolean> {
+  const dedupKey = `${conversationId}:${externalId}`;
+  
   if (isRedisAvailable()) {
     // SET key "1" EX 60 NX → returns "OK" if set (new), null if already existed (duplicate)
-    const result = await redisClient.set(`dedup:msg:${externalId}`, "1", "EX", DEDUP_TTL_SEC, "NX");
+    const result = await redisClient.set(`dedup:msg:${dedupKey}`, "1", "EX", DEDUP_TTL_SEC, "NX");
     return result === null; // null = already existed = duplicate
   }
 
@@ -66,8 +68,8 @@ async function checkAndMarkDuplicate(externalId: string): Promise<boolean> {
   for (const [key, ts] of _dedupFallback) {
     if (now - ts > DEDUP_TTL_MS) _dedupFallback.delete(key);
   }
-  if (_dedupFallback.has(externalId)) return true;
-  _dedupFallback.set(externalId, now);
+  if (_dedupFallback.has(dedupKey)) return true;
+  _dedupFallback.set(dedupKey, now);
   return false;
 }
 
@@ -101,14 +103,22 @@ async function processIncomingMessage(params: {
   //   Layer 1: Redis SET NX (atomic, survives restarts) or in-memory Map fallback
   //   Layer 2: DB findFirst (handles cases where Redis TTL expired between events)
   //   Layer 3: P2002 unique-violation catch (last resort for concurrent inserts)
-  if (externalMessageId && await checkAndMarkDuplicate(externalMessageId)) {
-    logger.info(`[Webhook] Duplicate message skipped (dedup): ${externalMessageId}`);
+  if (externalMessageId && await checkAndMarkDuplicate(conversation.id, externalMessageId)) {
+    logger.info(`[Webhook] Duplicate message skipped (dedup): conv=${conversation.id} ext=${externalMessageId}`);
     return;
   }
-  const existing = await prisma.message.findFirst({ where: { externalId: externalMessageId } });
-  if (existing) {
-    logger.info(`[Webhook] Duplicate message skipped: ${externalMessageId}`);
-    return;
+  
+  if (externalMessageId) {
+    const existing = await prisma.message.findFirst({ 
+      where: { 
+        conversationId: conversation.id, 
+        externalId: externalMessageId 
+      } 
+    });
+    if (existing) {
+      logger.info(`[Webhook] Duplicate message skipped: conv=${conversation.id} ext=${externalMessageId}`);
+      return;
+    }
   }
   let message: Awaited<ReturnType<typeof saveMessage>>;
   try {
@@ -121,7 +131,7 @@ async function processIncomingMessage(params: {
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      logger.info(`[Webhook] Duplicate message skipped (race condition): ${externalMessageId}`);
+      logger.info(`[Webhook] Duplicate message skipped (race condition P2002): conv=${conversation.id} ext=${externalMessageId}`);
       return;
     }
     throw err;

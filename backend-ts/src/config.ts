@@ -44,6 +44,9 @@ const envSchema = z.object({
   STRIPE_PRICE_PROFESSIONAL: z.string().default(""),
   STRIPE_PRICE_SCALE: z.string().default(""),
   STRIPE_PRICE_ENTERPRISE: z.string().default(""),
+  // ── Gemini fallback ───────────────────────────────────────────────────────
+  GEMINI_API_KEY: z.string().default(""),
+  GEMINI_MODEL: z.string().default("gemini-2.0-flash"),
 });
 
 export const config = envSchema.parse(process.env);

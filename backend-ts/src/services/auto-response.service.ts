@@ -13,8 +13,8 @@ import { crmTools } from "./ai-tools.js";
 import { logger } from "../lib/logger.js";
 import { executeCrmToolCall } from "./crm-tools.service.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
-
 import { resolveAutoResponseEnabled } from "./business-hours.service.js";
+import { chatCompletion, ChatMessage } from "../lib/ai-client.js";
 
 /**
  * Attempts to auto-respond to a customer message using the knowledge base + CRM tools.
@@ -98,17 +98,11 @@ export async function tryAutoResponse(params: {
     });
   }
 
-  // 4. Generate answer using OpenAI with CRM function calling
+  // 4. Resolve API key (tenant-specific encrypted -> undefined for global fallback)
   const apiKey = settings.openaiApiKey
     ? decrypt(settings.openaiApiKey)
-    : config.OPENAI_API_KEY;
+    : undefined;
 
-  if (!apiKey) {
-    logger.warn(`[AutoResponse] No OpenAI API key available for tenant ${tenantId}`);
-    return false;
-  }
-
-  const openai = new OpenAI({ apiKey });
   const model = settings.openaiModel || config.OPENAI_MODEL;
 
   const kbContext = kbEntries
@@ -155,45 +149,42 @@ ${kbContext}`;
   const hasCrm = crmResult.ok;
   logger.info(`[AutoResponse] CRM configured: ${hasCrm} for tenant ${tenantId}`);
 
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
+  const messages: ChatMessage[] = [
     { role: "system", content: systemDirective },
     ...conversationContext,
   ];
 
   let answerText = "";
   let totalUsage = { prompt_tokens: 0, completion_tokens: 0 };
+  let providerUsed = "openai";
 
   try {
     // Function calling loop (up to 5 iterations)
     for (let i = 0; i < 5; i++) {
-      const requestParams: OpenAI.ChatCompletionCreateParamsNonStreaming = {
+      const result = await chatCompletion({
+        apiKey,
         model,
         messages,
         temperature: 0.3,
-        max_tokens: 300,
-      };
+        maxTokens: 300,
+        ...(hasCrm ? { tools: crmTools } : {}),
+      });
 
-      // Only include CRM tools if CRM is configured
-      if (hasCrm) {
-        requestParams.tools = crmTools;
-        requestParams.tool_choice = "auto";
+      if (result.inputTokens) {
+        totalUsage.prompt_tokens += result.inputTokens;
+        totalUsage.completion_tokens += result.outputTokens;
+      }
+      providerUsed = result.provider;
+
+      if (result.messageParams) {
+        messages.push(result.messageParams as ChatMessage);
+      } else if (result.text) {
+        messages.push({ role: "assistant", content: result.text });
       }
 
-      const response = await openai.chat.completions.create(requestParams);
-
-      if (response.usage) {
-        totalUsage.prompt_tokens += response.usage.prompt_tokens;
-        totalUsage.completion_tokens += response.usage.completion_tokens;
-      }
-
-      const responseMessage = response.choices[0]?.message;
-      if (!responseMessage) break;
-
-      messages.push(responseMessage);
-
-      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+      if (result.tool_calls && result.tool_calls.length > 0) {
         // Execute tool calls
-        for (const toolCall of responseMessage.tool_calls) {
+        for (const toolCall of result.tool_calls) {
           if (toolCall.type !== "function") continue;
           const args = JSON.parse(toolCall.function.arguments);
           logger.info(`[AutoResponse] CRM tool call: ${toolCall.function.name}(${JSON.stringify(args)})`);
@@ -207,12 +198,12 @@ ${kbContext}`;
         // Continue loop for LLM to process tool results
       } else {
         // Final response
-        answerText = responseMessage.content?.trim() || "";
+        answerText = result.text;
         break;
       }
     }
-  } catch (openaiErr) {
-    logger.error({ err: openaiErr }, "[AutoResponse] OpenAI/CRM error");
+  } catch (err) {
+    logger.error({ err }, "[AutoResponse] AI/CRM error");
     return false;
   }
 
