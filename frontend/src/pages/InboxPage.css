@@ -52,6 +52,113 @@
   overflow-y: auto;
 }
 
+/* Filter Pills (WhatsApp Style) */
+.filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+
+.filter-pills::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
+}
+
+.filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  border-radius: 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.filter-pill.active {
+  background: rgba(37, 211, 102, 0.15); /* WhatsApp Green tint */
+  color: #25d366;
+  font-weight: 600;
+}
+
+.filter-pill.more {
+  padding-right: 8px;
+}
+
+.pill-badge {
+  background: #25d366;
+  color: #0b141a;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Filter Dropdown */
+.filter-more-wrapper {
+  position: relative;
+}
+
+.filter-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.filter-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.filter-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.filter-dropdown-item.primary {
+  color: #25d366;
+  font-weight: 600;
+}
+
+.filter-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 8px;
+}
+
 .empty-state-list {
   padding: var(--spacing-6);
   text-align: center;

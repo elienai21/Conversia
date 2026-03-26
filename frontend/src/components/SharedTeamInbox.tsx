@@ -8,12 +8,13 @@ import {
   Search, Send, ArrowLeft, Check, CheckCheck, Loader2,
   Sparkles, Camera, MessageCircle, Volume2, ChevronDown, Globe,
   Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList,
-  Wand2,
+  Wand2, Users, Plus
 } from "lucide-react";
 import "@/pages/InboxPage.css";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
+import { NewGroupModal } from "@/components/NewGroupModal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -169,6 +170,9 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuggestionError, setEmailSuggestionError] = useState(false);
   const [isPolishing, setIsPolishing] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [staffList, setStaffList] = useState<any[]>([]);
 
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConvRef = useRef<string | null>(null);
@@ -186,6 +190,11 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
   useEffect(() => {
     fetchConversations();
     ApiService.get<QuickReply[]>("/quick-replies").then(setQuickReplies).catch(console.error);
+    
+    // Load staff for NewGroupModal
+    ApiService.get<any[]>("/customers?tag=staff")
+      .then(setStaffList)
+      .catch(console.error);
   }, [fetchConversations]);
 
   // Socket room
@@ -512,32 +521,52 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
           </div>
 
           {tabs.length > 1 && (
-            <div className="flex bg-[var(--surface-tertiary)] p-1 rounded-lg gap-0.5">
+            <div className="filter-pills">
               {tabs.includes("all") && (
                 <button
-                  className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === "all" ? "bg-[var(--surface-primary)] shadow-sm font-medium" : "text-muted hover:text-[var(--text-primary)]"}`}
-                  onClick={() => setActiveTab("all")}
-                >Todos</button>
+                  className={`filter-pill ${activeTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('all')}
+                >
+                  Tudo
+                </button>
               )}
               {tabs.includes("unread") && (
                 <button
-                  className={`flex-1 text-sm py-1.5 rounded-md transition-colors flex items-center justify-center gap-1 ${activeTab === "unread" ? "bg-[var(--surface-primary)] shadow-sm font-medium" : "text-muted hover:text-[var(--text-primary)]"}`}
-                  onClick={() => setActiveTab("unread")}
+                  className={`filter-pill ${activeTab === 'unread' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('unread')}
                 >
-                  Não Lidos
-                  {conversations.filter((c) => c.unreadCount > 0).length > 0 && (
-                    <span className="inline-flex items-center justify-center bg-[var(--accent-primary)] text-white text-[10px] font-bold rounded-full w-4 h-4">
-                      {conversations.filter((c) => c.unreadCount > 0).length}
+                  Não lidas
+                  {conversations.filter(c => c.unreadCount > 0).length > 0 && (
+                    <span className="pill-badge">
+                      {conversations.filter(c => c.unreadCount > 0).length}
                     </span>
                   )}
                 </button>
               )}
-              {tabs.includes("groups") && (
-                <button
-                  className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${activeTab === "groups" ? "bg-[var(--surface-primary)] shadow-sm font-medium" : "text-muted hover:text-[var(--text-primary)]"}`}
-                  onClick={() => setActiveTab("groups")}
-                >Grupos</button>
-              )}
+              
+              <div className="filter-more-wrapper">
+                <button 
+                  className={`filter-pill more ${activeTab === 'groups' ? 'active' : ''}`}
+                  onClick={() => setShowFilterMenu(!showFilterMenu)}
+                >
+                  {activeTab === 'groups' ? 'Grupos' : 'Mais'}
+                  <ChevronDown size={14} className={`transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showFilterMenu && (
+                  <div className="filter-dropdown glass-panel animate-in fade-in zoom-in duration-200" style={{ left: 'auto', right: 0 }}>
+                    {tabs.includes("groups") && (
+                      <button className="filter-dropdown-item" onClick={() => { setActiveTab('groups'); setShowFilterMenu(false); }}>
+                        <Users size={14} /> Grupos
+                      </button>
+                    )}
+                    <div className="filter-dropdown-divider" />
+                    <button className="filter-dropdown-item primary" onClick={() => { setShowNewGroupModal(true); setShowFilterMenu(false); }}>
+                      <Plus size={14} /> Novo Grupo
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -869,6 +898,17 @@ export function SharedTeamInbox({ config }: { config: TeamInboxConfig }) {
           </div>
         </div>
       )}
+
+      {/* New Group Modal */}
+      <NewGroupModal
+        open={showNewGroupModal}
+        onClose={() => setShowNewGroupModal(false)}
+        onCreated={() => {
+          fetchConversations();
+          setActiveTab('groups');
+        }}
+        staffList={staffList}
+      />
     </div>
   );
 }
