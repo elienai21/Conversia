@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiService } from "@/services/api";
@@ -220,6 +220,11 @@ export function LoginPage() {
         <p className="login-legal">
           Ao acessar, voc&ecirc; concorda com os termos de uso e pol&iacute;tica de
           privacidade definidos para a sua conta Conversia.
+        </p>
+
+        <p className="login-signup-link">
+          Ainda não tem uma conta?{" "}
+          <Link to="/signup">Criar conta grátis</Link>
         </p>
       </div>
     </div>

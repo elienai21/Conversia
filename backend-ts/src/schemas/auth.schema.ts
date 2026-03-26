@@ -17,6 +17,13 @@ export const refreshTokenRequestSchema = z.object({
   refresh_token: z.string().min(1),
 });
 
+export const signupRequestSchema = z.object({
+  company_name: z.string().min(2).max(100),
+  full_name: z.string().min(2).max(100),
+  email: z.string().email(),
+  password: z.string().min(8).max(128),
+});
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;

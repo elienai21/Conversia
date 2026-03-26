@@ -7,9 +7,11 @@ import {
   passwordResetRequestSchema,
   googleLoginRequestSchema,
   refreshTokenRequestSchema,
+  signupRequestSchema,
   type LoginResponse,
 } from "../schemas/auth.schema.js";
 import { authMiddleware, revokeToken } from "../middleware/auth.middleware.js";
+import { hashPassword } from "../lib/auth.js";
 
 const googleClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
@@ -184,6 +186,84 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(204).send();
   });
 
+  // ─── Self-service Signup ────────────────────────────────
+  // Creates a new tenant + admin user in one atomic transaction.
+  // Rate limited at the nginx/railway level; no additional IP throttle here.
+  app.post("/signup", async (request, reply) => {
+    const { prisma, auth } = request.server.deps;
+
+    const parsed = signupRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      return reply.status(422).send({ detail: first?.message ?? "Dados inválidos" });
+    }
+
+    const { company_name, full_name, email, password } = parsed.data;
+
+    // Check for duplicate email (prevent creating multiple tenants with same admin email)
+    const existing = await prisma.user.findFirst({ where: { email } });
+    if (existing) {
+      return reply.status(409).send({ detail: "Este e-mail já está cadastrado. Faça login ou use outro e-mail." });
+    }
+
+    // Build unique slug from company name
+    const baseSlug = slugify(company_name);
+    const slug = await resolveUniqueSlug(prisma, baseSlug);
+
+    const passwordHash = await hashPassword(password);
+
+    // Atomic transaction: create tenant + settings + admin user
+    const user = await prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: company_name,
+          slug,
+          defaultLanguage: "pt",
+        },
+      });
+
+      await tx.tenantSettings.create({
+        data: {
+          tenantId: tenant.id,
+          whatsappProvider: "evolution",
+          openaiModel: "gpt-4.1-mini",
+          aiTemperature: 0.7,
+          aiMaxTokens: 200,
+        },
+      });
+
+      return tx.user.create({
+        data: {
+          tenantId: tenant.id,
+          email,
+          passwordHash,
+          fullName: full_name,
+          role: "admin",
+          preferredLanguage: "pt",
+          isActive: true,
+        },
+      });
+    });
+
+    const token = auth.createAccessToken(user.id, user.tenantId);
+    const refreshToken = auth.createRefreshToken(user.id, user.tenantId);
+
+    const result: LoginResponse = {
+      access_token: token,
+      refresh_token: refreshToken,
+      token_type: "bearer",
+      user: {
+        id: user.id,
+        name: user.fullName,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+      },
+    };
+
+    return reply.status(201).send(result);
+  });
+
   app.post("/password-reset/request", async (request, reply) => {
     const { prisma, auth, services } = request.server.deps;
     const parsed = passwordResetRequestSchema.safeParse(request.body);
@@ -210,6 +290,38 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       detail: "If an account exists for this email, a password reset link will be sent shortly.",
     });
   });
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Convert an arbitrary string to a URL-safe slug.
+ * "Hotel Atlântico & Spa" → "hotel-atlantico-spa"
+ */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip accents
+    .replace(/[^a-z0-9]+/g, "-")     // non-alphanumeric → dash
+    .replace(/^-+|-+$/g, "")         // trim leading/trailing dashes
+    .slice(0, 50);
+}
+
+/**
+ * Resolve a unique slug, appending a random suffix if the base slug is taken.
+ * e.g. "hotel-demo" → "hotel-demo-x4f2"
+ */
+async function resolveUniqueSlug(
+  prisma: { tenant: { findUnique: (args: { where: { slug: string } }) => Promise<unknown> } },
+  base: string,
+): Promise<string> {
+  const exists = await prisma.tenant.findUnique({ where: { slug: base } });
+  if (!exists) return base;
+
+  // Append 4-char random hex suffix
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${base.slice(0, 44)}-${suffix}`;
 }
 
 async function findPasswordLoginUser(

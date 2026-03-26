@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
 import { DashboardLayout } from "./components/layouts/DashboardLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { InboxPage } from "./pages/InboxPage";
@@ -52,6 +53,7 @@ function App() {
               {/* Public / Auth Routes */}
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
               </Route>
 
               {/* Protected Main SaaS Routes */}
