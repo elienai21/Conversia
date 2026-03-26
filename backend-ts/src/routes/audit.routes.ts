@@ -26,7 +26,7 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       const limit = Math.min(100, Math.max(1, parseInt(query.limit ?? "50", 10)));
       const skip  = (page - 1) * limit;
 
-      const where: Parameters<typeof prisma.auditLog.findMany>[0]["where"] = {
+      const where: any = {
         tenantId: request.user.tenantId,
       };
 

@@ -31,7 +31,7 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
         action:     entry.action,
         entityType: entry.entityType ?? null,
         entityId:   entry.entityId ?? null,
-        metadata:   entry.metadata ?? null,
+        metadata:   (entry.metadata ?? null) as any,
         ipAddress:  entry.ipAddress ?? null,
         userAgent:  entry.userAgent ?? null,
       },

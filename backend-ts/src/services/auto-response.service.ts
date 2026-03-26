@@ -33,17 +33,22 @@ export async function tryAutoResponse(params: {
     where: { tenantId },
   });
 
+  if (!settings) {
+    logger.info(`[AutoResponse] No settings found for tenant ${tenantId}`);
+    return false;
+  }
+
   const shouldAutoRespond = resolveAutoResponseEnabled({
-    autoResponseMode: settings?.autoResponseMode || "manual",
-    enableAutoResponse: settings?.enableAutoResponse ?? false,
-    timezone: settings?.timezone || "America/Sao_Paulo",
-    businessHoursStart: settings?.businessHoursStart || "08:00",
-    businessHoursEnd: settings?.businessHoursEnd || "18:00",
-    businessHoursDays: settings?.businessHoursDays || "[1,2,3,4,5]",
+    autoResponseMode: settings.autoResponseMode || "manual",
+    enableAutoResponse: settings.enableAutoResponse ?? false,
+    timezone: settings.timezone || "America/Sao_Paulo",
+    businessHoursStart: settings.businessHoursStart || "08:00",
+    businessHoursEnd: settings.businessHoursEnd || "18:00",
+    businessHoursDays: settings.businessHoursDays || "[1,2,3,4,5]",
   });
 
   if (!shouldAutoRespond) {
-    logger.info(`[AutoResponse] Disabled for tenant ${tenantId} (mode=${settings?.autoResponseMode || "manual"})`);
+    logger.info(`[AutoResponse] Disabled for tenant ${tenantId} (mode=${settings.autoResponseMode || "manual"})`);
     return false;
   }
 

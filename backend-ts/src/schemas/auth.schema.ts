@@ -23,7 +23,7 @@ export const signupRequestSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
   terms_accepted: z.literal(true, {
-    errorMap: () => ({ message: "Você deve aceitar os Termos de Uso e a Política de Privacidade." }),
+    error: "Você deve aceitar os Termos de Uso e a Política de Privacidade.",
   }),
 });
 
