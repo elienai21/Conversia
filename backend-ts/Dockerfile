@@ -32,12 +32,9 @@ RUN npx prisma generate
 # Copy compiled JS from builder
 COPY --from=builder /app/dist ./dist
 
-# Expose port (Railway sets PORT env var)
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
+# Railway injects the PORT env var dynamically
+# CMD ["node", "dist/server.js"] (or whatever the entrypoint is, assuming it relies on npm start)
+# Expose is not strictly needed for Railway, nor Healthcheck since Railway uses its own probes.
 
 # Run migrations then start the server
 # Note: use ; (not &&) so the server always starts even if prisma push fails
