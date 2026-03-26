@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
@@ -28,6 +28,7 @@ type Message = {
   originalText: string;
   createdAt: string;
   status?: "sent" | "delivered" | "read";
+  isInternal?: boolean;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -75,6 +76,7 @@ type RawMessage = {
   original_text: string;
   created_at: string;
   status?: string;
+  is_internal?: boolean;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -130,6 +132,7 @@ function mapMessage(raw: RawMessage): Message {
     originalText: translation ? translation.translated_text : raw.original_text,
     createdAt: raw.created_at,
     status: (raw.status as Message["status"]) || "sent",
+    isInternal: raw.is_internal ?? false,
     attachments: raw.attachments?.map((attachment) => ({
       id: attachment.id,
       type: attachment.type,
@@ -322,7 +325,7 @@ export function InboxPage() {
   const [usedSuggestionId, setUsedSuggestionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "groups" | "urgent">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "groups" | "urgent" | "starred">("all");
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -344,6 +347,14 @@ export function InboxPage() {
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
   const [staffList, setStaffList] = useState<any[]>([]);
+  // Internal notes mode
+  const [isInternalMode, setIsInternalMode] = useState(false);
+  // Agent collision: who else is viewing this conversation
+  const [viewingAgents, setViewingAgents] = useState<Array<{id: string; name: string}>>([]);
+  // Starred conversations (localStorage-backed)
+  const [starred, setStarred] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("inbox_starred") || "[]")); } catch { return new Set(); }
+  });
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
@@ -471,11 +482,26 @@ export function InboxPage() {
       );
     };
 
+    const handleAgentViewing = (data: { agentId: string; agentName: string; conversationId: string }) => {
+      if (data.conversationId !== activeConversation) return;
+      setViewingAgents((prev) => {
+        if (prev.some((a) => a.id === data.agentId)) return prev;
+        return [...prev, { id: data.agentId, name: data.agentName }];
+      });
+    };
+
+    const handleAgentLeft = (data: { agentId: string; conversationId: string }) => {
+      if (data.conversationId !== activeConversation) return;
+      setViewingAgents((prev) => prev.filter((a) => a.id !== data.agentId));
+    };
+
     socket.on("suggestion.ready", handleSuggestionReady);
     socket.on("message.new", handleMessageNew);
     socket.on("conversation.updated", handleConversationUpdated);
     socket.on("message.deleted", handleMessageDeleted);
     socket.on("message.status", handleMessageStatus);
+    socket.on("agent.viewing", handleAgentViewing);
+    socket.on("agent.left", handleAgentLeft);
 
     return () => {
       socket.off("suggestion.ready", handleSuggestionReady);
@@ -483,17 +509,24 @@ export function InboxPage() {
       socket.off("conversation.updated", handleConversationUpdated);
       socket.off("message.deleted", handleMessageDeleted);
       socket.off("message.status", handleMessageStatus);
+      socket.off("agent.viewing", handleAgentViewing);
+      socket.off("agent.left", handleAgentLeft);
     };
   }, [socket, activeConversation, fetchConversations]);
 
   const loadMessages = async (id: string) => {
+    // Emit "left" for previous conversation
+    if (activeConversation && socket) {
+      socket.emit("agent.leave", { conversationId: activeConversation });
+    }
+    setViewingAgents([]);
     setActiveConversation(id);
     setPendingCopilotIds(new Set());
     setUsedSuggestionId(null);
+    setIsInternalMode(false);
     try {
       const raw = await ApiService.get<RawMessage[]>(`/conversations/${id}/messages`);
       setMessages(raw.map(mapMessage));
-      // Mark as read - update sidebar unread count
       setConversations((prev) =>
         prev.map((c) => c.id === id ? { ...c, unreadCount: 0 } : c)
       );
@@ -746,11 +779,46 @@ export function InboxPage() {
     setContextMenu({ x: e.clientX, y: e.clientY, messageId });
   };
 
+  // Toggle star for a conversation
+  const toggleStar = (convId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStarred((prev) => {
+      const next = new Set(prev);
+      if (next.has(convId)) next.delete(convId); else next.add(convId);
+      localStorage.setItem("inbox_starred", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleSendInternalNote = async () => {
+    if (!activeConversation || !replyText.trim()) return;
+    setIsSending(true);
+    try {
+      const raw = await ApiService.post<RawMessage>(`/conversations/${activeConversation}/messages`, {
+        text: replyText.trim(),
+        is_internal: true,
+      });
+      const newMsg = mapMessage(raw);
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === newMsg.id);
+        if (idx >= 0) { const u = [...prev]; u[idx] = newMsg; return u; }
+        return [...prev, newMsg];
+      });
+      setReplyText("");
+      setIsInternalMode(false);
+    } catch (error: any) {
+      alert(`Erro ao salvar nota: ${error.message}`);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const filteredConversations = conversations
     .filter((conv) => {
       if (activeTab === "urgent" && conv.priority !== "urgent") return false;
       if (activeTab === "unread" && conv.unreadCount === 0) return false;
       if (activeTab === "groups" && !conv.customer?.phone?.includes("@g.us")) return false;
+      if (activeTab === "starred" && !starred.has(conv.id)) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const name = conv.customer?.name?.toLowerCase() || "";
@@ -814,32 +882,39 @@ export function InboxPage() {
             >
               Não lidas
               {conversations.filter(c => c.unreadCount > 0).length > 0 && (
-                <span className="pill-badge">
+                <span className="pill-count">
                   {conversations.filter(c => c.unreadCount > 0).length}
                 </span>
               )}
             </button>
-            
+            <button
+              className={`filter-pill ${activeTab === 'starred' ? 'active' : ''}`}
+              onClick={() => setActiveTab('starred' as any)}
+            >
+              <Star size={12} style={{ fill: activeTab === 'starred' ? 'currentColor' : 'none' }} />
+              Favoritos
+            </button>
+
             <div className="filter-more-wrapper">
-              <button 
-                className={`filter-pill more ${activeTab === 'groups' || activeTab === 'urgent' ? 'active' : ''}`}
+              <button
+                className={`filter-pill filter-pill--chevron ${activeTab === 'groups' || activeTab === 'urgent' ? 'active' : ''}`}
                 onClick={() => setShowFilterMenu(!showFilterMenu)}
+                title="Mais filtros"
               >
-                {activeTab === 'groups' ? 'Grupos' : activeTab === 'urgent' ? 'Urgentes' : 'Mais'}
                 <ChevronDown size={14} className={`transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {showFilterMenu && (
                 <div className="filter-dropdown glass-panel animate-in fade-in zoom-in duration-200">
                   <button className="filter-dropdown-item" onClick={() => { setActiveTab('groups'); setShowFilterMenu(false); }}>
                     <Users size={14} /> Grupos
                   </button>
                   <button className="filter-dropdown-item" onClick={() => { setActiveTab('urgent'); setShowFilterMenu(false); }}>
-                    <Sparkles size={14} className="text-red-500" /> Urgentes (🔥)
+                    <Sparkles size={14} style={{ color: '#f85149' }} /> Urgentes
                   </button>
                   <div className="filter-dropdown-divider" />
                   <button className="filter-dropdown-item primary" onClick={() => { setShowNewGroupModal(true); setShowFilterMenu(false); }}>
-                    <Plus size={14} /> Novo Grupo
+                    <Plus size={14} /> Nova lista
                   </button>
                 </div>
               )}
@@ -870,6 +945,13 @@ export function InboxPage() {
                   <div className="conv-header">
                     <span className="conv-name">{conv.customer?.name || conv.customer?.phone || "Unknown"}</span>
                     <div className="conv-header-right">
+                      <button
+                        className={`conv-star-btn ${starred.has(conv.id) ? 'starred' : ''}`}
+                        onClick={(e) => toggleStar(conv.id, e)}
+                        title={starred.has(conv.id) ? "Remover dos favoritos" : "Favoritar"}
+                      >
+                        <Star size={12} style={{ fill: starred.has(conv.id) ? '#f59e0b' : 'none', color: starred.has(conv.id) ? '#f59e0b' : 'var(--text-muted)' }} />
+                      </button>
                       {conv.unreadCount > 0 && (
                         <span className="unread-badge">{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
                       )}
@@ -958,14 +1040,29 @@ export function InboxPage() {
               </div>
             </div>
 
+            {/* Agent collision warning */}
+            {viewingAgents.length > 0 && (
+              <div className="agent-collision-banner">
+                <Eye size={14} />
+                <span>
+                  {viewingAgents.map(a => a.name).join(", ")} {viewingAgents.length === 1 ? "também está" : "também estão"} nesta conversa
+                </span>
+              </div>
+            )}
+
             <div className="chat-messages">
               {messages.map(msg => (
                 <div
                   key={msg.id}
-                  className={`message-wrapper ${msg.senderType}`}
+                  className={`message-wrapper ${msg.senderType} ${msg.isInternal ? 'message-internal' : ''}`}
                   onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
                 >
-                  <div className="message-bubble">
+                  {msg.isInternal && (
+                    <div className="internal-note-label">
+                      <Lock size={11} /> Nota interna — visível apenas para a equipe
+                    </div>
+                  )}
+                  <div className={`message-bubble ${msg.isInternal ? 'message-bubble--internal' : ''}`}>
                     {msg.senderType === 'customer' && msg.senderName && (
                       <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
                         ~ {msg.senderName}
@@ -1088,7 +1185,17 @@ export function InboxPage() {
                   </button>
                 </div>
               )}
-              <div className="chat-input-row">
+              {/* Internal note mode indicator */}
+              {isInternalMode && (
+                <div className="internal-mode-bar">
+                  <Lock size={13} />
+                  <span>Modo nota interna — não será enviada ao cliente</span>
+                  <button onClick={() => setIsInternalMode(false)} className="internal-mode-cancel">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+              <div className={`chat-input-row ${isInternalMode ? 'chat-input-row--internal' : ''}`}>
               <AudioRecorder
                 disabled={isSending}
                 onUpload={(blob) => ApiService.uploadAudio("/audio/transcribe", blob)}
@@ -1096,6 +1203,14 @@ export function InboxPage() {
                   setReplyText((prev) => (prev ? prev + " " + text : text));
                 }}
               />
+              <button
+                className={`attach-btn ${isInternalMode ? 'active' : ''}`}
+                onClick={() => setIsInternalMode(!isInternalMode)}
+                title="Nota interna (visível só para a equipe)"
+                style={{ color: isInternalMode ? '#f59e0b' : undefined }}
+              >
+                <Lock size={18} />
+              </button>
               <button
                 className="attach-btn"
                 onClick={() => fileInputRef.current?.click()}
@@ -1194,11 +1309,12 @@ export function InboxPage() {
                 </button>
               )}
               <button
-                className="send-btn"
+                className={`send-btn ${isInternalMode ? 'send-btn--internal' : ''}`}
                 disabled={(!replyText.trim() && !pendingFile) || isSending}
-                onClick={handleSendMessage}
+                onClick={isInternalMode ? handleSendInternalNote : handleSendMessage}
+                title={isInternalMode ? "Salvar nota interna" : "Enviar mensagem"}
               >
-                {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                {isSending ? <Loader2 size={20} className="animate-spin" /> : isInternalMode ? <Lock size={20} /> : <Send size={20} />}
               </button>
               </div>
             </div>

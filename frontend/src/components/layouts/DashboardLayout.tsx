@@ -1,7 +1,7 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase, CreditCard } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase, CreditCard, Megaphone, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -148,6 +148,14 @@ export function DashboardLayout() {
               </div>
 
               <div className="nav-section">
+                <NavLink to="/campaigns" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <Megaphone size={20} />
+                  <span>Campanhas</span>
+                </NavLink>
+                <NavLink to="/audit-logs" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <ShieldCheck size={20} />
+                  <span>Logs de Auditoria</span>
+                </NavLink>
                 <NavLink to="/billing" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
                   <CreditCard size={20} />
                   <span>Plano & Cobrança</span>

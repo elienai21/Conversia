@@ -9,6 +9,7 @@ export async function saveMessage(params: {
   externalId?: string;
   senderPhone?: string;
   senderName?: string;
+  isInternal?: boolean;
 }) {
   const message = await prisma.message.create({
     data: {
@@ -20,6 +21,7 @@ export async function saveMessage(params: {
       externalId: params.externalId ?? null,
       senderPhone: params.senderPhone ?? null,
       senderName: params.senderName ?? null,
+      isInternal: params.isInternal ?? false,
     },
   });
 

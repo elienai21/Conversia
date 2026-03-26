@@ -41,6 +41,7 @@ model Tenant {
   settings                 TenantSettings?
   users                    User[]
   auditLogs                AuditLog[]
+  campaigns                Campaign[]
 
   @@map("tenants")
 }
@@ -148,6 +149,7 @@ model Message {
   senderPhone      String?              @map("sender_phone")
   senderName       String?              @map("sender_name")
   status           String               @default("sent") @map("status")
+  isInternal       Boolean              @default(false) @map("is_internal")
   deletedAt        DateTime?            @map("deleted_at")
   createdAt        DateTime             @default(now()) @map("created_at")
   suggestion       AISuggestion?
@@ -366,6 +368,27 @@ model ServiceOrder {
 
   @@index([tenantId, status], map: "ix_service_orders_tenant_status")
   @@map("service_orders")
+}
+
+model Campaign {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  name         String    @map("name")
+  message      String    @map("message")
+  targetTag    String?   @map("target_tag")    // "guest" | "owner" | "staff" | "lead" | null = all
+  status       String    @default("draft") @map("status") // draft | running | completed | failed
+  sentCount    Int       @default(0) @map("sent_count")
+  failedCount  Int       @default(0) @map("failed_count")
+  scheduledAt  DateTime? @map("scheduled_at")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status], map: "ix_campaigns_tenant_status")
+  @@map("campaigns")
 }
 
 model AuditLog {

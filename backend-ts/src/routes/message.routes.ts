@@ -51,6 +51,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_name: m.senderName,
         original_text: m.originalText,
         detected_language: m.detectedLanguage,
+        is_internal: m.isInternal ?? false,
         status: m.status || "sent",
         created_at: m.createdAt,
         translations: (m.translations ?? []).map(
@@ -239,13 +240,16 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         return reply.status(404).send({ detail: "Conversation not found" });
       }
 
-      // 1. Save agent message
+      const isInternal = parsed.data.is_internal === true;
+
+      // 1. Save agent message (internal notes are NOT sent externally)
       const message = await services.saveMessage({
         conversationId: conversation.id,
         senderType: "agent",
         senderId: user.id,
         text: parsed.data.text,
         detectedLanguage: user.preferredLanguage,
+        isInternal,
       });
 
       // 2. Translate if target_language is explicitly set, or auto-detect from conversation
@@ -293,6 +297,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_name: message.senderName,
         original_text: message.originalText,
         detected_language: message.detectedLanguage,
+        is_internal: isInternal,
         created_at: message.createdAt,
         translations,
       });
@@ -302,8 +307,8 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         conversationId: conversation.id,
       });
 
-      // 4. Send via the appropriate channel
-      if (conversation.customer) {
+      // 4. Send via the appropriate channel (internal notes are NOT delivered externally)
+      if (!isInternal && conversation.customer) {
         const settings = await prisma.tenantSettings.findUnique({
           where: { tenantId: user.tenantId },
         });
@@ -356,6 +361,7 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         sender_name: message.senderName,
         original_text: message.originalText,
         detected_language: message.detectedLanguage,
+        is_internal: isInternal,
         status: (message as any).status || "sent",
         created_at: message.createdAt,
         translations,

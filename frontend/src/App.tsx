@@ -20,6 +20,11 @@ import { OperationalInboxPage } from "./pages/OperationalInboxPage";
 import { OwnersInboxPage } from "./pages/OwnersInboxPage";
 import { ServiceOrdersPage } from "./pages/ServiceOrdersPage";
 import { StaffPage } from "./pages/StaffPage";
+import { CampaignsPage } from "./pages/CampaignsPage";
+import { AuditLogsPage } from "./pages/AuditLogsPage";
+import { TermsPage } from "./pages/TermsPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
 import { ReloadPrompt } from "./components/ReloadPrompt";
 
@@ -64,6 +69,11 @@ function App() {
               {/* Password reset — public but NOT redirected when authenticated */}
               <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+              {/* Legal / verification — always accessible */}
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+
               {/* Protected Main SaaS Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<DashboardLayout />}>
@@ -79,6 +89,8 @@ function App() {
                   <Route path="/service-orders" element={<ServiceOrdersPage />} />
                   <Route path="/staff" element={<StaffPage />} />
                   <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/campaigns" element={<CampaignsPage />} />
+                  <Route path="/audit-logs" element={<AuditLogsPage />} />
                 </Route>
               </Route>
 

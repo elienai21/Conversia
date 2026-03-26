@@ -4,6 +4,7 @@ export const sendMessageRequestSchema = z.object({
   text: z.string().min(1),
   suggestion_id: z.string().uuid().optional(),
   target_language: z.string().optional(),
+  is_internal: z.boolean().optional(), // Internal note (whisper) — not sent to customer
 });
 
 export interface AttachmentOut {
@@ -31,6 +32,7 @@ export interface MessageOut {
   sender_name?: string | null;
   original_text: string;
   detected_language: string | null;
+  is_internal: boolean;
   status: string;
   created_at: Date;
   translations: TranslationOut[];
