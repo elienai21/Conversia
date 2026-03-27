@@ -798,10 +798,23 @@
   gap: 4px;
 }
 
-.msg-delete-btn {
+/* ─── Floating hover action buttons (forward / delete) ────────────────────── */
+.msg-hover-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   opacity: 0;
-  width: 28px;
-  height: 28px;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.message-wrapper:hover .msg-hover-actions {
+  opacity: 1;
+}
+
+.msg-action-btn {
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-full);
   background: var(--bg-tertiary);
   color: var(--text-muted);
@@ -811,16 +824,22 @@
   transition: all var(--transition-fast);
   flex-shrink: 0;
   border: 1px solid var(--border-color);
+  cursor: pointer;
+  padding: 0;
 }
 
-.message-wrapper:hover .msg-delete-btn {
-  opacity: 1;
+.msg-action-btn--forward:hover {
+  color: var(--brand-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.35);
+  transform: scale(1.1);
 }
 
-.msg-delete-btn:hover {
+.msg-action-btn--delete:hover {
   color: var(--accent-error);
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.3);
+  transform: scale(1.1);
 }
 
 /* Chat header actions */
@@ -1506,33 +1525,6 @@
 }
 .email-modal-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ─── Forward button inside message-meta ─────────────────────────────────── */
-.msg-forward-btn {
-  opacity: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-  border: 1px solid transparent;
-  cursor: pointer;
-  padding: 0;
-}
-
-.message-wrapper:hover .msg-forward-btn {
-  opacity: 1;
-}
-
-.msg-forward-btn:hover {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--brand-primary, #6366f1);
-  border-color: rgba(99, 102, 241, 0.3);
-}
 
 /* ─── Forwarded-from quote block ─────────────────────────────────────────── */
 .forwarded-quote {

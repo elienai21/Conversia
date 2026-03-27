@@ -231,13 +231,20 @@ export async function generateSuggestionWorker(
   }
 
   // 7. Build system prompt
+  const now = new Date();
+  const currentDate = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
+  const currentYear = now.getFullYear();
+
   const checkoutLinkInstruction = `
+
+DATA ATUAL: ${currentDate} (ano corrente: ${currentYear}).
+Quando o cliente mencionar datas sem informar o ano (ex: "02 a 05 de abril"), use SEMPRE o ano corrente (${currentYear}). Se a data já tiver passado neste ano, use o próximo ano (${currentYear + 1}).
 
 REGRAS CRÍTICAS DE LINKS (siga à risca):
 1. PROIBIDO escrever qualquer URL manualmente. Nunca inclua links de imagens, checkout, reserva ou visualização no texto — eles serão inválidos.
 2. Após search_available_listings, chame OBRIGATORIAMENTE generate_checkout_link para CADA imóvel disponível antes de responder.
 3. Para listingId, use o CÓDIGO ALFANUMÉRICO curto (ex: UV02I, XG01I) — campo listingId ou listing._id do resultado. NUNCA use o _id MongoDB de 24 chars hex.
-4. Datas devem estar no formato AAAA-MM-DD (ex: 2026-04-02). Converta automaticamente de DD/MM/AAAA se necessário.
+4. Datas devem estar no formato AAAA-MM-DD (ex: ${currentYear}-04-02). Converta automaticamente de DD/MM/AAAA se necessário.
 5. Inclua na resposta SOMENTE os links retornados pela ferramenta (checkoutUrl e viewUnitUrl). O padrão do link gerado é:
    https://{dominio}/customer/pt/booking?id={ID}&from={AAAA-MM-DD}&to={AAAA-MM-DD}&persons={N}
 6. NÃO inclua URLs de imagens na resposta.`;

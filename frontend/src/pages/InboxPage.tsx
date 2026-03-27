@@ -355,7 +355,7 @@ export function InboxPage() {
   const [pendingCopilotIds, setPendingCopilotIds] = useState<Set<string>>(new Set());
   const [targetLanguage, setTargetLanguage] = useState("Original");
   const [showLangMenu, setShowLangMenu] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: string; preview: string } | null>(null);
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [showOsModal, setShowOsModal] = useState(false);
@@ -802,9 +802,9 @@ export function InboxPage() {
     }
   };
 
-  const handleMessageContextMenu = (e: React.MouseEvent, messageId: string) => {
+  const handleMessageContextMenu = (e: React.MouseEvent, messageId: string, preview: string) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId, preview });
   };
 
   // Toggle star for a conversation
@@ -1083,7 +1083,7 @@ export function InboxPage() {
                 <div
                   key={msg.id}
                   className={`message-wrapper ${msg.senderType} ${msg.isInternal ? 'message-internal' : ''}`}
-                  onContextMenu={(e) => handleMessageContextMenu(e, msg.id)}
+                  onContextMenu={(e) => handleMessageContextMenu(e, msg.id, msg.originalText)}
                 >
                   {msg.isInternal && (
                     <div className="internal-note-label">
@@ -1127,27 +1127,32 @@ export function InboxPage() {
                             ? <CheckCheck size={14} className="status-delivered" />
                             : <Check size={14} className="status-sent" />
                       )}
-                      {/* Forward button — visible on hover for all non-internal messages */}
-                      {!msg.isInternal && (
-                        <button
-                          className="msg-forward-btn"
-                          onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
-                          title="Encaminhar"
-                        >
-                          <Share2 size={12} />
-                        </button>
-                      )}
+
+
+                    </div>
+                  </div>
+
+                  {/* Floating action buttons — visible on hover */}
+                  {!msg.isInternal && (
+                    <div className="msg-hover-actions">
+                      <button
+                        className="msg-action-btn msg-action-btn--forward"
+                        onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
+                        title="Encaminhar"
+                      >
+                        <Share2 size={14} />
+                      </button>
                       {msg.senderType === 'customer' && (
                         <button
-                          className="msg-delete-btn"
+                          className="msg-action-btn msg-action-btn--delete"
                           onClick={() => handleDeleteMessage(msg.id)}
                           title="Apagar mensagem"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
-                  </div>
+                  )}
 
                   {/* Copilot Action (Only for customer messages) */}
                   {msg.senderType === 'customer' && !msg.suggestion && (
@@ -1488,6 +1493,15 @@ export function InboxPage() {
           className="message-context-menu glass-panel"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              setForwardModal({ messageId: contextMenu.messageId, preview: contextMenu.preview });
+              setContextMenu(null);
+            }}
+          >
+            <Share2 size={14} /> Encaminhar
+          </button>
           <button
             className="context-menu-item danger"
             onClick={() => handleDeleteMessage(contextMenu.messageId)}
