@@ -23,6 +23,14 @@ export interface TranslationOut {
   provider: string;
 }
 
+export interface ForwardedFromOut {
+  id: string;
+  original_text: string;
+  sender_type: string;
+  sender_name?: string | null;
+  created_at: Date;
+}
+
 export interface MessageOut {
   id: string;
   conversation_id: string;
@@ -35,6 +43,7 @@ export interface MessageOut {
   is_internal: boolean;
   status: string;
   created_at: Date;
+  forwarded_from?: ForwardedFromOut | null;
   translations: TranslationOut[];
   attachments?: AttachmentOut[];
 }

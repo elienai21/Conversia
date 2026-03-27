@@ -5,6 +5,7 @@ import { uploadMediaToStorage } from "../lib/storage.js";
 import {
   sendMessageRequestSchema,
   type AttachmentOut,
+  type ForwardedFromOut,
   type MessageOut,
   type TranslationOut,
 } from "../schemas/message.schema.js";
@@ -54,6 +55,15 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
         is_internal: m.isInternal ?? false,
         status: m.status || "sent",
         created_at: m.createdAt,
+        forwarded_from: m.forwardedFrom
+          ? ({
+              id: m.forwardedFrom.id,
+              original_text: m.forwardedFrom.originalText,
+              sender_type: m.forwardedFrom.senderType,
+              sender_name: m.forwardedFrom.senderName ?? null,
+              created_at: m.forwardedFrom.createdAt,
+            } satisfies ForwardedFromOut)
+          : null,
         translations: (m.translations ?? []).map(
           (t: any): TranslationOut => ({
             target_language: t.targetLanguage,
@@ -541,6 +551,108 @@ export async function messageRoutes(app: FastifyInstance): Promise<void> {
           source_url: attachmentProxyUrl,
         }],
       });
+    },
+  );
+
+  // Forward a message to another conversation
+  app.post<{
+    Params: { conversationId: string; messageId: string };
+    Body: { target_conversation_id: string };
+  }>(
+    "/:conversationId/messages/:messageId/forward",
+    async (request, reply) => {
+      const { prisma, services, socket } = request.server.deps;
+      const user = request.user;
+      const { conversationId, messageId } = request.params;
+      const { target_conversation_id } = request.body ?? {};
+
+      if (!target_conversation_id) {
+        return reply.status(422).send({ detail: "target_conversation_id is required" });
+      }
+
+      // Verify source conversation access
+      const sourceConv = await getAgentConversation(
+        prisma, conversationId, user.tenantId,
+        user.role === "agent" ? user.id : undefined,
+      );
+      if (!sourceConv) return reply.status(404).send({ detail: "Source conversation not found" });
+
+      // Verify target conversation access
+      const targetConv = await getAgentConversation(
+        prisma, target_conversation_id, user.tenantId,
+        user.role === "agent" ? user.id : undefined,
+      );
+      if (!targetConv) return reply.status(404).send({ detail: "Target conversation not found" });
+
+      // Load the original message
+      const original = await prisma.message.findFirst({
+        where: { id: messageId, conversationId, deletedAt: null },
+      });
+      if (!original) return reply.status(404).send({ detail: "Message not found" });
+
+      // Create forwarded message in the target conversation
+      const forwarded = await prisma.message.create({
+        data: {
+          conversationId: target_conversation_id,
+          senderType: "agent",
+          senderId: user.id,
+          originalText: original.originalText,
+          detectedLanguage: original.detectedLanguage,
+          isInternal: false,
+          forwardedFromId: original.id,
+          status: "sent",
+        },
+        include: {
+          forwardedFrom: { select: { id: true, originalText: true, senderType: true, senderName: true, createdAt: true } },
+        },
+      });
+
+      // Bump target conversation's updatedAt
+      await prisma.conversation.update({
+        where: { id: target_conversation_id },
+        data: { updatedAt: new Date() },
+      });
+
+      // Emit to target conversation room
+      const payload = {
+        id: forwarded.id,
+        conversation_id: forwarded.conversationId,
+        sender_type: forwarded.senderType,
+        original_text: forwarded.originalText,
+        created_at: forwarded.createdAt,
+        is_internal: false,
+        forwarded_from: forwarded.forwardedFrom
+          ? {
+              id: forwarded.forwardedFrom.id,
+              original_text: forwarded.forwardedFrom.originalText,
+              sender_type: forwarded.forwardedFrom.senderType,
+              sender_name: forwarded.forwardedFrom.senderName ?? null,
+              created_at: forwarded.forwardedFrom.createdAt,
+            }
+          : null,
+        translations: [],
+        attachments: [],
+      };
+
+      socket.emitToConversation(target_conversation_id, "message.new", payload);
+      socket.emitToTenant(user.tenantId, "conversation.updated", {
+        type: "replied",
+        conversationId: target_conversation_id,
+      });
+
+      // Send via WhatsApp if target has a customer
+      if (targetConv.customer) {
+        const settings = await prisma.tenantSettings.findUnique({ where: { tenantId: user.tenantId } });
+        if (targetConv.channel === "whatsapp") {
+          try {
+            await services.sendWhatsappMessage(user.tenantId, targetConv.customer.phone, original.originalText);
+          } catch (e: any) {
+            request.server.log.error(`[FORWARD] WhatsApp delivery failed: ${e.message}`);
+          }
+        }
+      }
+
+      return reply.status(201).send(payload);
     },
   );
 }

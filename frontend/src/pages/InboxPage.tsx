@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2 } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 import { NewGroupModal } from "@/components/NewGroupModal";
+import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 
 // Internal component types (camelCase)
 type Conversation = {
@@ -20,6 +21,14 @@ type Conversation = {
   priority?: string;
 };
 
+type ForwardedFrom = {
+  id: string;
+  originalText: string;
+  senderType: string;
+  senderName?: string | null;
+  createdAt: string;
+};
+
 type Message = {
   id: string;
   senderType: "customer" | "agent" | "system";
@@ -29,6 +38,7 @@ type Message = {
   createdAt: string;
   status?: "sent" | "delivered" | "read";
   isInternal?: boolean;
+  forwardedFrom?: ForwardedFrom | null;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -77,6 +87,13 @@ type RawMessage = {
   created_at: string;
   status?: string;
   is_internal?: boolean;
+  forwarded_from?: {
+    id: string;
+    original_text: string;
+    sender_type: string;
+    sender_name?: string | null;
+    created_at: string;
+  } | null;
   attachments?: Array<{
     id: string;
     type: "image" | "video" | "audio" | "document";
@@ -133,6 +150,15 @@ function mapMessage(raw: RawMessage): Message {
     createdAt: raw.created_at,
     status: (raw.status as Message["status"]) || "sent",
     isInternal: raw.is_internal ?? false,
+    forwardedFrom: raw.forwarded_from
+      ? {
+          id: raw.forwarded_from.id,
+          originalText: raw.forwarded_from.original_text,
+          senderType: raw.forwarded_from.sender_type,
+          senderName: raw.forwarded_from.sender_name ?? null,
+          createdAt: raw.forwarded_from.created_at,
+        }
+      : null,
     attachments: raw.attachments?.map((attachment) => ({
       id: attachment.id,
       type: attachment.type,
@@ -349,6 +375,8 @@ export function InboxPage() {
   const [staffList, setStaffList] = useState<any[]>([]);
   // Internal notes mode
   const [isInternalMode, setIsInternalMode] = useState(false);
+  // Forward message modal
+  const [forwardModal, setForwardModal] = useState<{ messageId: string; preview: string } | null>(null);
   // Agent collision: who else is viewing this conversation
   const [viewingAgents, setViewingAgents] = useState<Array<{id: string; name: string}>>([]);
   // Starred conversations (localStorage-backed)
@@ -1063,6 +1091,16 @@ export function InboxPage() {
                     </div>
                   )}
                   <div className={`message-bubble ${msg.isInternal ? 'message-bubble--internal' : ''}`}>
+                    {/* Forwarded-from quote block */}
+                    {msg.forwardedFrom && (
+                      <div className="forwarded-quote">
+                        <div className="forwarded-quote__header">
+                          <Share2 size={11} />
+                          <span>Encaminhado de {msg.forwardedFrom.senderType === 'customer' ? (msg.forwardedFrom.senderName || 'Cliente') : 'Agente'}</span>
+                        </div>
+                        <p className="forwarded-quote__text">{msg.forwardedFrom.originalText}</p>
+                      </div>
+                    )}
                     {msg.senderType === 'customer' && msg.senderName && (
                       <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
                         ~ {msg.senderName}
@@ -1090,6 +1128,16 @@ export function InboxPage() {
                             : <Check size={14} className="status-sent" />
                       )}
                     </div>
+                    {/* Forward button — available on all non-internal messages */}
+                    {!msg.isInternal && (
+                      <button
+                        className="msg-forward-btn"
+                        onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
+                        title="Encaminhar mensagem"
+                      >
+                        <Share2 size={13} />
+                      </button>
+                    )}
                     {msg.senderType === 'customer' && (
                       <button
                         className="msg-delete-btn"
@@ -1459,6 +1507,20 @@ export function InboxPage() {
         }}
         staffList={staffList}
       />
+
+      {/* Forward Message Modal */}
+      {forwardModal && activeConversation && (
+        <ForwardMessageModal
+          messageId={forwardModal.messageId}
+          conversationId={activeConversation}
+          messagePreview={forwardModal.preview}
+          onClose={() => setForwardModal(null)}
+          onForwarded={() => {
+            // Optionally refresh conversations list to reflect new last message
+            fetchConversations();
+          }}
+        />
+      )}
     </div>
   );
 }

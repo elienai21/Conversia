@@ -77,7 +77,11 @@ export async function saveTranslation(params: {
 export async function getConversationMessages(conversationId: string) {
   return prisma.message.findMany({
     where: { conversationId, deletedAt: null },
-    include: { translations: true, attachments: true },
+    include: {
+      translations: true,
+      attachments: true,
+      forwardedFrom: { select: { id: true, originalText: true, senderType: true, senderName: true, createdAt: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 }
