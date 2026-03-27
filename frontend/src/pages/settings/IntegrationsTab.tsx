@@ -74,6 +74,7 @@ export function IntegrationsTab() {
   const [staysnetSecret, setStaysnetSecret] = useState("");
   const [staysnetDomain, setStaysnetDomain] = useState("www.stays.net");
   const [staysnetWebsiteUrl, setStaysnetWebsiteUrl] = useState("");
+  const [checkinBaseUrl, setCheckinBaseUrl] = useState("");
   const [showStaysnetSecret, setShowStaysnetSecret] = useState(false);
   const [isTestingCrm, setIsTestingCrm] = useState(false);
 
@@ -111,6 +112,7 @@ export function IntegrationsTab() {
       setStaysnetSecret("");
       setStaysnetDomain(res.staysnet?.domain || "www.stays.net");
       setStaysnetWebsiteUrl(res.staysnet?.website_url || "");
+      setCheckinBaseUrl((res as any).checkin_base_url || "");
     } catch (error) {
       console.error(error);
     } finally {
@@ -156,6 +158,7 @@ export function IntegrationsTab() {
       }
       if (staysnetDomain) payload.staysnet_domain = staysnetDomain;
       payload.staysnet_website_url = staysnetWebsiteUrl.trim();
+      payload.checkin_base_url = checkinBaseUrl.trim();
 
       await ApiService.patch("/tenants/me/integrations", payload);
       showToast("success", "Integrações salvas com sucesso!");
@@ -517,6 +520,26 @@ export function IntegrationsTab() {
               {isTestingCrm ? <><Loader2 size={16} className="animate-spin" /> Testando...</> : "Testar Conexão"}
             </button>
           )}
+        </div>
+
+        {/* Sistema / Magic Link Card */}
+        <div className="integration-card glass-panel">
+          <div className="integration-header">
+            <div className="integration-title">
+              <h3>Sistema</h3>
+            </div>
+            <p>Configurações gerais do sistema.</p>
+          </div>
+          <div className="form-group">
+            <label>URL do Frontend (Magic Link de Check-in)</label>
+            <input
+              type="text"
+              value={checkinBaseUrl}
+              onChange={(e) => setCheckinBaseUrl(e.target.value.replace(/\/$/, ''))}
+              placeholder="https://app.seudominio.com"
+            />
+            <p className="text-xs text-[var(--text-muted)] mt-1">URL base do painel (com https://). Usada para gerar o link de check-in antecipado enviado ao hóspede. Ex: https://app.vivarestay.com</p>
+          </div>
         </div>
 
         {/* Instagram DM Card */}

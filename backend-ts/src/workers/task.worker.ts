@@ -56,9 +56,10 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
       // A hotel in GMT-3 should process check-ins for the local date, not UTC.
       const tenantSettings = await prisma.tenantSettings.findUnique({
         where: { tenantId: tenant.id },
-        select: { timezone: true },
+        select: { timezone: true, checkinBaseUrl: true },
       });
       const tz = tenantSettings?.timezone ?? "America/Sao_Paulo";
+      const frontendBaseUrl = tenantSettings?.checkinBaseUrl || process.env.FRONTEND_URL || "https://app.conversia.com";
 
       const dateTodayStr = toDateStrInTz(now, tz);
       const tomorrow = new Date(now);
@@ -196,14 +197,14 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 
         if (checkIn === dateTomorrowStr) {
           const token = randomUUID();
-          const checkinLink = `${process.env.FRONTEND_URL ?? "https://app.conversia.com"}/checkin/${token}`;
+          const checkinLink = `${frontendBaseUrl}/checkin/${token}`;
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Para agilizar seu acesso, preencha seu cadastro antecipado aqui: ${checkinLink}\nConfira também o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
           if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload, token)) created++;
         }
 
         if (checkIn === dateTodayStr) {
           const token = randomUUID();
-          const checkinLink = `${process.env.FRONTEND_URL ?? "https://app.conversia.com"}/checkin/${token}`;
+          const checkinLink = `${frontendBaseUrl}/checkin/${token}`;
           const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Para liberar seu acesso, complete seu cadastro aqui: ${checkinLink}\nAqui está também a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
           if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload, token)) created++;
         }

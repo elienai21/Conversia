@@ -107,6 +107,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         domain: settings?.staysnetDomain || null,
         website_url: settings?.staysnetWebsiteUrl || null,
       },
+      checkin_base_url: settings?.checkinBaseUrl || null,
       instagram: {
         page_id: settings?.instagramPageId || tenant.instagramPageId || null,
         page_access_token_set: !!settings?.instagramPageAccessToken,
@@ -134,6 +135,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.staysnet_client_secret) data.staysnetClientSecret = encrypt(parsed.data.staysnet_client_secret);
     if (parsed.data.staysnet_domain) data.staysnetDomain = parsed.data.staysnet_domain;
     if (parsed.data.staysnet_website_url !== undefined) data.staysnetWebsiteUrl = parsed.data.staysnet_website_url || null;
+    if (parsed.data.checkin_base_url !== undefined) data.checkinBaseUrl = parsed.data.checkin_base_url || null;
     if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
     if (parsed.data.instagram_page_id) data.instagramPageId = parsed.data.instagram_page_id;
 
@@ -183,6 +185,7 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         domain: settings.staysnetDomain || null,
         website_url: settings.staysnetWebsiteUrl || null,
       },
+      checkin_base_url: settings.checkinBaseUrl || null,
       instagram: {
         page_id: settings.instagramPageId,
         page_access_token_set: !!settings.instagramPageAccessToken,
