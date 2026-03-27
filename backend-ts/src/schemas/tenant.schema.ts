@@ -21,6 +21,8 @@ export const updateIntegrationsSchema = z.object({
   checkin_base_url: z.string().url().optional().or(z.literal("")),
   instagram_page_access_token: z.string().optional(),
   instagram_page_id: z.string().optional(),
+  winker_api_token: z.string().optional().or(z.literal("")),
+  winker_portal_id: z.string().optional().or(z.literal("")),
 });
 
 export const updateAISettingsSchema = z.object({

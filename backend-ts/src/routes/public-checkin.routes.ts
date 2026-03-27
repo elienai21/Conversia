@@ -6,6 +6,8 @@ import { uploadMediaToStorage } from "../lib/storage.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { saveMessage } from "../services/message.service.js";
 import { notifyAgentsNewMessage, notifyAgentsUpsell } from "../services/push.service.js";
+import { decrypt } from "../lib/encryption.js";
+import type { WinkerVisitPayload } from "../adapters/winker/winker.adapter.js";
 
 const submitFormSchema = z.object({
   fullName:           z.string().min(2).max(100),
@@ -91,6 +93,47 @@ async function writeBackToCrm(
   }
 
   logger.info(`[WriteBack] task ${taskId}: Dados do hóspede sincronizados com sucesso (cliente ${clientId})`);
+}
+
+/**
+ * Fire-and-forget: registers the guest as a visit forecast in Winker gatekeeper.
+ */
+async function syncToWinker(
+  taskId: string,
+  tenantId: string,
+  formData: z.infer<typeof submitFormSchema>,
+  reservationId: string,
+): Promise<void> {
+  const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
+  if (!settings?.winkerApiToken || !settings?.winkerPortalId) return;
+
+  let apiToken: string;
+  try {
+    apiToken = decrypt(settings.winkerApiToken);
+  } catch {
+    return;
+  }
+
+  const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
+  const winker = new WinkerAdapter({ apiToken, portalId: settings.winkerPortalId });
+
+  const visitPayload: WinkerVisitPayload = {
+    name: formData.fullName,
+    document: formData.document,
+    document_type: formData.documentType,
+    phone: formData.phone,
+    ...(formData.vehiclePlate && { vehicle_plate: formData.vehiclePlate }),
+    ...(formData.vehicleBrand && { vehicle_brand: formData.vehicleBrand }),
+    ...(formData.vehicleModel && { vehicle_model: formData.vehicleModel }),
+    ...(formData.vehicleColor && { vehicle_color: formData.vehicleColor }),
+  };
+
+  const result = await winker.registerVisit(visitPayload);
+  if (!result.ok) {
+    logger.warn(`[Winker] task ${taskId}: Falha ao registrar visita — ${result.error.message}`);
+    return;
+  }
+  logger.info(`[Winker] task ${taskId}: Hóspede registrado com sucesso na Winker`);
 }
 
 export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
@@ -244,6 +287,11 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
     // Fire-and-forget: sync guest data back to CRM (non-blocking)
     writeBackToCrm(task.id, task.tenantId, task.reservationId, formFields, photoFrontUrl, photoBackUrl).catch((err) =>
       logger.warn({ err }, `[PublicCheckin] Write-back falhou para task ${task.id}`)
+    );
+
+    // Fire-and-forget: register guest in Winker gatekeeper (non-blocking)
+    syncToWinker(task.id, task.tenantId, parsed.data, task.reservationId).catch((err) =>
+      logger.warn({ err }, `[PublicCheckin] Winker sync falhou para task ${task.id}`)
     );
 
     return reply.status(200).send({ success: true });

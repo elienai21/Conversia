@@ -2,6 +2,8 @@ import { prisma } from "../lib/prisma.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
 import { logger } from "../lib/logger.js";
 import { randomUUID } from "crypto";
+import { decrypt } from "../lib/encryption.js";
+import type { WinkerEventPayload } from "../adapters/winker/winker.adapter.js";
 
 export interface TaskSyncSummary {
   tenantsScanned: number;
@@ -419,6 +421,23 @@ function extractPhone(obj: Record<string, unknown>): string {
   }
 
   return "";
+}
+
+/**
+ * Fire-and-forget: create a Winker event when a task/reservation is approved.
+ */
+export async function createWinkerEvent(tenantId: string, event: WinkerEventPayload): Promise<void> {
+  const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
+  if (!settings?.winkerApiToken || !settings?.winkerPortalId) return;
+  let apiToken: string;
+  try {
+    apiToken = decrypt(settings.winkerApiToken);
+  } catch {
+    return;
+  }
+  const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
+  const winker = new WinkerAdapter({ apiToken, portalId: settings.winkerPortalId });
+  await winker.createEvent(event);
 }
 
 async function persistTask(

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { runDailyTaskSync } from "../workers/task.worker.js";
+import { runDailyTaskSync, createWinkerEvent } from "../workers/task.worker.js";
 import { prisma } from "../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
@@ -198,6 +198,16 @@ export async function taskRoutes(app: FastifyInstance): Promise<void> {
             where: { id: task.id },
             data: { status: "sent" },
           });
+
+          // Fire-and-forget: create Winker event for checkin tasks
+          if (task.type === "checkin_hoje" || task.type === "checkin_amanha") {
+            createWinkerEvent(user.tenantId, {
+              type: "checkin_confirmed",
+              title: `Check-in confirmado: ${task.customerName}`,
+              description: `Reserva ${task.reservationId} — ${task.listingId ?? ""}`,
+              metadata: { reservation_id: task.reservationId, listing_id: task.listingId, task_id: task.id },
+            }).catch((err) => logger.warn({ err }, "[Winker] createEvent falhou"));
+          }
 
           // 6. Broadcast realtime events
           socket.emitToTenant(user.tenantId, "conversation.updated", {

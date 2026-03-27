@@ -112,6 +112,11 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         page_id: settings?.instagramPageId || tenant.instagramPageId || null,
         page_access_token_set: !!settings?.instagramPageAccessToken,
       },
+      winker: {
+        configured: !!(settings?.winkerApiToken && settings?.winkerPortalId),
+        portal_id: settings?.winkerPortalId ?? null,
+        token_set: !!settings?.winkerApiToken,
+      },
     };
   });
 
@@ -138,6 +143,8 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.checkin_base_url !== undefined) data.checkinBaseUrl = parsed.data.checkin_base_url || null;
     if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
     if (parsed.data.instagram_page_id) data.instagramPageId = parsed.data.instagram_page_id;
+    if (parsed.data.winker_api_token) data.winkerApiToken = encrypt(parsed.data.winker_api_token);
+    if (parsed.data.winker_portal_id) data.winkerPortalId = parsed.data.winker_portal_id;
 
     // Sync WhatsApp Phone Number ID to Tenant model for webhook resolution
     if (parsed.data.whatsapp_phone_number_id) {
@@ -190,7 +197,40 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         page_id: settings.instagramPageId,
         page_access_token_set: !!settings.instagramPageAccessToken,
       },
+      winker: {
+        configured: !!(settings.winkerApiToken && settings.winkerPortalId),
+        portal_id: settings.winkerPortalId ?? null,
+        token_set: !!settings.winkerApiToken,
+      },
     };
+  });
+
+  // POST /me/integrations/winker/test — test Winker connection
+  app.post("/me/integrations/winker/test", async (request, reply) => {
+    try {
+      const settings = await prisma.tenantSettings.findUnique({
+        where: { tenantId: request.user.tenantId },
+      });
+      if (!settings?.winkerApiToken || !settings?.winkerPortalId) {
+        return reply.send({ success: false, message: "Winker não configurado. Salve o token e o ID do portal primeiro." });
+      }
+      let apiToken: string;
+      try {
+        apiToken = decrypt(settings.winkerApiToken);
+      } catch {
+        return reply.send({ success: false, message: "Falha ao descriptografar o token da Winker." });
+      }
+      const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
+      const winker = new WinkerAdapter({ apiToken, portalId: settings.winkerPortalId });
+      const result = await winker.testConnection();
+      if (!result.ok) {
+        return reply.send({ success: false, message: result.error.message });
+      }
+      return reply.send({ success: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      return reply.send({ success: false, message: msg });
+    }
   });
 
   // GET /me/integrations/crm-test — test CRM connection
