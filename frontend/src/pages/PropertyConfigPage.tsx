@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Car, ScanFace, Plus, Trash2, Loader2 } from "lucide-react";
+import { Building2, Car, ScanFace, Plus, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import { ApiService } from "@/services/api";
 
 interface PropertyConfig {
@@ -8,6 +8,8 @@ interface PropertyConfig {
   listing_name: string | null;
   has_garage: boolean;
   has_facial_biometrics: boolean;
+  winker_portal_id: string | null;
+  winker_unit_id: string | null;
 }
 
 interface CrmListing {
@@ -60,11 +62,33 @@ export function PropertyConfigPage() {
         listing_name: config.listing_name,
         has_garage: updated.has_garage,
         has_facial_biometrics: updated.has_facial_biometrics,
+        winker_portal_id: config.winker_portal_id,
+        winker_unit_id: config.winker_unit_id,
       });
       setConfigs((prev) => prev.map((c) => (c.id === config.id ? updated : c)));
       showToast("success", "Configuração salva.");
     } catch {
       showToast("error", "Erro ao salvar.");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleWinkerSave = async (config: PropertyConfig, portalId: string, unitId: string) => {
+    setSaving(config.id + "_winker");
+    try {
+      const updated = await ApiService.put<PropertyConfig>("/property-configs", {
+        listing_id: config.listing_id,
+        listing_name: config.listing_name,
+        has_garage: config.has_garage,
+        has_facial_biometrics: config.has_facial_biometrics,
+        winker_portal_id: portalId.trim() || null,
+        winker_unit_id: unitId.trim() || null,
+      });
+      setConfigs((prev) => prev.map((c) => (c.id === config.id ? updated : c)));
+      showToast("success", "Configuração Winker salva.");
+    } catch {
+      showToast("error", "Erro ao salvar configuração Winker.");
     } finally {
       setSaving(null);
     }
@@ -79,6 +103,8 @@ export function PropertyConfigPage() {
         listing_name: newListingName.trim() || newListingId.trim(),
         has_garage: false,
         has_facial_biometrics: false,
+        winker_portal_id: null,
+        winker_unit_id: null,
       });
       setConfigs((prev) => [...prev, created]);
       setNewListingId("");
@@ -111,7 +137,7 @@ export function PropertyConfigPage() {
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 760, margin: "0 auto" }}>
+    <div style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
       {toast && (
         <div style={{
           position: "fixed", top: "1rem", right: "1rem", zIndex: 999,
@@ -129,7 +155,7 @@ export function PropertyConfigPage() {
           <Building2 size={22} /> Configuração de Imóveis
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-          Configure campos extras no formulário de check-in de acordo com as características de cada imóvel.
+          Configure campos extras no check-in e mapeie cada imóvel ao seu condomínio na Winker.
         </p>
       </div>
 
@@ -193,68 +219,161 @@ export function PropertyConfigPage() {
           <p style={{ fontSize: "0.8rem" }}>Adicione um imóvel acima para personalizar o formulário de check-in.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {configs.map((config) => (
-            <div key={config.id} style={{
-              background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
-              borderRadius: 12, padding: "1.25rem",
-              display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap",
-            }}>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-primary)" }}>
-                  {config.listing_name || config.listing_id}
-                </div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
-                  ID: {config.listing_id}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <ToggleChip
-                  icon={<Car size={14} />}
-                  label="Garagem"
-                  checked={config.has_garage}
-                  disabled={saving === config.id}
-                  onChange={() => handleToggle(config, "has_garage")}
-                />
-                <ToggleChip
-                  icon={<ScanFace size={14} />}
-                  label="Biometria Facial"
-                  checked={config.has_facial_biometrics}
-                  disabled={saving === config.id}
-                  onChange={() => handleToggle(config, "has_facial_biometrics")}
-                />
-              </div>
-
-              {saving === config.id && <Loader2 size={16} className="animate-spin" style={{ color: "var(--brand-primary)" }} />}
-
-              <button
-                onClick={() => handleDelete(config)}
-                style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  color: "var(--text-muted)", padding: "0.25rem",
-                  display: "flex", alignItems: "center",
-                }}
-                title="Remover"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+            <PropertyCard
+              key={config.id}
+              config={config}
+              saving={saving}
+              onToggle={handleToggle}
+              onWinkerSave={handleWinkerSave}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
 
       <div style={{ marginTop: "1.5rem", padding: "1rem", background: "rgba(99,102,241,0.06)", borderRadius: 10, border: "1px solid rgba(99,102,241,0.15)" }}>
         <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0 }}>
-          <strong style={{ color: "var(--text-secondary)" }}>Como funciona:</strong> Quando o sistema envia o magic link de check-in, ele verifica a configuração do imóvel da reserva.
-          Se <strong>Garagem</strong> estiver ativado, o formulário solicita placa, marca, modelo e cor do veículo.
-          Se <strong>Biometria Facial</strong> estiver ativado, o formulário solicita uma selfie do hóspede.
-          O ID do imóvel deve corresponder ao código alfanumérico do Stays.net (ex: UV02I).
+          <strong style={{ color: "var(--text-secondary)" }}>Como funciona:</strong> Quando o hóspede preenche o check-in,
+          o sistema identifica o imóvel da reserva pelo ID e usa o <strong>Portal Winker</strong> configurado aqui para
+          registrá-lo na portaria correta — permitindo múltiplos condomínios com portais distintos.
+          O <strong>ID da Unidade</strong> é opcional e refina o cadastro para a unidade exata dentro do condomínio.
         </p>
       </div>
     </div>
   );
 }
+
+// ─── PropertyCard ─────────────────────────────────────────────────────────────
+
+function PropertyCard({
+  config, saving, onToggle, onWinkerSave, onDelete,
+}: {
+  config: PropertyConfig;
+  saving: string | null;
+  onToggle: (config: PropertyConfig, field: "has_garage" | "has_facial_biometrics") => void;
+  onWinkerSave: (config: PropertyConfig, portalId: string, unitId: string) => void;
+  onDelete: (config: PropertyConfig) => void;
+}) {
+  const [portalId, setPortalId] = useState(config.winker_portal_id ?? "");
+  const [unitId, setUnitId] = useState(config.winker_unit_id ?? "");
+  const isSavingThis = saving === config.id;
+  const isSavingWinker = saving === config.id + "_winker";
+
+  const winkerConfigured = !!(config.winker_portal_id);
+
+  return (
+    <div style={{
+      background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
+      borderRadius: 12, padding: "1.25rem",
+    }}>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--text-primary)" }}>
+            {config.listing_name || config.listing_id}
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2px" }}>
+            ID Stays.net: <code style={{ background: "var(--bg-tertiary)", padding: "1px 5px", borderRadius: 4 }}>{config.listing_id}</code>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {(isSavingThis || isSavingWinker) && (
+            <Loader2 size={16} className="animate-spin" style={{ color: "var(--brand-primary)" }} />
+          )}
+          <button
+            onClick={() => onDelete(config)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "0.25rem", display: "flex", alignItems: "center" }}
+            title="Remover"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Check-in fields toggles */}
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
+        <ToggleChip
+          icon={<Car size={14} />}
+          label="Garagem"
+          checked={config.has_garage}
+          disabled={isSavingThis}
+          onChange={() => onToggle(config, "has_garage")}
+        />
+        <ToggleChip
+          icon={<ScanFace size={14} />}
+          label="Biometria Facial"
+          checked={config.has_facial_biometrics}
+          disabled={isSavingThis}
+          onChange={() => onToggle(config, "has_facial_biometrics")}
+        />
+      </div>
+
+      {/* Winker section */}
+      <div style={{
+        borderTop: "1px solid var(--glass-border)", paddingTop: "1rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.75rem" }}>
+          <ShieldCheck size={14} style={{ color: winkerConfigured ? "#10b981" : "var(--text-muted)" }} />
+          <span style={{ fontSize: "0.8rem", fontWeight: 600, color: winkerConfigured ? "#10b981" : "var(--text-muted)" }}>
+            Winker Portaria {winkerConfigured ? "— Configurado" : "— Não configurado"}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ flex: "0 0 140px" }}>
+            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>
+              ID do Portal (id_portal)
+            </label>
+            <input
+              type="text"
+              value={portalId}
+              onChange={(e) => setPortalId(e.target.value)}
+              placeholder="Ex: 2057"
+              style={{
+                width: "100%", padding: "0.4rem 0.6rem", borderRadius: 7,
+                border: "1px solid var(--border-color)", background: "var(--bg-tertiary)",
+                color: "var(--text-primary)", fontSize: "0.8rem",
+              }}
+            />
+          </div>
+          <div style={{ flex: "0 0 160px" }}>
+            <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>
+              ID da Unidade (opcional)
+            </label>
+            <input
+              type="text"
+              value={unitId}
+              onChange={(e) => setUnitId(e.target.value)}
+              placeholder="Ex: 4057"
+              style={{
+                width: "100%", padding: "0.4rem 0.6rem", borderRadius: 7,
+                border: "1px solid var(--border-color)", background: "var(--bg-tertiary)",
+                color: "var(--text-primary)", fontSize: "0.8rem",
+              }}
+            />
+          </div>
+          <button
+            onClick={() => onWinkerSave(config, portalId, unitId)}
+            disabled={isSavingWinker}
+            style={{
+              padding: "0.4rem 0.9rem", background: "rgba(16,185,129,0.12)",
+              border: "1px solid rgba(16,185,129,0.3)", color: "#10b981",
+              borderRadius: 7, fontSize: "0.8rem", fontWeight: 600,
+              cursor: isSavingWinker ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", gap: "0.3rem",
+            }}
+          >
+            {isSavingWinker ? <Loader2 size={12} className="animate-spin" /> : null}
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ToggleChip ───────────────────────────────────────────────────────────────
 
 function ToggleChip({
   icon, label, checked, disabled, onChange,

@@ -7,8 +7,9 @@ export type WinkerVisitPayload = {
   document?: string;
   document_type?: string; // "cpf" | "rg" | "passport"
   phone?: string;
-  expected_at?: string; // ISO datetime
+  expected_at?: string;        // ISO datetime
   expected_departure?: string; // ISO datetime
+  id_unit?: string;            // Winker unit identifier within the portal
   vehicle_plate?: string;
   vehicle_brand?: string;
   vehicle_model?: string;

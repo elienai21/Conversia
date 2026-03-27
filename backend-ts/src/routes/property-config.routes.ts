@@ -4,10 +4,13 @@ import { prisma } from "../lib/prisma.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 
 const upsertSchema = z.object({
-  listing_id: z.string().min(1),
-  listing_name: z.string().optional(),
-  has_garage: z.boolean().optional(),
+  listing_id:           z.string().min(1),
+  listing_name:         z.string().optional(),
+  has_garage:           z.boolean().optional(),
   has_facial_biometrics: z.boolean().optional(),
+  // Winker per-property mapping
+  winker_portal_id:     z.string().optional().nullable(),
+  winker_unit_id:       z.string().optional().nullable(),
 });
 
 export async function propertyConfigRoutes(app: FastifyInstance): Promise<void> {
@@ -26,6 +29,8 @@ export async function propertyConfigRoutes(app: FastifyInstance): Promise<void> 
       listing_name: c.listingName,
       has_garage: c.hasGarage,
       has_facial_biometrics: c.hasFacialBiometrics,
+      winker_portal_id: c.winkerPortalId ?? null,
+      winker_unit_id: c.winkerUnitId ?? null,
       updated_at: c.updatedAt.toISOString(),
     }));
   });
@@ -37,7 +42,11 @@ export async function propertyConfigRoutes(app: FastifyInstance): Promise<void> 
       return reply.status(422).send({ detail: "Invalid input", errors: parsed.error.flatten() });
     }
 
-    const { listing_id, listing_name, has_garage, has_facial_biometrics } = parsed.data;
+    const {
+      listing_id, listing_name,
+      has_garage, has_facial_biometrics,
+      winker_portal_id, winker_unit_id,
+    } = parsed.data;
 
     const config = await prisma.propertyConfig.upsert({
       where: { tenantId_listingId: { tenantId: request.user.tenantId, listingId: listing_id } },
@@ -47,11 +56,15 @@ export async function propertyConfigRoutes(app: FastifyInstance): Promise<void> 
         listingName: listing_name ?? null,
         hasGarage: has_garage ?? false,
         hasFacialBiometrics: has_facial_biometrics ?? false,
+        winkerPortalId: winker_portal_id ?? null,
+        winkerUnitId: winker_unit_id ?? null,
       },
       update: {
-        listingName: listing_name ?? undefined,
-        hasGarage: has_garage ?? undefined,
+        listingName:         listing_name         ?? undefined,
+        hasGarage:           has_garage           ?? undefined,
         hasFacialBiometrics: has_facial_biometrics ?? undefined,
+        winkerPortalId:      winker_portal_id !== undefined ? (winker_portal_id || null) : undefined,
+        winkerUnitId:        winker_unit_id   !== undefined ? (winker_unit_id   || null) : undefined,
       },
     });
 
@@ -61,6 +74,8 @@ export async function propertyConfigRoutes(app: FastifyInstance): Promise<void> 
       listing_name: config.listingName,
       has_garage: config.hasGarage,
       has_facial_biometrics: config.hasFacialBiometrics,
+      winker_portal_id: config.winkerPortalId ?? null,
+      winker_unit_id: config.winkerUnitId ?? null,
     });
   });
 

@@ -80,6 +80,9 @@ model PropertyConfig {
   listingName         String?  @map("listing_name")       // Display name
   hasGarage           Boolean  @default(false) @map("has_garage")
   hasFacialBiometrics Boolean  @default(false) @map("has_facial_biometrics")
+  // Winker: per-property portal mapping (each apartment may belong to a different condo)
+  winkerPortalId      String?  @map("winker_portal_id")   // Winker id_portal for this unit's condo
+  winkerUnitId        String?  @map("winker_unit_id")     // Winker id_unit (optional, for finer lookup)
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
   tenant              Tenant   @relation(fields: [tenantId], references: [id])

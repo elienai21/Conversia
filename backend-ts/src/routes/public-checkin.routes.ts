@@ -97,31 +97,63 @@ async function writeBackToCrm(
 
 /**
  * Fire-and-forget: registers the guest as a visit forecast in Winker gatekeeper.
+ *
+ * Portal resolution priority:
+ *   1. PropertyConfig.winkerPortalId for this specific apartment (listingId)
+ *   2. TenantSettings.winkerPortalId as fallback (global default)
+ * This supports tenants that manage apartments in multiple different condominiums,
+ * each with a distinct Winker portal (id_portal).
  */
 async function syncToWinker(
   taskId: string,
   tenantId: string,
+  listingId: string | null,
   formData: z.infer<typeof submitFormSchema>,
-  reservationId: string,
 ): Promise<void> {
+  // 1. Get tenant-level Winker settings (API token + fallback portal)
   const settings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
-  if (!settings?.winkerApiToken || !settings?.winkerPortalId) return;
+  if (!settings?.winkerApiToken) return; // Winker not configured at all
 
   let apiToken: string;
   try {
     apiToken = decrypt(settings.winkerApiToken);
   } catch {
+    logger.warn(`[Winker] task ${taskId}: Falha ao decriptar token`);
+    return;
+  }
+
+  // 2. Resolve the correct portal ID for this specific apartment
+  let resolvedPortalId: string | null = settings.winkerPortalId ?? null;
+  let resolvedUnitId: string | null = null;
+
+  if (listingId) {
+    const propCfg = await prisma.propertyConfig.findUnique({
+      where: { tenantId_listingId: { tenantId, listingId } },
+      select: { winkerPortalId: true, winkerUnitId: true, listingName: true },
+    });
+    if (propCfg?.winkerPortalId) {
+      resolvedPortalId = propCfg.winkerPortalId;
+      logger.info(`[Winker] task ${taskId}: Usando portal ${resolvedPortalId} (imóvel ${listingId} — ${propCfg.listingName ?? ""})`);
+    }
+    if (propCfg?.winkerUnitId) {
+      resolvedUnitId = propCfg.winkerUnitId;
+    }
+  }
+
+  if (!resolvedPortalId) {
+    logger.warn(`[Winker] task ${taskId}: Portal não configurado para imóvel "${listingId}" e sem fallback global — registro ignorado`);
     return;
   }
 
   const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
-  const winker = new WinkerAdapter({ apiToken, portalId: settings.winkerPortalId });
+  const winker = new WinkerAdapter({ apiToken, portalId: resolvedPortalId });
 
   const visitPayload: WinkerVisitPayload = {
     name: formData.fullName,
     document: formData.document,
     document_type: formData.documentType,
     phone: formData.phone,
+    ...(resolvedUnitId && { id_unit: resolvedUnitId }),
     ...(formData.vehiclePlate && { vehicle_plate: formData.vehiclePlate }),
     ...(formData.vehicleBrand && { vehicle_brand: formData.vehicleBrand }),
     ...(formData.vehicleModel && { vehicle_model: formData.vehicleModel }),
@@ -133,7 +165,7 @@ async function syncToWinker(
     logger.warn(`[Winker] task ${taskId}: Falha ao registrar visita — ${result.error.message}`);
     return;
   }
-  logger.info(`[Winker] task ${taskId}: Hóspede registrado com sucesso na Winker`);
+  logger.info(`[Winker] task ${taskId}: Hóspede "${formData.fullName}" registrado no portal ${resolvedPortalId} (imóvel ${listingId ?? "?"})`);
 }
 
 export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
@@ -203,7 +235,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
 
     const task = await prisma.taskQueue.findUnique({
       where: { magicToken: token },
-      select: { id: true, status: true, guestFormAt: true, tenantId: true, reservationId: true },
+      select: { id: true, status: true, guestFormAt: true, tenantId: true, reservationId: true, listingId: true },
     });
 
     if (!task) {
@@ -290,7 +322,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
     );
 
     // Fire-and-forget: register guest in Winker gatekeeper (non-blocking)
-    syncToWinker(task.id, task.tenantId, parsed.data, task.reservationId).catch((err) =>
+    syncToWinker(task.id, task.tenantId, task.listingId, parsed.data).catch((err) =>
       logger.warn({ err }, `[PublicCheckin] Winker sync falhou para task ${task.id}`)
     );
 
