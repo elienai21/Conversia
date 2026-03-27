@@ -42,6 +42,7 @@ model Tenant {
   users                    User[]
   auditLogs                AuditLog[]
   campaigns                Campaign[]
+  propertyConfigs          PropertyConfig[]
 
   @@map("tenants")
 }
@@ -54,6 +55,8 @@ model TaskQueue {
   customerPhone  String    @map("customer_phone")
   customerName   String    @map("customer_name")
   reservationId  String    @map("reservation_id")
+  listingId      String?   @map("listing_id")          // CRM listing/unit ID
+  requiredFields String?   @map("required_fields")     // JSON: { hasGarage, hasFacialBiometrics }
   scheduledFor   DateTime  @map("scheduled_for")
   messagePayload String    @map("message_payload") // Text draft
   magicToken     String?   @unique @map("magic_token") // UUID token for guest check-in form link
@@ -68,6 +71,21 @@ model TaskQueue {
   @@index([tenantId, status, scheduledFor], map: "ix_taskqueue_filter")
   @@index([magicToken], map: "ix_taskqueue_magic_token")
   @@map("task_queue")
+}
+
+model PropertyConfig {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  listingId           String   @map("listing_id")         // CRM unit code (ex: UV02I)
+  listingName         String?  @map("listing_name")       // Display name
+  hasGarage           Boolean  @default(false) @map("has_garage")
+  hasFacialBiometrics Boolean  @default(false) @map("has_facial_biometrics")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  tenant              Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, listingId], map: "ix_property_config_tenant_listing")
+  @@map("property_configs")
 }
 
 model User {

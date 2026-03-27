@@ -18,6 +18,11 @@ import "./GuestCheckinPage.css";
 // Strip /api/v1 suffix so public routes (registered outside /api/v1) resolve correctly
 const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
 
+interface RequiredFields {
+  has_garage: boolean;
+  has_facial_biometrics: boolean;
+}
+
 interface ReservationInfo {
   alreadySubmitted: boolean;
   guestName: string;
@@ -26,6 +31,7 @@ interface ReservationInfo {
   type?: string;
   scheduledFor?: string;
   submittedAt?: string;
+  required_fields?: RequiredFields;
 }
 
 type DocumentType = "cpf" | "rg" | "passport";
@@ -37,6 +43,11 @@ interface FormState {
   nationality: string;
   birthDate: string;
   phone: string;
+  // Garage
+  vehiclePlate: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleColor: string;
 }
 
 export function GuestCheckinPage() {
@@ -53,10 +64,15 @@ export function GuestCheckinPage() {
     nationality: "",
     birthDate: "",
     phone: "",
+    vehiclePlate: "",
+    vehicleBrand: "",
+    vehicleModel: "",
+    vehicleColor: "",
   });
 
   const [photoFront, setPhotoFront] = useState<string | null>(null);
   const [photoBack, setPhotoBack] = useState<string | null>(null);
+  const [photoFacial, setPhotoFacial] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [upsellLoading, setUpsellLoading] = useState<string | null>(null);
@@ -81,6 +97,7 @@ export function GuestCheckinPage() {
 
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
+  const facialInputRef = useRef<HTMLInputElement>(null);
 
   // ── Load reservation info ──────────────────────────────────────────────
   useEffect(() => {
@@ -117,14 +134,23 @@ export function GuestCheckinPage() {
     setStep("submitting");
     setSubmitError(null);
     try {
+      const reqFields = info?.required_fields;
+      const body: Record<string, unknown> = {
+        ...form,
+        photoDocFront: photoFront ?? undefined,
+        photoDocBack: photoBack ?? undefined,
+      };
+      if (reqFields?.has_facial_biometrics && photoFacial) body.photoFacial = photoFacial;
+      // Remove empty vehicle fields if garage not required
+      if (!reqFields?.has_garage) {
+        delete body.vehiclePlate; delete body.vehicleBrand;
+        delete body.vehicleModel; delete body.vehicleColor;
+      }
+
       const res = await fetch(`${API_BASE}/public/checkin/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          photoDocFront: photoFront ?? undefined,
-          photoDocBack: photoBack ?? undefined,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -342,9 +368,57 @@ export function GuestCheckinPage() {
               />
             </div>
 
+            {/* Garage fields — shown only when property has garage */}
+            {info?.required_fields?.has_garage && (
+              <div className="gc-section-block">
+                <div className="gc-section-title">🚗 Dados do Veículo (Garagem)</div>
+                <div className="gc-field-row">
+                  <div className="gc-field">
+                    <label>Placa <span className="req">*</span></label>
+                    <input
+                      type="text"
+                      value={form.vehiclePlate}
+                      onChange={(e) => setForm((f) => ({ ...f, vehiclePlate: e.target.value.toUpperCase() }))}
+                      placeholder="ABC-1234"
+                      maxLength={8}
+                    />
+                  </div>
+                  <div className="gc-field">
+                    <label>Cor</label>
+                    <input
+                      type="text"
+                      value={form.vehicleColor}
+                      onChange={(e) => setForm((f) => ({ ...f, vehicleColor: e.target.value }))}
+                      placeholder="Prata"
+                    />
+                  </div>
+                </div>
+                <div className="gc-field-row">
+                  <div className="gc-field">
+                    <label>Marca</label>
+                    <input
+                      type="text"
+                      value={form.vehicleBrand}
+                      onChange={(e) => setForm((f) => ({ ...f, vehicleBrand: e.target.value }))}
+                      placeholder="Toyota"
+                    />
+                  </div>
+                  <div className="gc-field">
+                    <label>Modelo</label>
+                    <input
+                      type="text"
+                      value={form.vehicleModel}
+                      onChange={(e) => setForm((f) => ({ ...f, vehicleModel: e.target.value }))}
+                      placeholder="Corolla"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
               className="gc-btn-primary"
-              disabled={!formValid}
+              disabled={!formValid || (info?.required_fields?.has_garage ? !form.vehiclePlate.trim() : false)}
               onClick={() => setStep("photo")}
             >
               Continuar <ArrowRight size={18} />
@@ -428,6 +502,49 @@ export function GuestCheckinPage() {
               </>
             )}
 
+            {/* Facial biometrics — shown only when property requires it */}
+            {info?.required_fields?.has_facial_biometrics && (
+              <>
+                <p className="gc-photo-hint" style={{ marginTop: "1.25rem" }}>
+                  📸 <strong>Biometria Facial</strong> — Tire uma selfie para cadastro de acesso por reconhecimento facial.
+                </p>
+                <div className="gc-photo-slot" onClick={() => facialInputRef.current?.click()}>
+                  {photoFacial ? (
+                    <>
+                      <img src={photoFacial} alt="Foto facial" className="gc-photo-preview" />
+                      <button
+                        className="gc-photo-remove"
+                        onClick={(e) => { e.stopPropagation(); setPhotoFacial(null); }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={28} />
+                      <span>Selfie (rosto visível)</span>
+                      <small>Use a câmera frontal</small>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={facialInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setPhotoFacial(ev.target?.result as string);
+                      reader.readAsDataURL(f);
+                    }
+                  }}
+                />
+              </>
+            )}
+
             {submitError && (
               <div className="gc-error-banner">
                 <AlertCircle size={14} /> {submitError}
@@ -445,7 +562,11 @@ export function GuestCheckinPage() {
               <button
                 className="gc-btn-primary"
                 onClick={handleSubmit}
-                disabled={step === "submitting" || !photoFront}
+                disabled={
+                  step === "submitting" ||
+                  !photoFront ||
+                  (info?.required_fields?.has_facial_biometrics ? !photoFacial : false)
+                }
               >
                 {step === "submitting" ? (
                   <><Loader2 size={16} className="gc-spinner-sm" /> Enviando...</>

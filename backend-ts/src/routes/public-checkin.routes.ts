@@ -8,14 +8,21 @@ import { saveMessage } from "../services/message.service.js";
 import { notifyAgentsNewMessage, notifyAgentsUpsell } from "../services/push.service.js";
 
 const submitFormSchema = z.object({
-  fullName:      z.string().min(2).max(100),
-  document:      z.string().min(3).max(30),  // CPF or passport number
-  documentType:  z.enum(["cpf", "passport", "rg"]),
-  nationality:   z.string().min(2).max(60).optional(),
-  birthDate:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  phone:         z.string().min(8).max(20).optional(),
-  photoDocFront: z.string().optional(), // base64 dataURL
-  photoDocBack:  z.string().optional(), // base64 dataURL
+  fullName:           z.string().min(2).max(100),
+  document:           z.string().min(3).max(30),
+  documentType:       z.enum(["cpf", "passport", "rg"]),
+  nationality:        z.string().min(2).max(60).optional(),
+  birthDate:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  phone:              z.string().min(8).max(20).optional(),
+  photoDocFront:      z.string().optional(), // base64 dataURL
+  photoDocBack:       z.string().optional(), // base64 dataURL
+  // Garage fields
+  vehiclePlate:       z.string().max(20).optional(),
+  vehicleBrand:       z.string().max(50).optional(),
+  vehicleModel:       z.string().max(50).optional(),
+  vehicleColor:       z.string().max(30).optional(),
+  // Facial biometrics
+  photoFacial:        z.string().optional(), // base64 dataURL
 });
 
 /**
@@ -101,6 +108,8 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
         type: true,
         customerName: true,
         reservationId: true,
+        listingId: true,
+        requiredFields: true,
         scheduledFor: true,
         guestFormAt: true,
         status: true,
@@ -126,6 +135,10 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
+    const requiredFields = task.requiredFields
+      ? (JSON.parse(task.requiredFields) as { hasGarage?: boolean; hasFacialBiometrics?: boolean })
+      : null;
+
     return reply.send({
       alreadySubmitted: false,
       guestName: task.customerName,
@@ -133,6 +146,10 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
       reservationId: task.reservationId,
       type: task.type,
       scheduledFor: task.scheduledFor.toISOString(),
+      required_fields: {
+        has_garage: requiredFields?.hasGarage ?? false,
+        has_facial_biometrics: requiredFields?.hasFacialBiometrics ?? false,
+      },
     });
   });
 
@@ -163,7 +180,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(422).send({ detail: "Dados inválidos.", errors: parsed.error.flatten() });
     }
 
-    const { photoDocFront, photoDocBack, ...formFields } = parsed.data;
+    const { photoDocFront, photoDocBack, photoFacial, ...formFields } = parsed.data;
 
     // Upload document photos to Supabase Storage (if provided)
     let photoFrontUrl: string | null = null;
@@ -193,10 +210,24 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
       }
     }
 
+    let photoFacialUrl: string | null = null;
+    if (photoFacial?.startsWith("data:image/")) {
+      const [meta, b64] = photoFacial.split(",");
+      const mimeMatch = meta.match(/data:(image\/[a-z+]+);/);
+      if (mimeMatch && b64) {
+        photoFacialUrl = await uploadMediaToStorage(
+          b64,
+          mimeMatch[1],
+          `checkin_facial_${task.id}.jpg`
+        );
+      }
+    }
+
     const guestFormData = JSON.stringify({
       ...formFields,
       photoFrontUrl,
       photoBackUrl,
+      photoFacialUrl,
       submittedAt: new Date().toISOString(),
     });
 

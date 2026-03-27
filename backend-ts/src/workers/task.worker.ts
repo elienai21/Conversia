@@ -193,20 +193,38 @@ export async function runDailyTaskSync(): Promise<TaskSyncSummary> {
 
         const { name, phone } = guest;
 
+        // Extract listing ID from reservation (Stays.net stores it as _idlisting)
+        const listingId = String(
+          r["_idlisting"] ?? r["listingId"] ?? r["listing_id"] ??
+          (r["listing"] as Record<string, unknown> | undefined)?.["_id"] ?? ""
+        ) || null;
+
+        // Look up per-property required fields configuration
+        let requiredFields: { hasGarage: boolean; hasFacialBiometrics: boolean } | null = null;
+        if (listingId) {
+          const propConfig = await prisma.propertyConfig.findUnique({
+            where: { tenantId_listingId: { tenantId: tenant.id, listingId } },
+            select: { hasGarage: true, hasFacialBiometrics: true },
+          });
+          if (propConfig && (propConfig.hasGarage || propConfig.hasFacialBiometrics)) {
+            requiredFields = { hasGarage: propConfig.hasGarage, hasFacialBiometrics: propConfig.hasFacialBiometrics };
+          }
+        }
+
         let created = 0;
 
         if (checkIn === dateTomorrowStr) {
           const token = randomUUID();
           const checkinLink = `${frontendBaseUrl}/checkin/${token}`;
           const payload = `Olá ${name}! Passando pra lembrar que seu Check-in no imóvel está agendado para amanhã. Para agilizar seu acesso, preencha seu cadastro antecipado aqui: ${checkinLink}\nConfira também o GUIA DA CASA e a senha de destravamento de porta aqui no Chat!\nQualquer dúvida, a equipe está 100% à disposição.`;
-          if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload, token)) created++;
+          if (await persistTask(tenant.id, resId, "checkin_amanha", name, phone, payload, token, listingId, requiredFields)) created++;
         }
 
         if (checkIn === dateTodayStr) {
           const token = randomUUID();
           const checkinLink = `${frontendBaseUrl}/checkin/${token}`;
           const payload = `Olá ${name}! Chegou o grande dia do seu Check-in! Para liberar seu acesso, complete seu cadastro aqui: ${checkinLink}\nAqui está também a senha da fechadura eletrônica e o Guia da Casa.\nDesejamos uma excelente estadia!`;
-          if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload, token)) created++;
+          if (await persistTask(tenant.id, resId, "checkin_hoje", name, phone, payload, token, listingId, requiredFields)) created++;
         }
 
         if (checkOut === dateTomorrowStr) {
@@ -411,6 +429,8 @@ async function persistTask(
   customerPhone: string,
   messagePayload: string,
   magicToken?: string,
+  listingId?: string | null,
+  requiredFields?: { hasGarage: boolean; hasFacialBiometrics: boolean } | null,
 ): Promise<boolean> {
   try {
     const result = await prisma.taskQueue.upsert({
@@ -428,6 +448,8 @@ async function persistTask(
         messagePayload,
         status: "pending",
         ...(magicToken ? { magicToken } : {}),
+        ...(listingId ? { listingId } : {}),
+        ...(requiredFields ? { requiredFields: JSON.stringify(requiredFields) } : {}),
       },
     });
     logger.debug(`[TaskWorker] Task persistida: ${type} para ${customerName} (reserva ${reservationId})`);

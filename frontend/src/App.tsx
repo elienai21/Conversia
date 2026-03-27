@@ -21,6 +21,7 @@ import { OwnersInboxPage } from "./pages/OwnersInboxPage";
 import { ServiceOrdersPage } from "./pages/ServiceOrdersPage";
 import { StaffPage } from "./pages/StaffPage";
 import { CampaignsPage } from "./pages/CampaignsPage";
+import { PropertyConfigPage } from "./pages/PropertyConfigPage";
 import { AuditLogsPage } from "./pages/AuditLogsPage";
 import { TermsPage } from "./pages/TermsPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
@@ -91,6 +92,7 @@ function App() {
                   <Route path="/billing" element={<BillingPage />} />
                   <Route path="/campaigns" element={<CampaignsPage />} />
                   <Route path="/audit-logs" element={<AuditLogsPage />} />
+                  <Route path="/property-config" element={<PropertyConfigPage />} />
                 </Route>
               </Route>
 
