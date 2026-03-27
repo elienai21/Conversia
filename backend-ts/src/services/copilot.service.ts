@@ -135,7 +135,7 @@ export async function generateSuggestionWorker(
               : rawModel === "gpt-4.1"      ? "gpt-4o"
               : rawModel;
   const temperature = tenantSettings?.aiTemperature ?? 0.7;
-  const maxTokens = tenantSettings?.aiMaxTokens ?? 200;
+  const maxTokens = tenantSettings?.aiMaxTokens ?? 800;
   const customSystemPrompt = tenantSettings?.aiSystemPrompt;
 
   // 5. Resolve API key (tenant-specific encrypted → global env)
@@ -235,6 +235,27 @@ export async function generateSuggestionWorker(
   const currentDate = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
   const currentYear = now.getFullYear();
 
+  // Detect if the current customer message arrived on a DIFFERENT calendar day
+  // than the last agent/bot message — if so, mandate a greeting.
+  const tzOffset = -3; // America/Sao_Paulo (UTC-3, ignoring DST for simplicity)
+  const toSpDate = (d: Date) => {
+    const local = new Date(d.getTime() + tzOffset * 60 * 60 * 1000);
+    return local.toISOString().slice(0, 10); // YYYY-MM-DD
+  };
+  const lastAgentMsg = recentMessages.find((m) => m.senderType !== "customer");
+  const lastAgentDate = lastAgentMsg ? toSpDate(lastAgentMsg.createdAt) : null;
+  const todaySP = toSpDate(now);
+  const isNewDay = lastAgentDate !== null && lastAgentDate !== todaySP;
+
+  // Determine appropriate greeting based on current hour (SP time)
+  const spHour = new Date(now.getTime() + tzOffset * 60 * 60 * 1000).getUTCHours();
+  const greeting = spHour >= 5 && spHour < 12 ? "Bom dia"
+                 : spHour >= 12 && spHour < 18 ? "Boa tarde"
+                 : "Boa noite";
+  const greetingInstruction = isNewDay
+    ? `\n\nSAUDAÇÃO OBRIGATÓRIA: A primeira mensagem do cliente hoje chegou em um dia diferente do último atendimento. Inicie SEMPRE sua resposta com "${greeting}!" antes de qualquer outra coisa.`
+    : "";
+
   const checkoutLinkInstruction = `
 
 DATA ATUAL: ${currentDate} (ano corrente: ${currentYear}).
@@ -250,11 +271,11 @@ REGRAS CRÍTICAS DE LINKS (siga à risca):
 6. NÃO inclua URLs de imagens na resposta.`;
 
   let systemPrompt = customSystemPrompt
-    ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}\n\nReply in ${agentLanguage}.`
+    ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}${greetingInstruction}\n\nReply in ${agentLanguage}.`
     : `You are a helpful customer service agent assistant.
 Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${knowledgeContext}
 IMPORTANT INTENT: Se o cliente quiser oferecer um imóvel para sua empresa administrar (Intenção de Parceria), a resposta sempre deve focar em agendar uma reunião comercial de apresentação, solicitando horário.
-Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.${checkoutLinkInstruction}
+Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.${checkoutLinkInstruction}${greetingInstruction}
 Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
 
   // 8. AI Execution Loop (Function Calling)
