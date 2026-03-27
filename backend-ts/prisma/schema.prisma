@@ -250,6 +250,7 @@ model TenantSettings {
   staysnetClientId          String?  @map("staysnet_client_id")
   staysnetClientSecret      String?  @map("staysnet_client_secret")
   staysnetDomain            String?  @map("staysnet_domain")
+  staysnetWebsiteUrl        String?  @map("staysnet_website_url")  // Public website base URL for view-unit links (ex: https://vivarestay.com)
   instagramPageAccessToken  String?  @map("instagram_page_access_token")
   instagramPageId           String?  @map("instagram_page_id")
   instagramVerifyToken      String?  @map("instagram_verify_token")

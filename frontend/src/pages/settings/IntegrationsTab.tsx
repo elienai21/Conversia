@@ -28,6 +28,7 @@ type IntegrationsInfo = {
     client_id_preview: string | null;
     client_secret_set: boolean;
     domain: string | null;
+    website_url: string | null;
   };
   instagram: {
     page_id: string | null;
@@ -72,6 +73,7 @@ export function IntegrationsTab() {
   const [staysnetClientId, setStaysnetClientId] = useState("");
   const [staysnetSecret, setStaysnetSecret] = useState("");
   const [staysnetDomain, setStaysnetDomain] = useState("www.stays.net");
+  const [staysnetWebsiteUrl, setStaysnetWebsiteUrl] = useState("");
   const [showStaysnetSecret, setShowStaysnetSecret] = useState(false);
   const [isTestingCrm, setIsTestingCrm] = useState(false);
 
@@ -108,6 +110,7 @@ export function IntegrationsTab() {
       setStaysnetClientId("");
       setStaysnetSecret("");
       setStaysnetDomain(res.staysnet?.domain || "www.stays.net");
+      setStaysnetWebsiteUrl(res.staysnet?.website_url || "");
     } catch (error) {
       console.error(error);
     } finally {
@@ -152,6 +155,7 @@ export function IntegrationsTab() {
         payload.staysnet_client_secret = staysnetSecret;
       }
       if (staysnetDomain) payload.staysnet_domain = staysnetDomain;
+      payload.staysnet_website_url = staysnetWebsiteUrl.trim();
 
       await ApiService.patch("/tenants/me/integrations", payload);
       showToast("success", "Integrações salvas com sucesso!");
@@ -468,14 +472,24 @@ export function IntegrationsTab() {
             </div>
           </div>
           <div className="form-group">
-            <label>Domínio</label>
+            <label>Domínio API</label>
             <input
               type="text"
               value={staysnetDomain}
               onChange={(e) => setStaysnetDomain(e.target.value.replace(/^https?:\/\//i, '').replace(/\/$/, ''))}
               placeholder="vivare.stays.net"
             />
-            <p className="text-xs text-[var(--text-muted)] mt-1">Insira apenas o domínio do sistema de vendas, sem https://</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">Apenas o domínio do sistema de gestão (sem https://). Ex: vivare.stays.net</p>
+          </div>
+          <div className="form-group">
+            <label>URL do Site Público</label>
+            <input
+              type="text"
+              value={staysnetWebsiteUrl}
+              onChange={(e) => setStaysnetWebsiteUrl(e.target.value.replace(/\/$/, ''))}
+              placeholder="https://vivarestay.com"
+            />
+            <p className="text-xs text-[var(--text-muted)] mt-1">URL base do site público (com https://). Usada para gerar links de visualização de unidades. Ex: https://vivarestay.com</p>
           </div>
           {data?.staysnet?.client_secret_set && (
             <button

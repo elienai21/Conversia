@@ -17,6 +17,7 @@ export const updateIntegrationsSchema = z.object({
   deepl_api_key: z.string().optional(),
   staysnet_client_secret: z.string().optional(),
   staysnet_domain: z.string().optional(),
+  staysnet_website_url: z.string().url().optional().or(z.literal("")),
   instagram_page_access_token: z.string().optional(),
   instagram_page_id: z.string().optional(),
 });

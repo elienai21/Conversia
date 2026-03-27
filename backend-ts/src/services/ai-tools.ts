@@ -128,13 +128,13 @@ export const crmTools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "generate_checkout_link",
-      description: "Gera o link de reserva/checkout direto de um imóvel no site do cliente (Stays.net). Use SEMPRE após search_available_listings ou calculate_price para fornecer o link de pagamento ao cliente. O link gerado deve ser incluído na sugestão de resposta para que o atendente possa enviá-lo ao cliente.",
+      description: "Gera o link de reserva/pagamento e o link de visualização do imóvel. Use SEMPRE após search_available_listings. NUNCA gere links de reserva, checkout ou imagem manualmente — use SOMENTE esta ferramenta.",
       parameters: {
         type: "object",
         properties: {
           listingId: {
             type: "string",
-            description: "O ID do imóvel/anúncio (campo '_id' ou 'id' retornado pelo search_available_listings ou get_all_properties).",
+            description: "O CÓDIGO ALFANUMÉRICO do imóvel (ex: UV02I, XG01I). Este é o campo '_id' do objeto 'listing' dentro do resultado de search_available_listings — é um código curto alfanumérico, NÃO o _id MongoDB de 24 caracteres hexadecimais. Se o resultado for um array de disponibilidades, use o campo listing._id ou listingId (NÃO o _id do registro de disponibilidade).",
           },
           from: { type: "string", description: "Data de check-in no formato YYYY-MM-DD" },
           to: { type: "string", description: "Data de check-out no formato YYYY-MM-DD" },

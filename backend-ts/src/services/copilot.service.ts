@@ -232,7 +232,13 @@ export async function generateSuggestionWorker(
 
   // 7. Build system prompt
   const checkoutLinkInstruction = `
-REGRA DE LINKS: Sempre que apresentar imóveis disponíveis (após search_available_listings), chame generate_checkout_link para cada imóvel e inclua o link gerado na resposta ao atendente no formato: 🔗 [Nome do Imóvel](URL) ou "Link de reserva: URL". Isso permite que o atendente envie o link diretamente ao cliente.`;
+
+REGRAS CRÍTICAS DE LINKS (siga à risca):
+1. PROIBIDO gerar qualquer URL manualmente. Nunca escreva URLs de imagens, checkout, reserva ou visualização de imóvel no texto — elas serão inválidas.
+2. Após search_available_listings, chame OBRIGATORIAMENTE generate_checkout_link para CADA imóvel disponível.
+3. O campo listingId para generate_checkout_link é o CÓDIGO ALFANUMÉRICO curto (ex: UV02I, XG01I) — geralmente em listing._id ou listingId no resultado. NUNCA use o _id MongoDB de 24 caracteres hexadecimais (ex: 6802943f0cfadbf62ce671d1).
+4. Inclua na resposta APENAS os links retornados por generate_checkout_link (checkoutUrl e viewUnitUrl), nunca os monte você mesmo.
+5. NÃO inclua URLs de imagens dos imóveis na resposta — omita campos de imagem dos resultados da API.`;
 
   let systemPrompt = customSystemPrompt
     ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}\n\nReply in ${agentLanguage}.`
@@ -292,16 +298,27 @@ Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;
               if (!staysDomain) {
                 resultJson = JSON.stringify({ error: "Stays.net domain não configurado para este tenant." });
               } else {
-                // Stays.net checkout URL pattern (confirmed):
-                // https://{domain}/customer/pt/booking?id={listingId}&from={from}&to={to}&persons={guests}
+                // Stays.net checkout URL pattern:
+                // https://{domain}/customer/pt/booking?id={unitCode}&from={from}&to={to}&persons={guests}
+                const unitCode = String(args.listingId);
                 const checkoutUrl =
                   `https://${staysDomain}/customer/pt/booking` +
-                  `?id=${encodeURIComponent(args.listingId)}` +
+                  `?id=${encodeURIComponent(unitCode)}` +
                   `&from=${encodeURIComponent(args.from)}` +
                   `&to=${encodeURIComponent(args.to)}` +
                   `&persons=${encodeURIComponent(args.guests)}`;
-                resultJson = JSON.stringify({ checkoutUrl, listingId: args.listingId });
-                logger.info(`[Copilot] Generated checkout link for listing ${args.listingId}: ${checkoutUrl}`);
+
+                // Public website view-unit URL (optional, based on staysnetWebsiteUrl setting)
+                const websiteBaseUrl = tenantSettings?.staysnetWebsiteUrl?.replace(/\/$/, "");
+                const viewUnitUrl = websiteBaseUrl
+                  ? `${websiteBaseUrl}/unidades/${encodeURIComponent(unitCode)}`
+                  : null;
+
+                const payload: Record<string, unknown> = { checkoutUrl, listingId: unitCode };
+                if (viewUnitUrl) payload.viewUnitUrl = viewUnitUrl;
+
+                resultJson = JSON.stringify(payload);
+                logger.info(`[Copilot] Generated checkout link for listing ${unitCode}: ${checkoutUrl}${viewUnitUrl ? ` | view: ${viewUnitUrl}` : ""}`);
               }
             } else {
               // All other CRM tools delegate to the shared executor
