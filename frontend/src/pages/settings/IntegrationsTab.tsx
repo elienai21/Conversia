@@ -36,6 +36,7 @@ type IntegrationsInfo = {
   };
   winker: {
     configured: boolean;
+    login: string | null;
     portal_id: string | null;
     token_set: boolean;
   };
@@ -84,10 +85,10 @@ export function IntegrationsTab() {
   const [isTestingCrm, setIsTestingCrm] = useState(false);
 
   // Winker
-  const [winkerApiToken, setWinkerApiToken] = useState("");
-  const [winkerPortalId, setWinkerPortalId] = useState("");
-  const [isTestingWinker, setIsTestingWinker] = useState(false);
-  const [showWinkerToken, setShowWinkerToken] = useState(false);
+  const [winkerLogin, setWinkerLogin] = useState("");
+  const [winkerPassword, setWinkerPassword] = useState("");
+  const [showWinkerPassword, setShowWinkerPassword] = useState(false);
+  const [isConnectingWinker, setIsConnectingWinker] = useState(false);
 
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -125,9 +126,8 @@ export function IntegrationsTab() {
       setStaysnetWebsiteUrl(res.staysnet?.website_url || "");
       setCheckinBaseUrl((res as any).checkin_base_url || "");
 
-      // Winker
-      setWinkerPortalId(res.winker?.portal_id || "");
-      // token is never pre-populated for security
+      // Winker — login is shown, credentials never pre-populated
+      setWinkerLogin(res.winker?.login || "");
     } catch (error) {
       console.error(error);
     } finally {
@@ -175,9 +175,9 @@ export function IntegrationsTab() {
       payload.staysnet_website_url = staysnetWebsiteUrl.trim();
       payload.checkin_base_url = checkinBaseUrl.trim();
 
-      // Winker
-      if (winkerApiToken) payload.winker_api_token = winkerApiToken;
-      if (winkerPortalId) payload.winker_portal_id = winkerPortalId;
+      // Winker: send login+password for server-side JWT fetch
+      if (winkerLogin) payload.winker_login = winkerLogin;
+      if (winkerPassword) payload.winker_password = winkerPassword;
 
       await ApiService.patch("/tenants/me/integrations", payload);
       showToast("success", "Integrações salvas com sucesso!");
@@ -244,19 +244,24 @@ export function IntegrationsTab() {
     }
   };
 
-  const handleTestWinker = async () => {
-    setIsTestingWinker(true);
+  const handleConnectWinker = async () => {
+    if (!winkerLogin || !winkerPassword) return;
+    setIsConnectingWinker(true);
     try {
-      const res = await ApiService.post<{ success: boolean; message?: string }>("/tenants/me/integrations/winker/test", {});
-      if (res.success) {
-        showToast("success", "Winker conectado com sucesso!");
-      } else {
-        showToast("error", res.message || "Falha na conexão Winker");
-      }
-    } catch {
-      showToast("error", "Erro ao testar conexão Winker");
+      await ApiService.patch("/tenants/me/integrations", {
+        winker_login: winkerLogin,
+        winker_password: winkerPassword,
+      });
+      setWinkerPassword("");
+      // Reload to reflect new status
+      const res = await ApiService.get<IntegrationsInfo>("/tenants/me/integrations");
+      setData(res);
+      showToast("success", "Winker conectado com sucesso! Configure os portais na página Imóveis.");
+    } catch (e: unknown) {
+      const msg = (e as { message?: string })?.message || "Falha ao conectar na Winker";
+      showToast("error", msg);
     } finally {
-      setIsTestingWinker(false);
+      setIsConnectingWinker(false);
     }
   };
 
@@ -621,47 +626,57 @@ export function IntegrationsTab() {
             <div className="integration-title">
               <h3>Winker (Portaria)</h3>
               {data?.winker?.configured ? (
-                <span className="status-badge connected"><CheckCircle2 size={14} /> Configurado</span>
+                <span className="status-badge connected"><CheckCircle2 size={14} /> Conectado</span>
               ) : (
                 <span className="status-badge disconnected"><XCircle size={14} /> Não configurado</span>
               )}
             </div>
-            <p>Cadastro automático de hóspedes na portaria do condomínio.</p>
+            <p>Cadastro automático de hóspedes na portaria do condomínio via Winker.</p>
+          </div>
+
+          {data?.winker?.configured && (
+            <div style={{ marginBottom: "1rem", padding: "0.6rem 0.9rem", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 8, fontSize: "0.82rem", color: "#10b981" }}>
+              ✓ Conectado como <strong>{data.winker.login}</strong> — configure os portais de cada imóvel na página <strong>Imóveis</strong>.
+            </div>
+          )}
+
+          <div className="form-group">
+            <label>Login (e-mail da Winker)</label>
+            <input
+              type="email"
+              value={winkerLogin}
+              onChange={(e) => setWinkerLogin(e.target.value)}
+              placeholder="admin@seucondominio.com.br"
+            />
           </div>
           <div className="form-group relative-input">
-            <label>API Token</label>
+            <label>Senha</label>
             <div className="input-with-icon">
               <input
-                type={showWinkerToken ? "text" : "password"}
-                value={winkerApiToken}
-                onChange={(e) => setWinkerApiToken(e.target.value)}
-                placeholder={data?.winker?.token_set ? "••••••• (já configurado)" : "Bearer token da Winker"}
+                type={showWinkerPassword ? "text" : "password"}
+                value={winkerPassword}
+                onChange={(e) => setWinkerPassword(e.target.value)}
+                placeholder={data?.winker?.configured ? "••••••• (deixe em branco para manter)" : "Senha da conta Winker"}
               />
-              <button type="button" className="icon-btn" onClick={() => setShowWinkerToken(!showWinkerToken)}>
-                {showWinkerToken ? <EyeOff size={18} /> : <Eye size={18} />}
+              <button type="button" className="icon-btn" onClick={() => setShowWinkerPassword(!showWinkerPassword)}>
+                {showWinkerPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              O mesmo login e senha acessa todos os condomínios. Os portais disponíveis são detectados automaticamente.
+            </p>
           </div>
-          <div className="form-group">
-            <label>ID do Portal</label>
-            <input
-              type="text"
-              value={winkerPortalId}
-              onChange={(e) => setWinkerPortalId(e.target.value)}
-              placeholder="Ex: 2057"
-            />
-            <p className="text-xs text-[var(--text-muted)] mt-1">ID numérico do condomínio/portal na Winker</p>
-          </div>
-          {(data?.winker?.configured || (winkerApiToken && winkerPortalId)) && (
-            <button
-              type="button"
-              className="btn-connect"
-              onClick={handleTestWinker}
-              disabled={isTestingWinker || !winkerPortalId}
-            >
-              {isTestingWinker ? <><Loader2 size={16} className="animate-spin" /> Testando...</> : "Testar Conexão"}
-            </button>
-          )}
+
+          <button
+            type="button"
+            className="btn-connect"
+            onClick={handleConnectWinker}
+            disabled={isConnectingWinker || !winkerLogin || !winkerPassword}
+          >
+            {isConnectingWinker
+              ? <><Loader2 size={16} className="animate-spin" /> Conectando...</>
+              : data?.winker?.configured ? "Reconectar" : "Conectar Winker"}
+          </button>
         </div>
 
         <div className="form-actions">

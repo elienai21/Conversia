@@ -2,6 +2,11 @@ import { ok, fail } from "../../lib/result.js";
 import { AppError } from "../../lib/errors.js";
 import type { Result } from "../../lib/result.js";
 
+export type WinkerPortal = {
+  id_portal: number;
+  name: string;
+};
+
 export type WinkerVisitPayload = {
   name: string;
   document?: string;
@@ -24,6 +29,22 @@ export type WinkerEventPayload = {
 };
 
 const WINKER_BASE_URL = "https://api.winker.com.br/v1";
+
+/**
+ * Decodes the JWT payload (middle section, base64url) without verification.
+ * Returns the list of portals available to this user from privateData.portals.
+ */
+export function parsePortalsFromToken(jwt: string): WinkerPortal[] {
+  try {
+    const parts = jwt.split(".");
+    if (parts.length < 2) return [];
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf-8"));
+    const portals: WinkerPortal[] = payload?.privateData?.portals ?? [];
+    return portals;
+  } catch {
+    return [];
+  }
+}
 
 export class WinkerAdapter {
   private readonly apiToken: string;
@@ -63,6 +84,48 @@ export class WinkerAdapter {
     }
 
     return response.json() as Promise<T>;
+  }
+
+  /**
+   * Authenticates with Winker using email + password.
+   * Returns the JWT token and the decoded list of portals available to this user.
+   */
+  static async login(
+    email: string,
+    password: string,
+  ): Promise<Result<{ token: string; portals: WinkerPortal[] }, AppError>> {
+    try {
+      const response = await fetch(`${WINKER_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ user: email, password }),
+      });
+
+      if (!response.ok) {
+        let message = `Login falhou: ${response.status}`;
+        try {
+          const body = (await response.json()) as { message?: string; description?: string };
+          message = body.message || body.description || message;
+        } catch { /* ignore */ }
+        return fail(new AppError(message, response.status));
+      }
+
+      // The API may return the JWT directly as a string or wrapped in an object
+      const raw = await response.text();
+      let token: string;
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        // Try common field names
+        token = (parsed.token ?? parsed.user_token ?? parsed.jwt ?? raw) as string;
+      } catch {
+        token = raw.trim();
+      }
+
+      const portals = parsePortalsFromToken(token);
+      return ok({ token, portals });
+    } catch (err) {
+      return fail(new AppError(err instanceof Error ? err.message : "Falha na conexão com Winker"));
+    }
   }
 
   async testConnection(): Promise<Result<boolean, AppError>> {

@@ -21,6 +21,9 @@ export const updateIntegrationsSchema = z.object({
   checkin_base_url: z.string().url().optional().or(z.literal("")),
   instagram_page_access_token: z.string().optional(),
   instagram_page_id: z.string().optional(),
+  // Winker: prefer login+password (JWT fetched server-side), or direct token as fallback
+  winker_login:     z.string().email().optional(),
+  winker_password:  z.string().min(1).optional(),
   winker_api_token: z.string().optional().or(z.literal("")),
   winker_portal_id: z.string().optional().or(z.literal("")),
 });

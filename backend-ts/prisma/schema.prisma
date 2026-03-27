@@ -287,8 +287,9 @@ model TenantSettings {
   lastTaskSyncAt            DateTime? @map("last_task_sync_at")
   vapidPublicKey            String?   @map("vapid_public_key")
   vapidPrivateKey           String?   @map("vapid_private_key")
-  winkerApiToken            String?   @map("winker_api_token")  // AES encrypted
-  winkerPortalId            String?   @map("winker_portal_id")
+  winkerLogin               String?   @map("winker_login")       // Winker account email
+  winkerApiToken            String?   @map("winker_api_token")  // AES-encrypted JWT from /auth/login
+  winkerPortalId            String?   @map("winker_portal_id")  // default fallback portal (optional)
   tenant                    Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_settings")

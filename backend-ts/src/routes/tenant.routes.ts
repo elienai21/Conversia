@@ -143,8 +143,22 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     if (parsed.data.checkin_base_url !== undefined) data.checkinBaseUrl = parsed.data.checkin_base_url || null;
     if (parsed.data.instagram_page_access_token) data.instagramPageAccessToken = encrypt(parsed.data.instagram_page_access_token);
     if (parsed.data.instagram_page_id) data.instagramPageId = parsed.data.instagram_page_id;
-    if (parsed.data.winker_api_token) data.winkerApiToken = encrypt(parsed.data.winker_api_token);
-    if (parsed.data.winker_portal_id) data.winkerPortalId = parsed.data.winker_portal_id;
+    // Winker: if login+password provided, authenticate and store the JWT
+    if (parsed.data.winker_login && parsed.data.winker_password) {
+      const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
+      const loginResult = await WinkerAdapter.login(parsed.data.winker_login, parsed.data.winker_password);
+      if (!loginResult.ok) {
+        return reply.status(400).send({ detail: `Falha no login Winker: ${loginResult.error.message}` });
+      }
+      data.winkerLogin = parsed.data.winker_login;
+      data.winkerApiToken = encrypt(loginResult.value.token);
+    } else if (parsed.data.winker_api_token) {
+      // Fallback: allow direct token entry
+      data.winkerApiToken = encrypt(parsed.data.winker_api_token);
+    }
+    if (parsed.data.winker_portal_id !== undefined) {
+      data.winkerPortalId = parsed.data.winker_portal_id || null;
+    }
 
     // Sync WhatsApp Phone Number ID to Tenant model for webhook resolution
     if (parsed.data.whatsapp_phone_number_id) {
@@ -198,21 +212,42 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
         page_access_token_set: !!settings.instagramPageAccessToken,
       },
       winker: {
-        configured: !!(settings.winkerApiToken && settings.winkerPortalId),
+        configured: !!settings.winkerApiToken,
+        login: settings.winkerLogin ?? null,
         portal_id: settings.winkerPortalId ?? null,
         token_set: !!settings.winkerApiToken,
       },
     };
   });
 
-  // POST /me/integrations/winker/test — test Winker connection
+  // GET /me/integrations/winker/portals — decode JWT and return available portals
+  app.get("/me/integrations/winker/portals", async (request, reply) => {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId: request.user.tenantId },
+      select: { winkerApiToken: true },
+    });
+    if (!settings?.winkerApiToken) {
+      return reply.send({ portals: [] });
+    }
+    let token: string;
+    try {
+      token = decrypt(settings.winkerApiToken);
+    } catch {
+      return reply.send({ portals: [] });
+    }
+    const { parsePortalsFromToken } = await import("../adapters/winker/winker.adapter.js");
+    const portals = parsePortalsFromToken(token);
+    return reply.send({ portals });
+  });
+
+  // POST /me/integrations/winker/test — test Winker connection (GET /me)
   app.post("/me/integrations/winker/test", async (request, reply) => {
     try {
       const settings = await prisma.tenantSettings.findUnique({
         where: { tenantId: request.user.tenantId },
       });
-      if (!settings?.winkerApiToken || !settings?.winkerPortalId) {
-        return reply.send({ success: false, message: "Winker não configurado. Salve o token e o ID do portal primeiro." });
+      if (!settings?.winkerApiToken) {
+        return reply.send({ success: false, message: "Winker não configurado. Conecte com login e senha primeiro." });
       }
       let apiToken: string;
       try {
@@ -220,8 +255,10 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
       } catch {
         return reply.send({ success: false, message: "Falha ao descriptografar o token da Winker." });
       }
+      // Use default portal or any portal to test connection
+      const portalId = settings.winkerPortalId ?? "0";
       const { WinkerAdapter } = await import("../adapters/winker/winker.adapter.js");
-      const winker = new WinkerAdapter({ apiToken, portalId: settings.winkerPortalId });
+      const winker = new WinkerAdapter({ apiToken, portalId });
       const result = await winker.testConnection();
       if (!result.ok) {
         return reply.send({ success: false, message: result.error.message });

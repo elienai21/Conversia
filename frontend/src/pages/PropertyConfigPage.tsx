@@ -17,9 +17,15 @@ interface CrmListing {
   name: string;
 }
 
+interface WinkerPortal {
+  id_portal: number;
+  name: string;
+}
+
 export function PropertyConfigPage() {
   const [configs, setConfigs] = useState<PropertyConfig[]>([]);
   const [listings, setListings] = useState<CrmListing[]>([]);
+  const [winkerPortals, setWinkerPortals] = useState<WinkerPortal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -35,12 +41,14 @@ export function PropertyConfigPage() {
 
   const load = async () => {
     try {
-      const [cfgs, props] = await Promise.all([
+      const [cfgs, props, winkerRes] = await Promise.all([
         ApiService.get<PropertyConfig[]>("/property-configs"),
         ApiService.get<CrmListing[]>("/crm/listings").catch(() => [] as CrmListing[]),
+        ApiService.get<{ portals: WinkerPortal[] }>("/tenants/me/integrations/winker/portals").catch(() => ({ portals: [] })),
       ]);
       setConfigs(cfgs);
       setListings(props);
+      setWinkerPortals(winkerRes.portals ?? []);
     } catch {
       showToast("error", "Erro ao carregar configurações.");
     } finally {
@@ -225,6 +233,7 @@ export function PropertyConfigPage() {
               key={config.id}
               config={config}
               saving={saving}
+              winkerPortals={winkerPortals}
               onToggle={handleToggle}
               onWinkerSave={handleWinkerSave}
               onDelete={handleDelete}
@@ -248,10 +257,11 @@ export function PropertyConfigPage() {
 // ─── PropertyCard ─────────────────────────────────────────────────────────────
 
 function PropertyCard({
-  config, saving, onToggle, onWinkerSave, onDelete,
+  config, saving, winkerPortals, onToggle, onWinkerSave, onDelete,
 }: {
   config: PropertyConfig;
   saving: string | null;
+  winkerPortals: WinkerPortal[];
   onToggle: (config: PropertyConfig, field: "has_garage" | "has_facial_biometrics") => void;
   onWinkerSave: (config: PropertyConfig, portalId: string, unitId: string) => void;
   onDelete: (config: PropertyConfig) => void;
@@ -321,21 +331,40 @@ function PropertyCard({
           </span>
         </div>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ flex: "0 0 140px" }}>
+          <div style={{ flex: "0 0 220px" }}>
             <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>
-              ID do Portal (id_portal)
+              Condomínio / Portal Winker
             </label>
-            <input
-              type="text"
-              value={portalId}
-              onChange={(e) => setPortalId(e.target.value)}
-              placeholder="Ex: 2057"
-              style={{
-                width: "100%", padding: "0.4rem 0.6rem", borderRadius: 7,
-                border: "1px solid var(--border-color)", background: "var(--bg-tertiary)",
-                color: "var(--text-primary)", fontSize: "0.8rem",
-              }}
-            />
+            {winkerPortals.length > 0 ? (
+              <select
+                value={portalId}
+                onChange={(e) => setPortalId(e.target.value)}
+                style={{
+                  width: "100%", padding: "0.4rem 0.6rem", borderRadius: 7,
+                  border: "1px solid var(--border-color)", background: "var(--bg-tertiary)",
+                  color: portalId ? "var(--text-primary)" : "var(--text-muted)", fontSize: "0.8rem",
+                }}
+              >
+                <option value="">— Selecione o condomínio —</option>
+                {winkerPortals.map((p) => (
+                  <option key={p.id_portal} value={String(p.id_portal)}>
+                    {p.name} (ID: {p.id_portal})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={portalId}
+                onChange={(e) => setPortalId(e.target.value)}
+                placeholder="Ex: 2057 (conecte Winker em Integrações)"
+                style={{
+                  width: "100%", padding: "0.4rem 0.6rem", borderRadius: 7,
+                  border: "1px solid var(--border-color)", background: "var(--bg-tertiary)",
+                  color: "var(--text-primary)", fontSize: "0.8rem",
+                }}
+              />
+            )}
           </div>
           <div style={{ flex: "0 0 160px" }}>
             <label style={{ fontSize: "0.72rem", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>
