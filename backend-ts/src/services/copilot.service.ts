@@ -266,9 +266,12 @@ REGRAS CRÍTICAS DE LINKS (siga à risca):
 2. Após search_available_listings, chame OBRIGATORIAMENTE generate_checkout_link para CADA imóvel disponível antes de responder.
 3. Para listingId, use o CÓDIGO ALFANUMÉRICO curto (ex: UV02I, XG01I) — campo listingId ou listing._id do resultado. NUNCA use o _id MongoDB de 24 chars hex.
 4. Datas devem estar no formato AAAA-MM-DD (ex: ${currentYear}-04-02). Converta automaticamente de DD/MM/AAAA se necessário.
-5. Inclua na resposta SOMENTE os links retornados pela ferramenta (checkoutUrl e viewUnitUrl). O padrão do link gerado é:
-   https://{dominio}/customer/pt/booking?id={ID}&from={AAAA-MM-DD}&to={AAAA-MM-DD}&persons={N}
-6. NÃO inclua URLs de imagens na resposta.`;
+5. Para CADA imóvel, apresente SEMPRE os dois links retornados pela ferramenta, com os rótulos exatos abaixo:
+   🏠 Ver apartamento: {viewUnitUrl}
+   💳 Link para reserva: {checkoutUrl}
+   Se viewUnitUrl não estiver disponível, apresente apenas o link de reserva.
+6. NÃO inclua URLs de imagens na resposta.
+7. NÃO escreva URLs fora dos rótulos acima — use apenas os valores exatos retornados pela ferramenta.`;
 
   let systemPrompt = customSystemPrompt
     ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}${greetingInstruction}\n\nReply in ${agentLanguage}.`
