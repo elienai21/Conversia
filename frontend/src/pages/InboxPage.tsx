@@ -1090,59 +1090,70 @@ export function InboxPage() {
                       <Lock size={11} /> Nota interna — visível apenas para a equipe
                     </div>
                   )}
-                  <div className={`message-bubble ${msg.isInternal ? 'message-bubble--internal' : ''}`}>
-                    {/* Forwarded-from quote block */}
-                    {msg.forwardedFrom && (
-                      <div className="forwarded-quote">
-                        <div className="forwarded-quote__header">
-                          <Share2 size={11} />
-                          <span>Encaminhado de {msg.forwardedFrom.senderType === 'customer' ? (msg.forwardedFrom.senderName || 'Cliente') : 'Agente'}</span>
+                  <div className="message-bubble-wrapper">
+                    {/* Agent messages: Actions on the left of bubble */}
+                    {msg.senderType === 'agent' && !msg.isInternal && (
+                      <div className="msg-hover-actions">
+                        <button
+                          className="msg-action-btn msg-action-btn--forward"
+                          onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
+                          title="Encaminhar"
+                        >
+                          <Share2 size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    <div className={`message-bubble ${msg.isInternal ? 'message-bubble--internal' : ''}`}>
+                      {/* Forwarded-from quote block */}
+                      {msg.forwardedFrom && (
+                        <div className="forwarded-quote">
+                          <div className="forwarded-quote__header">
+                            <Share2 size={11} />
+                            <span>Encaminhado de {msg.forwardedFrom.senderType === 'customer' ? (msg.forwardedFrom.senderName || 'Cliente') : 'Agente'}</span>
+                          </div>
+                          <p className="forwarded-quote__text">{msg.forwardedFrom.originalText}</p>
                         </div>
-                        <p className="forwarded-quote__text">{msg.forwardedFrom.originalText}</p>
-                      </div>
-                    )}
-                    {msg.senderType === 'customer' && msg.senderName && (
-                      <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
-                        ~ {msg.senderName}
-                      </div>
-                    )}
-                    {renderMessageText(msg)}
-                    {renderAttachments(msg)}
-                    {msg.translatedFrom && (
-                      <div className="translation-badge">
-                        <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
-                      </div>
-                    )}
-                    {msg.translatedTo && (
-                      <div className="translation-badge">
-                        <Sparkles size={12} /> Traduzido para {msg.translatedTo}
-                      </div>
-                    )}
-                    <div className="message-meta">
-                      <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                      {msg.senderType === 'agent' && (
-                        msg.status === 'read'
-                          ? <CheckCheck size={14} className="status-read" />
-                          : msg.status === 'delivered'
-                            ? <CheckCheck size={14} className="status-delivered" />
-                            : <Check size={14} className="status-sent" />
                       )}
-
-
+                      {msg.senderType === 'customer' && msg.senderName && (
+                        <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
+                          ~ {msg.senderName}
+                        </div>
+                      )}
+                      {renderMessageText(msg)}
+                      {renderAttachments(msg)}
+                      {msg.translatedFrom && (
+                        <div className="translation-badge">
+                          <Sparkles size={12} /> Traduzido do {msg.translatedFrom}
+                        </div>
+                      )}
+                      {msg.translatedTo && (
+                        <div className="translation-badge">
+                          <Sparkles size={12} /> Traduzido para {msg.translatedTo}
+                        </div>
+                      )}
+                      <div className="message-meta">
+                        <span>{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        {msg.senderType === 'agent' && (
+                          msg.status === 'read'
+                            ? <CheckCheck size={14} className="status-read" />
+                            : msg.status === 'delivered'
+                              ? <CheckCheck size={14} className="status-delivered" />
+                              : <Check size={14} className="status-sent" />
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Floating action buttons — visible on hover */}
-                  {!msg.isInternal && (
-                    <div className="msg-hover-actions">
-                      <button
-                        className="msg-action-btn msg-action-btn--forward"
-                        onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
-                        title="Encaminhar"
-                      >
-                        <Share2 size={14} />
-                      </button>
-                      {msg.senderType === 'customer' && (
+                    {/* Customer messages: Actions on the right of bubble */}
+                    {msg.senderType === 'customer' && !msg.isInternal && (
+                      <div className="msg-hover-actions">
+                        <button
+                          className="msg-action-btn msg-action-btn--forward"
+                          onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
+                          title="Encaminhar"
+                        >
+                          <Share2 size={14} />
+                        </button>
                         <button
                           className="msg-action-btn msg-action-btn--delete"
                           onClick={() => handleDeleteMessage(msg.id)}
@@ -1150,9 +1161,9 @@ export function InboxPage() {
                         >
                           <Trash2 size={14} />
                         </button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Copilot Action (Only for customer messages) */}
                   {msg.senderType === 'customer' && !msg.suggestion && (

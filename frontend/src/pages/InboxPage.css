@@ -808,6 +808,7 @@
   flex-shrink: 0;
 }
 
+.message-bubble-wrapper:hover .msg-hover-actions,
 .message-wrapper:hover .msg-hover-actions {
   opacity: 1;
 }
