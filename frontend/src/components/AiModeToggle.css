@@ -83,10 +83,10 @@
 /* Dropdown menu */
 .ai-mode-dropdown {
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 200;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
