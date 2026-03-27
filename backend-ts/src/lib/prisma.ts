@@ -2,13 +2,36 @@ import { PrismaClient } from "@prisma/client";
 import { config } from "../config.js";
 
 /**
- * Build a DATABASE_URL with connection pool limits to prevent exhausting
- * PostgreSQL's max_connections on Railway (shared between Fastify + BullMQ workers).
+ * Build the datasource URL with safe connection pool defaults.
  *
- * connection_limit=5  → max 5 connections per Prisma client instance
- * pool_timeout=20     → wait up to 20s for a free connection before erroring
+ * Priority:
+ *   1. PGBOUNCER_URL  — set this when PgBouncer plugin is active on Railway.
+ *      Adds pgbouncer=true&connection_limit=1 (required for transaction-mode pooling).
+ *   2. DATABASE_URL   — direct Postgres. Limits pool to 5 connections per process
+ *      to avoid exhausting max_connections across multiple workers.
+ *
+ * Scaling guide:
+ *   - Small (<50 tenants):  DATABASE_URL + connection_limit=5  (current)
+ *   - Medium (<500 tenants): activate PgBouncer plugin on Railway → set PGBOUNCER_URL
+ *   - Large (500+ tenants):  upgrade Postgres plan or migrate to Supabase/Neon (built-in pooling)
  */
 function buildDatasourceUrl(): string | undefined {
+  // Prefer PgBouncer URL if configured (Railway PgBouncer plugin)
+  const pgBouncerUrl = process.env.PGBOUNCER_URL;
+  if (pgBouncerUrl) {
+    try {
+      const parsed = new URL(pgBouncerUrl);
+      // PgBouncer in transaction mode: 1 connection per Prisma client is correct
+      parsed.searchParams.set("pgbouncer", "true");
+      parsed.searchParams.set("connection_limit", "1");
+      parsed.searchParams.set("pool_timeout", "20");
+      return parsed.toString();
+    } catch {
+      return pgBouncerUrl;
+    }
+  }
+
+  // Fallback: direct Postgres with limited pool
   const url = process.env.DATABASE_URL;
   if (!url) return undefined;
   try {
