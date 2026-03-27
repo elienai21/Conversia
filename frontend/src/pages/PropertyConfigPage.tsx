@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Car, ScanFace, Plus, Trash2, Loader2, Save } from "lucide-react";
+import { Building2, Car, ScanFace, Plus, Trash2, Loader2 } from "lucide-react";
 import { ApiService } from "@/services/api";
 
 interface PropertyConfig {
