@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import "./GuestCheckinPage.css";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+// Strip /api/v1 suffix so public routes (registered outside /api/v1) resolve correctly
+const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:8000").replace(/\/api\/v1\/?$/, "");
 
 interface ReservationInfo {
   alreadySubmitted: boolean;
@@ -64,7 +65,7 @@ export function GuestCheckinPage() {
   const handleUpsell = async (serviceName: string) => {
     try {
       setUpsellLoading(serviceName);
-      const res = await fetch(`${API_BASE}/api/v1/public/checkin/${token}/upsell`, {
+      const res = await fetch(`${API_BASE}/public/checkin/${token}/upsell`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ service: serviceName }),
