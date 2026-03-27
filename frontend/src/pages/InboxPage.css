@@ -798,14 +798,19 @@
   gap: 4px;
 }
 
-/* ─── Floating hover action buttons (forward / delete) ────────────────────── */
+/* ─── Floating hover action buttons (forward / delete - WhatsApp Style) ────────────────────── */
 .msg-hover-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   opacity: 0;
   transition: opacity 0.15s ease;
   flex-shrink: 0;
+  background: var(--bg-primary, #ffffff);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(11, 20, 26, 0.15);
+  padding: 3px 6px;
+  border: 1px solid rgba(0,0,0,0.05);
 }
 
 .message-bubble-wrapper:hover .msg-hover-actions,
@@ -813,34 +818,38 @@
   opacity: 1;
 }
 
+.msg-hover-actions--left {
+  margin-right: -2px; /* Pulls slightly toward bubble */
+}
+
+.msg-hover-actions--right {
+  margin-left: -2px;
+}
+
 .msg-action-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-full);
-  background: var(--bg-tertiary);
-  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary, #54656f);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: background-color 0.1s ease, color 0.1s ease;
   flex-shrink: 0;
-  border: 1px solid var(--border-color);
+  border: none;
   cursor: pointer;
   padding: 0;
 }
 
-.msg-action-btn--forward:hover {
-  color: var(--brand-primary, #6366f1);
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.35);
-  transform: scale(1.1);
+.msg-action-btn:hover {
+  background-color: var(--bg-secondary, #f0f2f5);
+  color: var(--text-primary, #111b21);
 }
 
 .msg-action-btn--delete:hover {
-  color: var(--accent-error);
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  transform: scale(1.1);
+  color: var(--accent-error, #f15c6d);
+  background-color: rgba(241, 92, 109, 0.1);
 }
 
 /* Chat header actions */

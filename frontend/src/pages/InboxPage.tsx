@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2 } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2, Forward } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
@@ -1093,13 +1093,13 @@ export function InboxPage() {
                   <div className="message-bubble-wrapper">
                     {/* Agent messages: Actions on the left of bubble */}
                     {msg.senderType === 'agent' && !msg.isInternal && (
-                      <div className="msg-hover-actions">
+                      <div className="msg-hover-actions msg-hover-actions--left">
                         <button
                           className="msg-action-btn msg-action-btn--forward"
                           onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
                           title="Encaminhar"
                         >
-                          <Share2 size={14} />
+                          <Forward size={14} />
                         </button>
                       </div>
                     )}
@@ -1109,7 +1109,7 @@ export function InboxPage() {
                       {msg.forwardedFrom && (
                         <div className="forwarded-quote">
                           <div className="forwarded-quote__header">
-                            <Share2 size={11} />
+                            <Forward size={11} />
                             <span>Encaminhado de {msg.forwardedFrom.senderType === 'customer' ? (msg.forwardedFrom.senderName || 'Cliente') : 'Agente'}</span>
                           </div>
                           <p className="forwarded-quote__text">{msg.forwardedFrom.originalText}</p>
@@ -1146,13 +1146,13 @@ export function InboxPage() {
 
                     {/* Customer messages: Actions on the right of bubble */}
                     {msg.senderType === 'customer' && !msg.isInternal && (
-                      <div className="msg-hover-actions">
+                      <div className="msg-hover-actions msg-hover-actions--right">
                         <button
                           className="msg-action-btn msg-action-btn--forward"
                           onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
                           title="Encaminhar"
                         >
-                          <Share2 size={14} />
+                          <Forward size={14} />
                         </button>
                         <button
                           className="msg-action-btn msg-action-btn--delete"
