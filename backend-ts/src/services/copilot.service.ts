@@ -234,11 +234,13 @@ export async function generateSuggestionWorker(
   const checkoutLinkInstruction = `
 
 REGRAS CRÍTICAS DE LINKS (siga à risca):
-1. PROIBIDO gerar qualquer URL manualmente. Nunca escreva URLs de imagens, checkout, reserva ou visualização de imóvel no texto — elas serão inválidas.
-2. Após search_available_listings, chame OBRIGATORIAMENTE generate_checkout_link para CADA imóvel disponível.
-3. O campo listingId para generate_checkout_link é o CÓDIGO ALFANUMÉRICO curto (ex: UV02I, XG01I) — geralmente em listing._id ou listingId no resultado. NUNCA use o _id MongoDB de 24 caracteres hexadecimais (ex: 6802943f0cfadbf62ce671d1).
-4. Inclua na resposta APENAS os links retornados por generate_checkout_link (checkoutUrl e viewUnitUrl), nunca os monte você mesmo.
-5. NÃO inclua URLs de imagens dos imóveis na resposta — omita campos de imagem dos resultados da API.`;
+1. PROIBIDO escrever qualquer URL manualmente. Nunca inclua links de imagens, checkout, reserva ou visualização no texto — eles serão inválidos.
+2. Após search_available_listings, chame OBRIGATORIAMENTE generate_checkout_link para CADA imóvel disponível antes de responder.
+3. Para listingId, use o CÓDIGO ALFANUMÉRICO curto (ex: UV02I, XG01I) — campo listingId ou listing._id do resultado. NUNCA use o _id MongoDB de 24 chars hex.
+4. Datas devem estar no formato AAAA-MM-DD (ex: 2026-04-02). Converta automaticamente de DD/MM/AAAA se necessário.
+5. Inclua na resposta SOMENTE os links retornados pela ferramenta (checkoutUrl e viewUnitUrl). O padrão do link gerado é:
+   https://{dominio}/customer/pt/booking?id={ID}&from={AAAA-MM-DD}&to={AAAA-MM-DD}&persons={N}
+6. NÃO inclua URLs de imagens na resposta.`;
 
   let systemPrompt = customSystemPrompt
     ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}\n\nReply in ${agentLanguage}.`

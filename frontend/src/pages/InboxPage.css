@@ -1506,31 +1506,22 @@
 }
 .email-modal-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ─── Forward button on message bubble ───────────────────────────────────── */
+/* ─── Forward button inside message-meta ─────────────────────────────────── */
 .msg-forward-btn {
-  position: absolute;
-  top: 6px;
-  /* Agent messages (right-aligned): show on the left side of the bubble */
-  left: -28px;
+  opacity: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: none;
-  background: var(--glass-bg, rgba(255, 255, 255, 0.08));
-  color: var(--text-muted, #94a3b8);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  border: 1px solid transparent;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
-  z-index: 1;
-}
-
-/* Customer messages (left-aligned): show on the right side of the bubble */
-.message-wrapper.customer .msg-forward-btn {
-  left: auto;
-  right: -28px;
+  padding: 0;
 }
 
 .message-wrapper:hover .msg-forward-btn {
@@ -1538,8 +1529,9 @@
 }
 
 .msg-forward-btn:hover {
-  background: var(--brand-primary, #6366f1);
-  color: #fff;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--brand-primary, #6366f1);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 /* ─── Forwarded-from quote block ─────────────────────────────────────────── */

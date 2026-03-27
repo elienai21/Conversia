@@ -1127,26 +1127,26 @@ export function InboxPage() {
                             ? <CheckCheck size={14} className="status-delivered" />
                             : <Check size={14} className="status-sent" />
                       )}
+                      {/* Forward button — visible on hover for all non-internal messages */}
+                      {!msg.isInternal && (
+                        <button
+                          className="msg-forward-btn"
+                          onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
+                          title="Encaminhar"
+                        >
+                          <Share2 size={12} />
+                        </button>
+                      )}
+                      {msg.senderType === 'customer' && (
+                        <button
+                          className="msg-delete-btn"
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          title="Apagar mensagem"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
-                    {/* Forward button — available on all non-internal messages */}
-                    {!msg.isInternal && (
-                      <button
-                        className="msg-forward-btn"
-                        onClick={() => setForwardModal({ messageId: msg.id, preview: msg.originalText })}
-                        title="Encaminhar mensagem"
-                      >
-                        <Share2 size={13} />
-                      </button>
-                    )}
-                    {msg.senderType === 'customer' && (
-                      <button
-                        className="msg-delete-btn"
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        title="Apagar mensagem"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
                   </div>
 
                   {/* Copilot Action (Only for customer messages) */}

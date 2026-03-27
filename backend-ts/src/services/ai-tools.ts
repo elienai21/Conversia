@@ -128,19 +128,31 @@ export const crmTools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "generate_checkout_link",
-      description: "Gera o link de reserva/pagamento e o link de visualização do imóvel. Use SEMPRE após search_available_listings. NUNCA gere links de reserva, checkout ou imagem manualmente — use SOMENTE esta ferramenta.",
+      description: `Gera o link de reserva/pagamento para o cliente. Use SEMPRE após search_available_listings para cada imóvel disponível. NUNCA escreva URLs manualmente — use SOMENTE esta ferramenta.
+
+O link gerado segue o padrão:
+https://{dominio}/customer/pt/booking?id={ID_PROPRIEDADE}&from={AAAA-MM-DD}&to={AAAA-MM-DD}&persons={HOSPEDES}
+
+Exemplo:
+https://vivare.stays.net/customer/pt/booking?id=UV02I&from=2026-04-02&to=2026-04-05&persons=4`,
       parameters: {
         type: "object",
         properties: {
           listingId: {
             type: "string",
-            description: "O CÓDIGO ALFANUMÉRICO do imóvel (ex: UV02I, XG01I). Este é o campo '_id' do objeto 'listing' dentro do resultado de search_available_listings — é um código curto alfanumérico, NÃO o _id MongoDB de 24 caracteres hexadecimais. Se o resultado for um array de disponibilidades, use o campo listing._id ou listingId (NÃO o _id do registro de disponibilidade).",
+            description: "O CÓDIGO ALFANUMÉRICO da propriedade (ex: UV02I, XG01I). É o campo 'listingId' ou 'listing._id' retornado pelo search_available_listings — código CURTO alfanumérico. NUNCA use o _id MongoDB de 24 chars hex (ex: 6802943f0cfadbf62ce671d1).",
           },
-          from: { type: "string", description: "Data de check-in no formato YYYY-MM-DD" },
-          to: { type: "string", description: "Data de check-out no formato YYYY-MM-DD" },
+          from: {
+            type: "string",
+            description: "Data de check-in no formato AAAA-MM-DD (ex: 2026-04-02). Converta datas no formato DD/MM/AAAA antes de usar.",
+          },
+          to: {
+            type: "string",
+            description: "Data de checkout no formato AAAA-MM-DD (ex: 2026-04-05). Converta datas no formato DD/MM/AAAA antes de usar.",
+          },
           guests: {
             type: "integer",
-            description: "Número de hóspedes adultos.",
+            description: "Número total de hóspedes (parâmetro 'persons' na URL). Ex: 4",
           },
         },
         required: ["listingId", "from", "to", "guests"],
