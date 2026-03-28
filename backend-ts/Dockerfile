@@ -36,7 +36,8 @@ COPY --from=builder /app/dist ./dist
 # CMD ["node", "dist/server.js"] (or whatever the entrypoint is, assuming it relies on npm start)
 # Expose is not strictly needed for Railway, nor Healthcheck since Railway uses its own probes.
 
-# Run migrations then start the server
-# Note: use ; (not &&) so the server always starts even if prisma push fails
-# (e.g. when DB has duplicate external_ids that block the @unique constraint)
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss; node dist/server.js"]
+# Start the server directly — prisma db push is NOT run on startup to avoid
+# "too many clients" errors during rolling deploys (multiple containers
+# connecting simultaneously to the direct Postgres URL exhausts the limit).
+# Run `npm run db:deploy` manually via Railway console when schema changes.
+CMD ["node", "dist/server.js"]
