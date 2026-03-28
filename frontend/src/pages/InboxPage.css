@@ -1567,3 +1567,28 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.agent-sender-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2px;
+  letter-spacing: 0.01em;
+}
+
+.inbox-agent-filter {
+  padding: 5px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.inbox-agent-filter:focus {
+  border-color: var(--brand-primary);
+}

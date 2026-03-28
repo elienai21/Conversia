@@ -64,4 +64,29 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
 
     return reply.send(result);
   });
+
+  // GET / — list all agents in the tenant (admin only)
+  app.get("/", async (request, reply) => {
+    const { requireAdmin } = await import("../middleware/auth.middleware.js");
+    // Only admins can list all agents
+    if (request.user.role !== "admin") {
+      return reply.status(403).send({ detail: "Admin access required" });
+    }
+
+    const agents = await prisma.user.findMany({
+      where: { tenantId: request.user.tenantId, isActive: true },
+      select: { id: true, fullName: true, email: true, role: true, isOnline: true },
+      orderBy: { fullName: "asc" },
+    });
+
+    return reply.send(
+      agents.map((a) => ({
+        id: a.id,
+        full_name: a.fullName,
+        email: a.email,
+        role: a.role,
+        is_online: a.isOnline,
+      })),
+    );
+  });
 }

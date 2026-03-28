@@ -92,28 +92,34 @@ export function DashboardLayout() {
 
         <nav className="sidebar-nav">
           <div className="nav-section">
-            <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <LayoutDashboard size={20} />
-              <span>{t("Dashboard")}</span>
-            </NavLink>
+            {user?.role === "admin" && (
+              <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                <LayoutDashboard size={20} />
+                <span>{t("Dashboard")}</span>
+              </NavLink>
+            )}
             <NavLink to="/inbox" data-mobile-show className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
               <MessageSquare size={20} />
               <span>Hóspedes</span>
               {openCount > 0 && <span className="nav-badge">{openCount > 99 ? "99+" : openCount}</span>}
             </NavLink>
-            <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <Target size={20} />
-              <span>{t("Missões Diárias")}</span>
-              {upsellCount > 0 && <span className="nav-badge" style={{ background: 'var(--accent-success)' }}>{upsellCount}</span>}
-            </NavLink>
-            <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <Users size={20} />
-              <span>{t("Customers")}</span>
-            </NavLink>
-            <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
-              <BarChart3 size={20} />
-              <span>{t("Analytics")}</span>
-            </NavLink>
+            {user?.role === "admin" && (
+              <>
+                <NavLink to="/tasks" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <Target size={20} />
+                  <span>{t("Missões Diárias")}</span>
+                  {upsellCount > 0 && <span className="nav-badge" style={{ background: 'var(--accent-success)' }}>{upsellCount}</span>}
+                </NavLink>
+                <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <Users size={20} />
+                  <span>{t("Customers")}</span>
+                </NavLink>
+                <NavLink to="/analytics" className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}>
+                  <BarChart3 size={20} />
+                  <span>{t("Analytics")}</span>
+                </NavLink>
+              </>
+            )}
           </div>
 
           <div className="nav-section-divider">
@@ -208,7 +214,7 @@ export function DashboardLayout() {
               <div className="avatar">{user?.name?.charAt(0) || "A"}</div>
               <div className="user-info">
                 <span className="user-name">{user?.name || "Agent"}</span>
-                <span className="user-role">{user?.role || "Staff"}</span>
+                <span className="user-role">{user?.role === "admin" ? "Administrador" : "Operador"}</span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.25rem' }}>

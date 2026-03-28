@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { ApiService, API_URL } from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
 import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2, Forward, UserCog } from "lucide-react";
@@ -34,6 +35,7 @@ type ForwardedFrom = {
 type Message = {
   id: string;
   senderType: "customer" | "agent" | "system";
+  senderId?: string | null;
   senderPhone?: string | null;
   senderName?: string | null;
   originalText: string;
@@ -146,6 +148,7 @@ function mapMessage(raw: RawMessage): Message {
   return {
     id: raw.id,
     senderType: raw.sender_type,
+    senderId: (raw as any).sender_id,
     senderPhone: (raw as any).sender_phone,
     senderName: (raw as any).sender_name,
     originalText: translation ? translation.translated_text : raw.original_text,
@@ -346,6 +349,7 @@ function renderMessageText(message: Message) {
 const notificationSound = typeof window !== "undefined" ? new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdGaJjIuBdHB2cISMi4J0cHR0hIyLgnRwdHaEjIuCdHB0doSMi4J0cHR2hIyLgnRwdA==") : null;
 
 export function InboxPage() {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -387,6 +391,9 @@ export function InboxPage() {
   const [starred, setStarred] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("inbox_starred") || "[]")); } catch { return new Set(); }
   });
+  // Agent filter (admin only)
+  const [agentFilter, setAgentFilter] = useState<string>("");
+  const [agentList, setAgentList] = useState<{ id: string; full_name: string }[]>([]);
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
@@ -418,6 +425,14 @@ export function InboxPage() {
       .then(setStaffList)
       .catch(console.error);
   }, [fetchConversations]);
+
+  // Load agent list for admin filter
+  useEffect(() => {
+    if (user?.role !== "admin") return;
+    ApiService.get<{ id: string; full_name: string }[]>("/agents")
+      .then(setAgentList)
+      .catch(() => {});
+  }, [user?.role]);
 
   // Auto-open conversation when navigated from Contacts page
   useEffect(() => {
@@ -966,6 +981,18 @@ export function InboxPage() {
               )}
             </div>
           </div>
+          {user?.role === "admin" && agentList.length > 0 && (
+            <select
+              className="inbox-agent-filter"
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+            >
+              <option value="">Todos os operadores</option>
+              {agentList.map((a) => (
+                <option key={a.id} value={a.id}>{a.full_name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="conversations-list">
@@ -1148,6 +1175,11 @@ export function InboxPage() {
                       {msg.senderType === 'customer' && msg.senderName && (
                         <div className="text-[11px] text-[var(--brand-primary)] font-semibold mb-[2px] opacity-90 tracking-tight">
                           ~ {msg.senderName}
+                        </div>
+                      )}
+                      {msg.senderType === 'agent' && msg.senderName && msg.senderId !== user?.id && (
+                        <div className="agent-sender-label">
+                          {msg.senderName}
                         </div>
                       )}
                       {renderMessageText(msg)}

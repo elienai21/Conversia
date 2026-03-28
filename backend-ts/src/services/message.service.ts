@@ -75,7 +75,7 @@ export async function saveTranslation(params: {
 }
 
 export async function getConversationMessages(conversationId: string) {
-  return prisma.message.findMany({
+  const messages = await prisma.message.findMany({
     where: { conversationId, deletedAt: null },
     include: {
       translations: true,
@@ -83,6 +83,30 @@ export async function getConversationMessages(conversationId: string) {
       forwardedFrom: { select: { id: true, originalText: true, senderType: true, senderName: true, createdAt: true } },
     },
     orderBy: { createdAt: "asc" },
+  });
+
+  // Resolve agent full names for messages sent by agents (senderId is the User.id)
+  const agentIds = [
+    ...new Set(
+      messages
+        .filter((m) => m.senderType === "agent" && m.senderId)
+        .map((m) => m.senderId!),
+    ),
+  ];
+
+  if (agentIds.length === 0) return messages;
+
+  const agents = await prisma.user.findMany({
+    where: { id: { in: agentIds } },
+    select: { id: true, fullName: true },
+  });
+  const agentNameMap = new Map(agents.map((a) => [a.id, a.fullName]));
+
+  return messages.map((m) => {
+    if (m.senderType === "agent" && m.senderId && agentNameMap.has(m.senderId)) {
+      return { ...m, senderName: agentNameMap.get(m.senderId) ?? m.senderName };
+    }
+    return m;
   });
 }
 
