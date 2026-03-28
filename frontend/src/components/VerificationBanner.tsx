@@ -13,7 +13,7 @@ export function VerificationBanner() {
   const [error, setError] = useState("");
 
   // Only show for users whose emailVerifiedAt is null/missing and not dismissed
-  if (!user || (user as any).emailVerifiedAt || dismissed) return null;
+  if (!user || user.emailVerifiedAt || dismissed) return null;
 
   const handleResend = async () => {
     setResending(true);

@@ -9,6 +9,7 @@ type User = {
   role: string;
   tenantId: string;
   isOnline: boolean;
+  emailVerifiedAt?: string | null;
 };
 
 interface AuthContextType {
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       localStorage.setItem("conversia_token", result.access_token);
       localStorage.setItem("conversia_refresh_token", result.refresh_token);
-      setUser({ ...result.user, isOnline: true });
+      setUser({ ...result.user, isOnline: true, emailVerifiedAt: null });
       return true;
     } catch {
       return false;
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: string;
           role: string;
           is_online: boolean;
+          email_verified_at: string | null;
         }>("/agents/me");
         setUser({
           id: raw.id,
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: raw.role,
           tenantId: raw.tenant_id,
           isOnline: raw.is_online,
+          emailVerifiedAt: raw.email_verified_at,
         });
       } catch {
         // Access token inválido — tenta refresh antes de fazer logout

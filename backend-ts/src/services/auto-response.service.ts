@@ -125,13 +125,18 @@ export async function tryAutoResponse(params: {
       content: m.originalText,
     }));
 
-  let systemDirective = `Você é um assistente automatizado de atendimento ao cliente para uma empresa de hospedagem.
+  // Use tenant's custom AI system prompt if configured, otherwise use default
+  const defaultBasePrompt = `Você é um assistente automatizado de atendimento ao cliente.
 Use a base de conhecimento abaixo E as ferramentas de CRM disponíveis para responder perguntas sobre:
 - Disponibilidade de apartamentos/unidades (use search_available_listings)
 - Preços e valores (use calculate_price)
 - Detalhes de reservas (use get_reservation_details)
 - Detalhes das propriedades (use get_listing_details, get_all_properties)
-- Regras da casa e horários (use get_house_rules)
+- Regras da casa e horários (use get_house_rules)`;
+
+  const basePrompt = settings.aiSystemPrompt?.trim() || defaultBasePrompt;
+
+  let systemDirective = `${basePrompt}
 
 REGRAS CRÍTICAS — SIGA SEMPRE:
 1. CHECKOUT / SAÍDA: Quando o hóspede mencionar check-out, saída ou fim da estadia, NUNCA peça avaliação diretamente. Primeiro pergunte como foi a estadia (ex: "Como foi sua estadia? Ficou satisfeito(a)?"). Só após receber uma resposta positiva, um agente humano fará o pedido de avaliação com o link correto.

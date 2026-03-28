@@ -26,6 +26,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       max_concurrent_conversations: user.maxConcurrentConversations,
       active_conversations_count: activeCount,
       created_at: user.createdAt,
+      email_verified_at: user.emailVerifiedAt,
     };
 
     return reply.send(result);

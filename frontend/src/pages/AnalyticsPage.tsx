@@ -57,6 +57,7 @@ async function downloadCsv(endpoint: string, filename: string) {
 
 export function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<OverviewMetrics | null>(null);
   const [volume7d, setVolume7d] = useState<VolumePoint[]>([]);
   const [volume30d, setVolume30d] = useState<VolumePoint[]>([]);
@@ -84,24 +85,27 @@ export function AnalyticsPage() {
     }
   };
 
+  const load = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [overview, vol7, vol30] = await Promise.all([
+        ApiService.get<OverviewMetrics>("/analytics/overview"),
+        ApiService.get<VolumePoint[]>("/analytics/volume?days=7"),
+        ApiService.get<VolumePoint[]>("/analytics/volume?days=30"),
+      ]);
+      setMetrics(overview);
+      setVolume7d(vol7);
+      setVolume30d(vol30);
+    } catch (err: any) {
+      console.error("Failed to load analytics:", err);
+      setLoadError(err?.message || "Erro ao carregar dados. Verifique sua conexão e tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        const [overview, vol7, vol30] = await Promise.all([
-          ApiService.get<OverviewMetrics>("/analytics/overview"),
-          ApiService.get<VolumePoint[]>("/analytics/volume?days=7"),
-          ApiService.get<VolumePoint[]>("/analytics/volume?days=30"),
-        ]);
-        setMetrics(overview);
-        setVolume7d(vol7);
-        setVolume30d(vol30);
-      } catch (err) {
-        console.error("Failed to load analytics:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     load();
   }, []);
 
@@ -110,7 +114,21 @@ export function AnalyticsPage() {
       <div className="page-container flex-center w-full">
         <div className="animate-pulse-subtle flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-t-2 border-brand-primary animate-spin"></div>
-          <p className="text-muted text-sm">Loading analytics...</p>
+          <p className="text-muted text-sm">Carregando analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="page-container flex-center w-full">
+        <div className="flex flex-col items-center gap-4" style={{ maxWidth: 400, textAlign: "center" }}>
+          <BarChart3 size={40} style={{ opacity: 0.3 }} />
+          <p className="text-muted text-sm">{loadError}</p>
+          <button className="export-btn" onClick={load}>
+            Tentar novamente
+          </button>
         </div>
       </div>
     );

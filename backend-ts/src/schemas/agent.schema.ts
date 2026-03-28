@@ -15,4 +15,5 @@ export interface AgentOut {
   max_concurrent_conversations: number;
   active_conversations_count: number;
   created_at: Date;
+  email_verified_at: Date | null;
 }
