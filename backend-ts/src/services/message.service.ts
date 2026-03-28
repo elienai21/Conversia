@@ -112,10 +112,10 @@ export async function getConversationMessages(conversationId: string) {
 
 export async function getRecentMessages(
   conversationId: string,
-  limit = 10,
+  limit = 15,
 ) {
   return prisma.message.findMany({
-    where: { conversationId },
+    where: { conversationId, deletedAt: null },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: { attachments: true },

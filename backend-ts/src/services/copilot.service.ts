@@ -97,9 +97,22 @@ export async function generateSuggestionWorker(
     where: { tenantId },
   });
 
-  // 2. Semantic Search (RAG) for KB Context
+  // 2. Fetch recent messages early — used for both RAG query and conversation context
+  const recentMessages = await getRecentMessages(message.conversationId, 15);
+
+  // Build RAG query from last 3 customer messages (not just the current one)
+  // This gives the KB search much better context when the customer's intent
+  // spans multiple messages (e.g. "aquele apartamento" references a previous message)
+  const recentCustomerTexts = recentMessages
+    .filter((m) => m.senderType === "customer" && !m.isInternal && m.originalText)
+    .slice(0, 3) // top 3 = most recent (DESC order)
+    .map((m) => m.originalText)
+    .join(" | ");
+  const ragQueryText = recentCustomerTexts || message.originalText;
+
+  // 2b. Semantic Search (RAG) for KB Context
   let contextDocs: Array<{ title: string; content: string; category: string }> = [];
-  const queryEmbedding = await generateEmbedding(tenantId, message.originalText);
+  const queryEmbedding = await generateEmbedding(tenantId, ragQueryText);
 
   if (queryEmbedding && queryEmbedding.length > 0) {
     // Pinecone/pgvector cosine distance
@@ -107,10 +120,10 @@ export async function generateSuggestionWorker(
     const results = await prisma.$queryRaw<
       Array<{ title: string; content: string; category: string }>
     >`
-      SELECT title, content, category 
-      FROM knowledge_base 
-      WHERE tenant_id = ${tenantId}::uuid AND is_active = true 
-      ORDER BY embedding <=> ${embeddingString}::vector 
+      SELECT title, content, category
+      FROM knowledge_base
+      WHERE tenant_id = ${tenantId}::uuid AND is_active = true
+      ORDER BY embedding <=> ${embeddingString}::vector
       LIMIT 5
     `;
     contextDocs = results;
@@ -159,11 +172,12 @@ export async function generateSuggestionWorker(
   // If we fallback to gemini, gemini-2.0-flash also supports vision.
   const visionEnabled = /gpt-4o|gpt-4-turbo|gpt-4-vision|gpt-4\.1|gemini/.test(model) || !!config.GEMINI_API_KEY;
 
-  // 6. Get last 10 messages for context (with attachments)
-  const recentMessages = await getRecentMessages(message.conversationId, 10);
-
+  // 6. Build conversation context from the messages already fetched above
+  // Filter out: internal notes (not part of customer conversation) + keep chronological order
   const conversationContext: ChatMessage[] = [];
-  for (const m of recentMessages.reverse()) {
+  for (const m of [...recentMessages].reverse()) {
+    // Skip internal notes — they are private team notes, not part of the customer dialogue
+    if (m.isInternal) continue;
     const role = m.senderType === "customer" ? ("user" as const) : ("assistant" as const);
     const contentParts: any[] = [];
 
@@ -279,10 +293,12 @@ FLUXO DE CHECKOUT / AVALIAÇÃO (CRÍTICO):
 10. PROIBIDO inventar ou incluir links de avaliação (Airbnb, Booking.com, Google, etc.). Links de avaliação são únicos por reserva e devem ser inseridos manualmente pelo agente. Sugira apenas o texto, sem URL.
 11. Não assuma a plataforma de reserva. Se não souber (Airbnb, Booking.com, direto), não mencione nenhuma plataforma específica.`;
 
+  const contextInstruction = `\n\nCONTEXTO DA CONVERSA: O histórico completo das últimas mensagens está incluído abaixo (em ordem cronológica). Use TODO o histórico para entender o contexto completo do pedido — não apenas a última mensagem. Quando o cliente usar referências como "aquele apartamento", "a reserva", "o que eu perguntei antes", consulte as mensagens anteriores para entender a que ele se refere.`;
+
   let systemPrompt = customSystemPrompt
-    ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}${greetingInstruction}\n\nReply in ${agentLanguage}.`
+    ? `${customSystemPrompt}${contextInstruction}${knowledgeContext}${checkoutLinkInstruction}${greetingInstruction}\n\nReply in ${agentLanguage}.`
     : `You are a helpful customer service agent assistant.
-Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${knowledgeContext}
+Your job is to provide the human agent with a professional and helpful suggested response based on the conversation history and the hotel knowledge base.${contextInstruction}${knowledgeContext}
 IMPORTANT INTENT: Se o cliente quiser oferecer um imóvel para sua empresa administrar (Intenção de Parceria), a resposta sempre deve focar em agendar uma reunião comercial de apresentação, solicitando horário.
 Use as ferramentas disponíveis para buscar CRM DATA (Disponibilidade, Preço, ou Reservas) automaticamente.${checkoutLinkInstruction}${greetingInstruction}
 Reply in ${agentLanguage}. Keep it concise, natural and friendly.`;

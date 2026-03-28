@@ -63,14 +63,21 @@ export async function tryAutoResponse(params: {
   }
 
   // 3. Find matching KB entries via RAG
-  const lastMsg = await prisma.message.findFirst({
-    where: { conversationId, senderType: "customer" },
+  // Use last 3 customer messages (not just the latest) so the KB search
+  // captures context when the customer's intent spans multiple messages.
+  const recentCustomerMsgs = await prisma.message.findMany({
+    where: { conversationId, senderType: "customer", deletedAt: null, isInternal: false },
     orderBy: { createdAt: "desc" },
+    take: 3,
     select: { originalText: true },
   });
+  const ragQueryText = recentCustomerMsgs
+    .map((m) => m.originalText)
+    .filter(Boolean)
+    .join(" | ");
 
-  const queryEmbedding = lastMsg 
-    ? await generateEmbedding(tenantId, lastMsg.originalText) 
+  const queryEmbedding = ragQueryText
+    ? await generateEmbedding(tenantId, ragQueryText)
     : null;
 
   let kbEntries: Array<{ title: string; content: string; category: string }> = [];
@@ -116,13 +123,14 @@ export async function tryAutoResponse(params: {
 
   const tenantLang = tenant?.defaultLanguage || "en";
 
-  // Get recent messages for full context
-  const recentMessages = await getRecentMessages(conversationId, 10);
+  // Get recent messages for full context (15 messages, excluding internal notes)
+  const recentMessages = await getRecentMessages(conversationId, 15);
   const conversationContext: OpenAI.ChatCompletionMessageParam[] = recentMessages
+    .filter((m) => !m.isInternal) // exclude private team notes from customer context
     .reverse()
     .map((m) => ({
       role: m.senderType === "customer" ? ("user" as const) : ("assistant" as const),
-      content: m.originalText,
+      content: m.originalText || "",
     }));
 
   // Use tenant's custom AI system prompt if configured, otherwise use default
@@ -153,7 +161,7 @@ ${kbContext}`;
     systemDirective = `Você é um assistente automatizado de relacionamento. O usuário quer oferecer um imóvel para sua empresa administrar ("parceria"). Seja entusiasmado, explique que adoraria agendar uma reunião de apresentação, e pergunte a disponibilidade dele. Nunca retorne NO_MATCH.`;
   }
 
-  systemDirective += `\n\nResponda em ${tenantLang}. Seja breve (máximo 3-4 frases), amigável e profissional.`;
+  systemDirective += `\n\nCONTEXTO: O histórico completo das últimas mensagens está incluído abaixo em ordem cronológica. Use TODO o histórico para entender o pedido — não apenas a última mensagem. Quando o cliente usar referências como "aquele apartamento" ou "minha reserva", consulte as mensagens anteriores.\n\nResponda em ${tenantLang}. Seja breve (máximo 3-4 frases), amigável e profissional.`;
 
   // Check if CRM is configured to decide whether to use tools
   const crmResult = await CrmAdapterFactory.getAdapter(tenantId);
