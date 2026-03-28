@@ -73,6 +73,63 @@ async function checkAndMarkDuplicate(conversationId: string, externalId: string)
   return false;
 }
 
+/**
+ * Saves a message sent by the business itself (fromMe=true) from outside Conversia.
+ * Skips all AI, routing, and translation logic — just records the message so
+ * agents can see what was said before a customer's reply.
+ */
+async function saveOutboundMessage(params: {
+  tenant: { id: string };
+  conversation: Conversation;
+  incoming: { text: string; messageId: string; attachments?: MessageAttachmentInput[] };
+  isNew: boolean;
+}): Promise<void> {
+  const { tenant, conversation, incoming, isNew } = params;
+
+  if (incoming.messageId && await checkAndMarkDuplicate(conversation.id, incoming.messageId)) {
+    logger.info(`[Webhook] Duplicate outbound message skipped: conv=${conversation.id} ext=${incoming.messageId}`);
+    return;
+  }
+  if (incoming.messageId) {
+    const existing = await prisma.message.findFirst({
+      where: { conversationId: conversation.id, externalId: incoming.messageId },
+    });
+    if (existing) return;
+  }
+
+  let message: Awaited<ReturnType<typeof saveMessage>>;
+  try {
+    message = await saveMessage({
+      conversationId: conversation.id,
+      senderType: "agent",
+      text: incoming.text,
+      externalId: incoming.messageId,
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return;
+    throw err;
+  }
+
+  SocketService.emitToConversation(conversation.id, "message.new", {
+    id: message.id,
+    conversation_id: message.conversationId,
+    sender_type: message.senderType,
+    original_text: message.originalText,
+    detected_language: message.detectedLanguage,
+    created_at: message.createdAt,
+    attachments: [],
+  });
+
+  if (isNew) {
+    SocketService.emitToTenant(tenant.id, "conversation.updated", {
+      type: "new",
+      conversationId: conversation.id,
+    });
+  }
+
+  logger.info(`[Webhook] Outbound (fromMe) message saved: conv=${conversation.id} ext=${incoming.messageId}`);
+}
+
 // Shared pipeline (steps 5-11) used by both WhatsApp and Instagram
 async function processIncomingMessage(params: {
   tenant: { id: string; defaultLanguage: string };
@@ -653,6 +710,13 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
 
           const customer = await findOrCreateCustomer(tenant.id, incoming.from, incoming.displayName, profilePicUrl);
           const { conversation, isNew } = await findOrCreateConversation(tenant.id, customer.id, "whatsapp");
+
+          // Message sent by the business itself from outside Conversia (e.g. from the phone app)
+          if (incoming.fromMe) {
+            await saveOutboundMessage({ tenant, conversation, incoming, isNew });
+            continue;
+          }
+
           await processIncomingMessage({
             tenant, conversation, text: incoming.text,
             externalMessageId: incoming.messageId, isNewConversation: isNew,

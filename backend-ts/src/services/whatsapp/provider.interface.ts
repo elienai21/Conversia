@@ -24,6 +24,8 @@ export interface IncomingWhatsappMessage {
   participantPhone?: string;
   /** The push name of the specific participant who sent the message (if in a group) */
   participantName?: string;
+  /** True when the message was sent by the business itself (fromMe) — not by the customer */
+  fromMe?: boolean;
 }
 
 export interface MediaPayload {

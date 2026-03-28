@@ -58,8 +58,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
 
       if (!key?.remoteJid || !messageContent) return [];
 
-      // Ignore messages sending by the agent/instance itself
-      if (key.fromMe) return [];
+      const fromMe = !!key.fromMe;
 
       let text = "";
       if (typeof messageContent.conversation === "string") {
@@ -97,6 +96,7 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
           attachments,
           whatsappMessageKey: key as Record<string, unknown>,
           whatsappMessageData: msgData as Record<string, unknown>,
+          fromMe,
         },
       ];
     } catch (err) {
