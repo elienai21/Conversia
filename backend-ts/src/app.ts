@@ -91,7 +91,14 @@ export async function buildApp(deps?: AppDeps): Promise<FastifyInstance> {
     };
 
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      // Race the DB ping against a 5-second timeout so a slow/hung
+      // pgbouncer connection never blocks the health check indefinitely.
+      await Promise.race([
+        prisma.$queryRaw`SELECT 1`,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("DB health check timeout")), 5000),
+        ),
+      ]);
     } catch {
       health.status = "degraded";
       health.db = "error";
