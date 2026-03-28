@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
@@ -386,10 +387,12 @@ export function InboxPage() {
 
   const LANGUAGES = ["Original", "Portuguese", "English", "Spanish", "French", "German"];
 
+  const location = useLocation();
   const { socket, joinConversation, leaveConversation } = useSocket();
   const prevConversationRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const autoOpenedRef = useRef<string | null>(null);
 
   const fetchConversations = useCallback(() => {
     ApiService.get<RawConversation[]>("/conversations")
@@ -412,6 +415,18 @@ export function InboxPage() {
       .then(setStaffList)
       .catch(console.error);
   }, [fetchConversations]);
+
+  // Auto-open conversation when navigated from Contacts page
+  useEffect(() => {
+    const openId = (location.state as { openConversationId?: string } | null)?.openConversationId;
+    if (!openId || autoOpenedRef.current === openId || conversations.length === 0) return;
+    const match = conversations.find((c) => c.id === openId);
+    if (match) {
+      autoOpenedRef.current = openId;
+      loadMessages(openId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations, location.state]);
 
   // Join/leave socket rooms when active conversation changes
   useEffect(() => {

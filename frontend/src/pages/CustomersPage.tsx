@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ApiService } from "@/services/api";
 import { Search, MessageCircle, Camera, ChevronDown, ChevronUp, User, Mail, AtSign, Tag, Send, Pencil, Trash2 } from "lucide-react";
 import { StartConversationModal } from "@/components/StartConversationModal";
@@ -12,6 +13,7 @@ type CustomerItem = {
   email: string | null;
   social_media: string | null;
   tag: string | null;
+  role: string | null;
   profile_picture_url: string | null;
   created_at: string;
   conversation_count: number;
@@ -44,13 +46,13 @@ type CustomerDetail = {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return "agora mesmo";
+  if (mins < 60) return `há ${mins}min`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `há ${hours}h`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
+  if (days < 30) return `há ${days}d`;
+  return `há ${Math.floor(days / 30)} mês`;
 }
 
 function channelIcon(channel: string | null) {
@@ -75,6 +77,7 @@ function langLabel(code: string | null): string {
 }
 
 export function CustomersPage() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,7 +91,7 @@ export function CustomersPage() {
 
   const handleDeleteCustomer = async (customer: CustomerItem) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${customer.name || customer.phone}"? This will also delete all their conversations and messages.`
+      `Tem certeza que deseja excluir "${customer.name || customer.phone}"? Isso também excluirá todas as conversas e mensagens desse contato.`
     );
     if (!confirmed) return;
 
@@ -159,7 +162,7 @@ export function CustomersPage() {
       <div className="page-container flex-center w-full">
         <div className="animate-pulse-subtle flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-t-2 border-brand-primary animate-spin"></div>
-          <p className="text-muted text-sm">Loading customers...</p>
+          <p className="text-muted text-sm">Carregando contatos...</p>
         </div>
       </div>
     );
@@ -169,14 +172,14 @@ export function CustomersPage() {
     <div className="customers-page animate-fade-in">
       <div className="customers-header">
         <div>
-          <h1 className="text-3xl font-semibold mb-1">Customers</h1>
-          <span className="customers-count">{filtered.length} customer{filtered.length !== 1 ? "s" : ""}</span>
+          <h1 className="text-3xl font-semibold mb-1">Contatos</h1>
+          <span className="customers-count">{filtered.length} contato{filtered.length !== 1 ? "s" : ""}</span>
         </div>
         <div className="customers-search">
           <Search size={16} className="search-icon" />
           <input
             type="text"
-            placeholder="Search customers..."
+            placeholder="Buscar contatos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -184,20 +187,24 @@ export function CustomersPage() {
       </div>
 
       <div className="filter-chips">
-        {(["all", "active", "resolved"] as const).map((f) => (
+        {([
+          { value: "all", label: "Todos" },
+          { value: "active", label: "Ativos" },
+          { value: "resolved", label: "Encerrados" },
+        ] as const).map((f) => (
           <button
-            key={f}
-            className={`filter-chip ${filter === f ? "active" : ""}`}
-            onClick={() => setFilter(f)}
+            key={f.value}
+            className={`filter-chip ${filter === f.value ? "active" : ""}`}
+            onClick={() => setFilter(f.value)}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f.label}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
         <div className="page-container flex-center" style={{ minHeight: 200 }}>
-          <p className="text-muted">No customers found</p>
+          <p className="text-muted">Nenhum contato encontrado</p>
         </div>
       ) : (
         <div className="customers-grid">
@@ -277,12 +284,17 @@ export function CustomersPage() {
                 </div>
               </div>
 
-              {(customer.email || customer.social_media || customer.tag) && (
+              {(customer.email || customer.social_media || customer.tag || (customer.role && customer.role !== "guest")) && (
                 <div className="customer-meta-row">
                   {customer.tag && (
                     <span className="customer-tag">
                       <Tag size={12} />
                       {customer.tag}
+                    </span>
+                  )}
+                  {customer.role && customer.role !== "guest" && (
+                    <span className="customer-tag" style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8" }}>
+                      {{ owner: "Proprietário", staff: "Funcionário", lead: "Lead" }[customer.role] || customer.role}
                     </span>
                   )}
                   {customer.email && (
@@ -305,30 +317,40 @@ export function CustomersPage() {
                   {customer.status}
                 </span>
                 <span className="last-contact">
-                  Last contact {timeAgo(customer.last_contact)}
+                  �ltimo contato {timeAgo(customer.last_contact)}
                 </span>
               </div>
 
               {expandedId === customer.id && (
                 <div className="customer-detail-panel">
                   {loadingDetail ? (
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Loading history...</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Carregando histórico...</p>
                   ) : detail?.conversations.length === 0 ? (
-                    <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>No conversations yet</p>
+                    <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Nenhuma conversa ainda</p>
                   ) : (
                     detail?.conversations.map((conv) => (
-                      <div key={conv.id} className="conversation-row">
+                      <div
+                        key={conv.id}
+                        className="conversation-row"
+                        style={{ cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/inbox", { state: { openConversationId: conv.id } });
+                        }}
+                        title="Abrir no chat"
+                      >
                         <div className="conversation-row-left">
                           <span className={`customer-channel-icon ${conv.channel}`}>
                             {channelIcon(conv.channel)}
                           </span>
-                          <span>{conv.last_message?.text || "No messages"}</span>
+                          <span>{conv.last_message?.text || "Sem mensagens"}</span>
                         </div>
                         <div className="conversation-row-right">
                           <span className={`status-badge ${conv.status === "closed" ? "resolved" : "active"}`}>
                             {conv.status}
                           </span>
                           <span>{timeAgo(conv.updated_at)}</span>
+                          <MessageCircle size={14} style={{ opacity: 0.4 }} />
                         </div>
                       </div>
                     ))

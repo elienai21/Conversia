@@ -36,14 +36,14 @@ export function StartConversationModal({ open, customer, onClose }: Props) {
 
     setSending(true);
     try {
-      await ApiService.post("/conversations", {
+      const conv = await ApiService.post<{ id: string }>("/conversations", {
         customer_id: customer.id,
         channel: "whatsapp",
         message: message.trim(),
       });
       setMessage("");
       onClose();
-      navigate("/inbox");
+      navigate("/inbox", { state: { openConversationId: conv.id } });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Falha ao enviar mensagem";
       setError(msg);

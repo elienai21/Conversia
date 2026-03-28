@@ -1,9 +1,25 @@
 import { useState } from "react";
-import { X, UserPlus, Phone, User, Mail, AtSign, Tag } from "lucide-react";
+import { X, UserPlus, Phone, User, Mail, AtSign, Tag, Shield } from "lucide-react";
 import { ApiService } from "@/services/api";
 import "./NewCustomerModal.css";
 
-const TAG_OPTIONS = ["VIP", "Lead", "Premium", "Regular", "New", "STAFF", "GROUP_STAFF"];
+const TAG_OPTIONS = [
+  { value: "VIP",        label: "VIP" },
+  { value: "Lead",       label: "Lead" },
+  { value: "Premium",    label: "Premium" },
+  { value: "Regular",    label: "Regular" },
+  { value: "Novo",       label: "Novo" },
+  { value: "Equipe",     label: "Equipe" },
+  { value: "Diretoria",  label: "Diretoria" },
+  { value: "Parceiro",   label: "Parceiro" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "guest",  label: "Hóspede" },
+  { value: "owner",  label: "Proprietário" },
+  { value: "staff",  label: "Funcionário" },
+  { value: "lead",   label: "Lead" },
+];
 
 type Props = {
   open: boolean;
@@ -17,6 +33,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
   const [email, setEmail] = useState("");
   const [socialMedia, setSocialMedia] = useState("");
   const [tag, setTag] = useState("");
+  const [role, setRole] = useState("guest");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -28,6 +45,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
     setEmail("");
     setSocialMedia("");
     setTag("");
+    setRole("guest");
     setError("");
   };
 
@@ -49,6 +67,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
         email: email.trim() || undefined,
         social_media: socialMedia.trim() || undefined,
         tag: tag || undefined,
+        role: role || "guest",
       });
       resetForm();
       onCreated();
@@ -75,7 +94,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
         <div className="modal-header">
           <div className="modal-title-row">
             <UserPlus size={20} className="text-brand-primary" />
-            <h2>New Customer</h2>
+            <h2>Novo Contato</h2>
           </div>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={18} />
@@ -87,7 +106,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
             <div className="modal-field">
               <label htmlFor="nc-phone">
                 <Phone size={14} />
-                Phone <span className="required">*</span>
+                Telefone <span className="required">*</span>
               </label>
               <input
                 id="nc-phone"
@@ -102,12 +121,12 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
             <div className="modal-field">
               <label htmlFor="nc-name">
                 <User size={14} />
-                Name
+                Nome
               </label>
               <input
                 id="nc-name"
                 type="text"
-                placeholder="Customer name"
+                placeholder="Nome do contato"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -131,12 +150,12 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
           <div className="modal-field">
             <label htmlFor="nc-social">
               <AtSign size={14} />
-              Social Media
+              Rede Social
             </label>
             <input
               id="nc-social"
               type="text"
-              placeholder="@username or profile URL"
+              placeholder="@usuario ou URL do perfil"
               value={socialMedia}
               onChange={(e) => setSocialMedia(e.target.value)}
             />
@@ -150,12 +169,31 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
             <div className="tag-chips">
               {TAG_OPTIONS.map((t) => (
                 <button
-                  key={t}
+                  key={t.value}
                   type="button"
-                  className={`tag-chip ${tag === t ? "selected" : ""}`}
-                  onClick={() => setTag(tag === t ? "" : t)}
+                  className={`tag-chip ${tag === t.value ? "selected" : ""}`}
+                  onClick={() => setTag(tag === t.value ? "" : t.value)}
                 >
-                  {t}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="modal-field">
+            <label>
+              <Shield size={14} />
+              Tipo de contato
+            </label>
+            <div className="tag-chips">
+              {ROLE_OPTIONS.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  className={`tag-chip ${role === r.value ? "selected" : ""}`}
+                  onClick={() => setRole(r.value)}
+                >
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -165,10 +203,10 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
 
           <div className="modal-actions">
             <button type="button" className="modal-btn-secondary" onClick={onClose} disabled={saving}>
-              Cancel
+              Cancelar
             </button>
             <button type="submit" className="modal-btn-primary" disabled={saving}>
-              {saving ? "Creating..." : "Create Customer"}
+              {saving ? "Criando..." : "Criar Contato"}
             </button>
           </div>
         </form>
