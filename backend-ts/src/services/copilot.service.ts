@@ -271,7 +271,13 @@ REGRAS CRÍTICAS DE LINKS (siga à risca):
    💳 Link para reserva: {checkoutUrl}
    Se viewUnitUrl não estiver disponível, apresente apenas o link de reserva.
 6. NÃO inclua URLs de imagens na resposta.
-7. NÃO escreva URLs fora dos rótulos acima — use apenas os valores exatos retornados pela ferramenta.`;
+7. NÃO escreva URLs fora dos rótulos acima — use apenas os valores exatos retornados pela ferramenta.
+
+FLUXO DE CHECKOUT / AVALIAÇÃO (CRÍTICO):
+8. Quando o hóspede mencionar check-out, saída ou fim de estadia: PRIMEIRO pergunte como foi a experiência (ex: "Que ótimo! Como foi sua estadia? Ficou satisfeito(a)?"). NUNCA peça avaliação como primeira resposta ao checkout.
+9. Só sugira pedir avaliação APÓS o hóspede confirmar que ficou satisfeito.
+10. PROIBIDO inventar ou incluir links de avaliação (Airbnb, Booking.com, Google, etc.). Links de avaliação são únicos por reserva e devem ser inseridos manualmente pelo agente. Sugira apenas o texto, sem URL.
+11. Não assuma a plataforma de reserva. Se não souber (Airbnb, Booking.com, direto), não mencione nenhuma plataforma específica.`;
 
   let systemPrompt = customSystemPrompt
     ? `${customSystemPrompt}${knowledgeContext}${checkoutLinkInstruction}${greetingInstruction}\n\nReply in ${agentLanguage}.`

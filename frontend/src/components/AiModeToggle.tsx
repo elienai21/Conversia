@@ -79,8 +79,11 @@ export function AiModeToggle() {
   };
 
   const currentMode = MODES.find((m) => m.value === mode) || MODES[0];
-  const statusLabel = isActive ? "IA ATIVA" : "COPILOTO";
-  const dotClass = isActive ? "active" : "copilot";
+  // "IA ATIVA" = auto-response is firing right now
+  // "COPILOTO" = manual mode OR scheduled mode but currently inside business hours (not firing)
+  // "AGENDADO" = scheduled mode and will auto-respond outside business hours
+  const statusLabel = isActive ? "IA ATIVA" : mode === "scheduled" ? "AGENDADO" : "COPILOTO";
+  const dotClass = isActive ? "active" : mode === "scheduled" ? "scheduled" : "copilot";
 
   if (isLoading) {
     return (
