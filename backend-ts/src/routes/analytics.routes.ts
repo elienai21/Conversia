@@ -1,5 +1,4 @@
 import type { FastifyInstance } from "fastify";
-import { prisma } from "../lib/prisma.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
 /** Escapes a CSV cell value (quotes strings with commas/quotes/newlines) */
@@ -20,6 +19,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
 
   // GET /overview — Dashboard metrics
   app.get("/overview", async (request) => {
+    const { prisma } = request.server.deps;
     const tenantId = request.user.tenantId;
 
     const [
@@ -85,6 +85,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
 
   // GET /volume?days=7 — Conversation volume chart data
   app.get("/volume", async (request) => {
+    const { prisma } = request.server.deps;
     const tenantId = request.user.tenantId;
     const query = request.query as Record<string, string>;
     const days = Math.min(parseInt(query.days || "7", 10), 90);
@@ -135,6 +136,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
 
   // GET /export/overview — CSV download of dashboard KPIs
   app.get("/export/overview", async (request, reply) => {
+    const { prisma } = request.server.deps;
     const tenantId = request.user.tenantId;
 
     const [
@@ -205,6 +207,7 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
 
   // GET /export/volume?days=30 — CSV download of daily volume data
   app.get("/export/volume", async (request, reply) => {
+    const { prisma } = request.server.deps;
     const tenantId = request.user.tenantId;
     const query = request.query as Record<string, string>;
     const days = Math.min(parseInt(query.days || "30", 10), 90);

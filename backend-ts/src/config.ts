@@ -33,7 +33,7 @@ const envSchema = z.object({
   ENCRYPTION_SALT: z.string().default("conversia-salt-124b"),
   // Optional secret for Evolution API webhook validation.
   // Set this to the apikey configured in Evolution API webhook settings.
-  // If empty, signature validation is skipped (backward compatible).
+  // If empty, signature validation is skipped (insecure — recommended to set in production).
   EVOLUTION_WEBHOOK_SECRET: z.string().default(""),
   // ── Stripe billing ────────────────────────────────────────────────────────
   // Leave empty to disable billing integration.
@@ -64,6 +64,23 @@ if (config.SECRET_KEY === "change-me-in-production") {
   } else {
     process.stderr.write("WARNING: Using default SECRET_KEY. This is insecure — set a strong SECRET_KEY before going to production.\n");
   }
+}
+
+// Block startup if ENCRYPTION_SALT is the insecure default in production.
+// In dev, emit a warning — changing this value in production without migrating
+// all encrypted fields will make existing API keys permanently unreadable.
+if (config.ENCRYPTION_SALT === "conversia-salt-124b") {
+  if (config.NODE_ENV === "production") {
+    process.stderr.write("FATAL: ENCRYPTION_SALT must be changed in production. Set a unique ENCRYPTION_SALT environment variable. WARNING: changing this value after API keys have been stored will make them permanently unreadable.\n");
+    process.exit(1);
+  } else {
+    process.stderr.write("WARNING: Using default ENCRYPTION_SALT. Set a unique ENCRYPTION_SALT before going to production.\n");
+  }
+}
+
+// Warn when Evolution API webhook secret is not configured (signature validation disabled).
+if (!config.EVOLUTION_WEBHOOK_SECRET) {
+  process.stderr.write("WARNING: EVOLUTION_WEBHOOK_SECRET is not set — Evolution API webhook requests will not be validated. Set this variable in production.\n");
 }
 
 // Parse ALLOWED_ORIGINS into array for CORS

@@ -51,7 +51,7 @@ model Tenant {
 model TaskQueue {
   id             String    @id @default(uuid()) @db.Uuid
   tenantId       String    @map("tenant_id") @db.Uuid
-  type           String    @map("type") // e.g. 'checkin', 'checkout'
+  type           String    @map("type") // 'checkin_hoje' | 'checkin_amanha' | 'checkout_hoje'
   status         String    @default("pending") @map("status") // pending, sent, cancelled
   customerPhone  String    @map("customer_phone")
   customerName   String    @map("customer_name")

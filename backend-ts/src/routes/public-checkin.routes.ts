@@ -337,11 +337,10 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
       const { service } = request.body;
 
       const task = await prisma.taskQueue.findUnique({
-        where: { id: token },
+        where: { magicToken: token },
       });
 
       if (!task || task.type !== "checkin_hoje") {
-         // The error returned tells the UI it failed or not.
         return reply.status(404).send({ detail: "Link não encontrado ou expirou." });
       }
 
