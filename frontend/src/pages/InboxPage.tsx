@@ -3,12 +3,13 @@ import { useLocation } from "react-router-dom";
 import { ApiService, API_URL } from "@/services/api";
 import { useSocket } from "@/contexts/SocketContext";
 import "./InboxPage.css";
-import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2, Forward } from "lucide-react";
+import { Search, Send, Bot, Check, CheckCheck, Loader2, Sparkles, ArrowLeft, MessageCircle, Camera, Volume2, Globe, ChevronDown, Trash2, Zap, FileText, Paperclip, MoreVertical, X, Mail, ClipboardList, Wand2, Plus, Users, Star, Lock, Eye, Share2, Forward, UserCog } from "lucide-react";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { SecureMedia } from "@/components/common/SecureMedia";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 import { NewGroupModal } from "@/components/NewGroupModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
+import { EditCustomerModal } from "@/components/EditCustomerModal";
 
 // Internal component types (camelCase)
 type Conversation = {
@@ -378,6 +379,8 @@ export function InboxPage() {
   const [isInternalMode, setIsInternalMode] = useState(false);
   // Forward message modal
   const [forwardModal, setForwardModal] = useState<{ messageId: string; preview: string } | null>(null);
+  // Edit customer modal
+  const [editingCustomer, setEditingCustomer] = useState<{ id: string; name: string | null; phone: string; email: string | null; social_media: string | null; tag: string | null; role?: string | null } | null>(null);
   // Agent collision: who else is viewing this conversation
   const [viewingAgents, setViewingAgents] = useState<Array<{id: string; name: string}>>([]);
   // Starred conversations (localStorage-backed)
@@ -1065,6 +1068,18 @@ export function InboxPage() {
                   </button>
                   {showChatMenu && (
                     <div className="chat-menu-dropdown glass-panel">
+                      <button className="chat-menu-item" onClick={async () => {
+                        setShowChatMenu(false);
+                        const phone = activeConv?.customer?.phone;
+                        if (!phone) return;
+                        try {
+                          const results = await ApiService.get<any[]>(`/customers?search=${encodeURIComponent(phone)}`);
+                          const found = results?.[0];
+                          if (found) setEditingCustomer(found);
+                        } catch { /* ignore */ }
+                      }}>
+                        <UserCog size={14} /> Editar contato
+                      </button>
                       <button className="chat-menu-item" onClick={() => { setShowChatMenu(false); setShowOsModal(true); }}>
                         <ClipboardList size={14} /> Abrir O.S.
                       </button>
@@ -1546,6 +1561,17 @@ export function InboxPage() {
           setActiveTab('groups');
         }}
         staffList={staffList}
+      />
+
+      {/* Edit Customer Modal */}
+      <EditCustomerModal
+        open={!!editingCustomer}
+        customer={editingCustomer}
+        onClose={() => setEditingCustomer(null)}
+        onUpdated={() => {
+          setEditingCustomer(null);
+          fetchConversations();
+        }}
       />
 
       {/* Forward Message Modal */}

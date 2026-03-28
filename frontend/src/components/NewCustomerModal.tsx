@@ -1,25 +1,8 @@
 import { useState } from "react";
 import { X, UserPlus, Phone, User, Mail, AtSign, Tag, Shield } from "lucide-react";
 import { ApiService } from "@/services/api";
+import { useContactOptions } from "@/hooks/useContactOptions";
 import "./NewCustomerModal.css";
-
-const TAG_OPTIONS = [
-  { value: "VIP",        label: "VIP" },
-  { value: "Lead",       label: "Lead" },
-  { value: "Premium",    label: "Premium" },
-  { value: "Regular",    label: "Regular" },
-  { value: "Novo",       label: "Novo" },
-  { value: "Equipe",     label: "Equipe" },
-  { value: "Diretoria",  label: "Diretoria" },
-  { value: "Parceiro",   label: "Parceiro" },
-];
-
-const ROLE_OPTIONS = [
-  { value: "guest",  label: "Hóspede" },
-  { value: "owner",  label: "Proprietário" },
-  { value: "staff",  label: "Funcionário" },
-  { value: "lead",   label: "Lead" },
-];
 
 type Props = {
   open: boolean;
@@ -28,6 +11,7 @@ type Props = {
 };
 
 export function NewCustomerModal({ open, onClose, onCreated }: Props) {
+  const { options } = useContactOptions();
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -167,14 +151,14 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
               Tag
             </label>
             <div className="tag-chips">
-              {TAG_OPTIONS.map((t) => (
+              {options.tags.map((t) => (
                 <button
-                  key={t.value}
+                  key={t}
                   type="button"
-                  className={`tag-chip ${tag === t.value ? "selected" : ""}`}
-                  onClick={() => setTag(tag === t.value ? "" : t.value)}
+                  className={`tag-chip ${tag === t ? "selected" : ""}`}
+                  onClick={() => setTag(tag === t ? "" : t)}
                 >
-                  {t.label}
+                  {t}
                 </button>
               ))}
             </div>
@@ -186,7 +170,7 @@ export function NewCustomerModal({ open, onClose, onCreated }: Props) {
               Tipo de contato
             </label>
             <div className="tag-chips">
-              {ROLE_OPTIONS.map((r) => (
+              {options.roles.map((r) => (
                 <button
                   key={r.value}
                   type="button"

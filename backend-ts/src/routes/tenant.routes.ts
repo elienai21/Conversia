@@ -564,6 +564,54 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(204).send();
   });
 
+  // GET /me/contact-options — returns tag and role options (falls back to defaults)
+  app.get("/me/contact-options", async (request) => {
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId: request.user.tenantId },
+      select: { customerTagOptions: true, customerRoleOptions: true },
+    });
+
+    const DEFAULT_TAGS = ["VIP", "Lead", "Premium", "Regular", "Novo", "Equipe", "Diretoria", "Parceiro"];
+    const DEFAULT_ROLES = [
+      { value: "guest", label: "Hóspede" },
+      { value: "owner", label: "Proprietário" },
+      { value: "staff", label: "Funcionário" },
+      { value: "lead", label: "Lead" },
+    ];
+
+    return {
+      tags: Array.isArray(settings?.customerTagOptions) ? settings.customerTagOptions : DEFAULT_TAGS,
+      roles: Array.isArray(settings?.customerRoleOptions) ? settings.customerRoleOptions : DEFAULT_ROLES,
+    };
+  });
+
+  // PUT /me/contact-options — saves tag and role options
+  app.put("/me/contact-options", async (request, reply) => {
+    const body = request.body as { tags?: unknown; roles?: unknown };
+    const data: Record<string, unknown> = {};
+
+    if (Array.isArray(body.tags)) {
+      data.customerTagOptions = (body.tags as unknown[]).filter((t) => typeof t === "string");
+    }
+    if (Array.isArray(body.roles)) {
+      data.customerRoleOptions = (body.roles as unknown[]).filter(
+        (r) => r && typeof r === "object" && "value" in r && "label" in r,
+      );
+    }
+
+    if (Object.keys(data).length === 0) {
+      return reply.status(422).send({ detail: "tags or roles array required" });
+    }
+
+    await prisma.tenantSettings.upsert({
+      where: { tenantId: request.user.tenantId },
+      create: { tenantId: request.user.tenantId, ...data },
+      update: data,
+    });
+
+    return reply.send({ ok: true });
+  });
+
   // ── PATCH /me/onboarding — advance (or skip) the onboarding step ──────────
   // step: 1=WhatsApp 2=AI 3=Team 4=Done (also accepts "skip" to jump to 4)
   app.patch("/me/onboarding", async (request, reply) => {

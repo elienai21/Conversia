@@ -291,6 +291,8 @@ model TenantSettings {
   winkerLogin               String?   @map("winker_login")       // Winker account email
   winkerApiToken            String?   @map("winker_api_token")  // AES-encrypted JWT from /auth/login
   winkerPortalId            String?   @map("winker_portal_id")  // default fallback portal (optional)
+  customerTagOptions        Json?     @map("customer_tag_options")   // string[]
+  customerRoleOptions       Json?     @map("customer_role_options")  // {value:string,label:string}[]
   tenant                    Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_settings")

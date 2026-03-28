@@ -8,9 +8,10 @@ import { TeamTab } from "./settings/TeamTab";
 import { AISettingsTab } from "./settings/AISettingsTab";
 import { QuickRepliesTab } from "./settings/QuickRepliesTab";
 import { BusinessHoursTab } from "./settings/BusinessHoursTab";
+import { ContactOptionsTab } from "./settings/ContactOptionsTab";
 import "./SettingsPage.css";
 
-type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai" | "quick-replies" | "business-hours";
+type TabId = "general" | "integrations" | "knowledge-base" | "team" | "ai" | "quick-replies" | "business-hours" | "contacts";
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -37,6 +38,7 @@ export function SettingsPage() {
       case "ai": return <AISettingsTab />;
       case "quick-replies": return <QuickRepliesTab />;
       case "business-hours": return <BusinessHoursTab />;
+      case "contacts": return <ContactOptionsTab />;
       default: return null;
     }
   };
@@ -87,6 +89,12 @@ export function SettingsPage() {
             onClick={() => setActiveTab("business-hours")}
           >
             <Clock size={18} /> Horário de Atendimento
+          </button>
+          <button
+            className={`settings-tab-btn ${activeTab === "contacts" ? "active" : ""}`}
+            onClick={() => setActiveTab("contacts")}
+          >
+            <Users size={18} /> Tags &amp; Tipos
           </button>
         </nav>
       </div>
