@@ -59,6 +59,7 @@ export async function agentRoutes(app: FastifyInstance): Promise<void> {
       max_concurrent_conversations: updated.maxConcurrentConversations,
       active_conversations_count: activeCount,
       created_at: updated.createdAt,
+      email_verified_at: updated.emailVerifiedAt,
     };
 
     return reply.send(result);

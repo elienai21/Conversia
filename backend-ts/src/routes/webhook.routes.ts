@@ -298,22 +298,29 @@ async function processIncomingMessage(params: {
   
   // ---> Roteamento Inteligente (Primeira Qualificação)
   if (isNewConversation && customer?.role === "lead") {
-    const welcomeMsg = "Olá! Sou a assistente virtual. Como posso te ajudar hoje?";
-    logger.info(`[Webhook] Enviando mensagem de boas-vindas para o Lead ${customer.id}`);
-    
-    // Fire-and-forget sending welcome message
-    void (async () => {
-      try {
-        await sendWhatsappMessage(tenant.id, customer.phone, welcomeMsg);
-        await saveMessage({
-          conversationId: conversation.id,
-          senderType: "agent",
-          text: welcomeMsg,
-        });
-      } catch (err) {
-        logger.error({ err }, "[Webhook] Erro ao enviar boas-vindas");
-      }
-    })();
+    const leadSettings = await prisma.tenantSettings.findUnique({ where: { tenantId: tenant.id } });
+    const isAutoEnabled = leadSettings?.autoResponseMode !== "manual";
+
+    if (isAutoEnabled) {
+      const welcomeMsg = "Olá! Sou a assistente virtual. Como posso te ajudar hoje?";
+      logger.info(`[Webhook] Enviando mensagem de boas-vindas para o Lead ${customer.id}`);
+
+      // Fire-and-forget sending welcome message
+      void (async () => {
+        try {
+          await sendWhatsappMessage(tenant.id, customer.phone, welcomeMsg);
+          await saveMessage({
+            conversationId: conversation.id,
+            senderType: "agent",
+            text: welcomeMsg,
+          });
+        } catch (err) {
+          logger.error({ err }, "[Webhook] Erro ao enviar boas-vindas");
+        }
+      })();
+    } else {
+      logger.info(`[Webhook] Boas-vindas suprimida para Lead ${customer.id} (modo=manual)`);
+    }
   } else if (!isNewConversation && customer?.role === "lead") {
     // Se não for novo, mas ainda é lead, vamos tentar classificar based on intent
     const isOwnerIntent = intent === "parceria";

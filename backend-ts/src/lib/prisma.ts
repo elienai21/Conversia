@@ -7,11 +7,11 @@ import { config } from "../config.js";
  * Priority:
  *   1. PGBOUNCER_URL  — set this when PgBouncer plugin is active on Railway.
  *      Adds pgbouncer=true&connection_limit=1 (required for transaction-mode pooling).
- *   2. DATABASE_URL   — direct Postgres. Limits pool to 5 connections per process
+ *   2. DATABASE_URL   — direct Postgres. Limits pool to 2 connections per process
  *      to avoid exhausting max_connections across multiple workers.
  *
  * Scaling guide:
- *   - Small (<50 tenants):  DATABASE_URL + connection_limit=5  (current)
+ *   - Small (<50 tenants):  DATABASE_URL + connection_limit=2  (current)
  *   - Medium (<500 tenants): activate PgBouncer plugin on Railway → set PGBOUNCER_URL
  *   - Large (500+ tenants):  upgrade Postgres plan or migrate to Supabase/Neon (built-in pooling)
  */
@@ -37,7 +37,7 @@ function buildDatasourceUrl(): string | undefined {
   try {
     const parsed = new URL(url);
     if (!parsed.searchParams.has("connection_limit")) {
-      parsed.searchParams.set("connection_limit", "5");
+      parsed.searchParams.set("connection_limit", "2");
     }
     if (!parsed.searchParams.has("pool_timeout")) {
       parsed.searchParams.set("pool_timeout", "20");
