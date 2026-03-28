@@ -396,38 +396,48 @@ async function processIncomingMessage(params: {
     }
   }
 
-  // ---> NEW LOGIC: Intelligent Review Funnel & Emergency Routing
-  // Only trigger when the customer sends an EXPLICIT numeric rating (1–5).
-  // Generic words like "ótimo", "bom", "excelente" must NOT trigger this —
-  // they appear constantly in normal conversation and cause false positives.
+  // ---> Intelligent Review Funnel
+  // When the AI classifies the message as a review, we do NOT auto-send anything.
+  // Instead, create a Missão Diária task so the team can review, edit and send
+  // the right message manually — with the correct review link for that property.
   if (intent === "avaliacao" && customer?.phone) {
     const isNegative = !!text.match(/\b[1-3]\b/) || text.toLowerCase().includes("péssim") || text.toLowerCase().includes("pessim");
-    const isPositive = !!text.match(/\b[4-5]\b/);
-    
-    if (isNegative) {
-      const apologyMsg = "Poxa, sinto muito que sua experiência não foi perfeita. Já acionei nosso gerente e ele entrará em contato em instantes para entender o que houve e como podemos melhorar.";
-      await sendWhatsappMessage(tenant.id, customer.phone, apologyMsg);
-      await saveMessage({
-        conversationId: conversation.id,
-        senderType: "agent",
-        text: apologyMsg,
-      });
 
+    if (isNegative) {
+      // Urgent: escalate immediately without auto-responding
       await prisma.conversation.update({ where: { id: conversation.id }, data: { priority: "urgent", status: "queued" } });
       SocketService.emitToTenant(tenant.id, "conversation.updated", { type: "queued", conversationId: conversation.id });
       notifyAgentsNewMessage(tenant.id, { conversationId: conversation.id, customerName: customer.name || customer.phone, messagePreview: "🚨 Avaliação Negativa: " + text });
-      return; 
-    } else if (isPositive) {
-      const reviewLink = process.env.REVIEW_LINK || "https://airbnb.com/review";
-      const reviewMsg = `Que maravilha! Você nos ajudaria muito clicando neste link e deixando essa mesma nota no nosso Airbnb/Google? ${reviewLink}`;
-      await sendWhatsappMessage(tenant.id, customer.phone, reviewMsg);
-      await saveMessage({
-        conversationId: conversation.id,
-        senderType: "agent",
-        text: reviewMsg,
-      });
-      return; 
+    } else {
+      // Positive/neutral review signal — create a task for the team to send the link manually
+      const draftMsg = `Que ótimo saber disso! Você poderia nos ajudar deixando sua avaliação? [insira o link de avaliação aqui]`;
+      try {
+        await prisma.taskQueue.upsert({
+          where: {
+            tenantId_reservationId_type: {
+              tenantId: tenant.id,
+              reservationId: `conv:${conversation.id}`,
+              type: "avaliacao",
+            },
+          },
+          update: {},
+          create: {
+            tenantId: tenant.id,
+            type: "avaliacao",
+            customerName: customer.name || customer.phone,
+            customerPhone: customer.phone,
+            reservationId: `conv:${conversation.id}`,
+            scheduledFor: new Date(),
+            messagePayload: draftMsg,
+            status: "pending",
+          },
+        });
+        logger.info(`[Webhook] Tarefa de avaliação criada para conv=${conversation.id}`);
+      } catch (err) {
+        logger.warn({ err }, "[Webhook] Falha ao criar tarefa de avaliação");
+      }
     }
+    // Never auto-send anything for reviews — fall through
   }
 
   if (intent === "emergencia") {
