@@ -76,8 +76,12 @@ export class EvolutionWhatsAppProvider implements IWhatsAppProvider {
       if (!text) return [];
 
       let from = key.remoteJid as string;
-      // Strip WhatsApp suffixes for the main group ID
-      from = from.split("@")[0];
+      // Preserve @g.us suffix so findOrCreateCustomer can detect groups.
+      // Only strip @s.whatsapp.net for individual contacts.
+      if (from.includes("@s.whatsapp.net")) {
+        from = from.split("@")[0];
+      }
+      // @g.us groups: keep the full JID (e.g. "120363...@g.us")
 
       // Extract actual participant if it's a group message
       const participantRaw = (key?.participant as string) || (msgData.participant as string);
