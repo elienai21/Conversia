@@ -47,6 +47,10 @@ const envSchema = z.object({
   // ── Gemini fallback ───────────────────────────────────────────────────────
   GEMINI_API_KEY: z.string().default(""),
   GEMINI_MODEL: z.string().default("gemini-2.0-flash"),
+  // ── Backend public URL ────────────────────────────────────────────────────
+  // Used to auto-configure Evolution API webhook URL (e.g. https://app.railway.app).
+  // If empty, webhook auto-config is skipped and the user must configure manually.
+  BACKEND_URL: z.string().default(""),
 });
 
 export const config = envSchema.parse(process.env);

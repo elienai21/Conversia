@@ -152,6 +152,39 @@
   color: var(--accent-success);
 }
 
+.wa-actions {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-secondary {
+  padding: 8px 20px;
+  border-radius: var(--radius-lg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--glass-bg);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-card);
+  border-color: var(--brand-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-danger {
   padding: 8px 20px;
   border-radius: var(--radius-lg);

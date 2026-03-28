@@ -59,6 +59,7 @@ export function IntegrationsTab() {
   const [waQrCode, setWaQrCode] = useState<string | null>(null);
   const [isConnectingWa, setIsConnectingWa] = useState(false);
   const [isDisconnectingWa, setIsDisconnectingWa] = useState(false);
+  const [isConfiguringWebhook, setIsConfiguringWebhook] = useState(false);
 
   // Cloud API fields
   const [whatsappToken, setWhatsappToken] = useState("");
@@ -227,6 +228,19 @@ export function IntegrationsTab() {
     }, 3000);
   };
 
+  const handleConfigureWebhook = async () => {
+    setIsConfiguringWebhook(true);
+    try {
+      await ApiService.post("/whatsapp/webhook-config", {});
+      showToast("success", "Webhook configurado! Mensagens do celular agora sincronizam automaticamente.");
+    } catch (error) {
+      console.error(error);
+      showToast("error", "Erro ao configurar webhook. Verifique se BACKEND_URL está definida no servidor.");
+    } finally {
+      setIsConfiguringWebhook(false);
+    }
+  };
+
   const handleDisconnectWhatsapp = async () => {
     if (!confirm("Tem certeza que deseja desconectar o WhatsApp?")) return;
     setIsDisconnectingWa(true);
@@ -350,14 +364,25 @@ export function IntegrationsTab() {
                       <CheckCircle2 size={20} className="text-success" />
                       <span>WhatsApp conectado e pronto para uso.</span>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-danger"
-                      onClick={handleDisconnectWhatsapp}
-                      disabled={isDisconnectingWa}
-                    >
-                      {isDisconnectingWa ? <><Loader2 size={16} className="animate-spin" /> Desconectando...</> : "Desconectar"}
-                    </button>
+                    <div className="wa-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleConfigureWebhook}
+                        disabled={isConfiguringWebhook}
+                        title="Reaplica a configuração do webhook para garantir que mensagens enviadas pelo celular apareçam no sistema"
+                      >
+                        {isConfiguringWebhook ? <><Loader2 size={16} className="animate-spin" /> Sincronizando...</> : "Sincronizar Webhook"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        onClick={handleDisconnectWhatsapp}
+                        disabled={isDisconnectingWa}
+                      >
+                        {isDisconnectingWa ? <><Loader2 size={16} className="animate-spin" /> Desconectando...</> : "Desconectar"}
+                      </button>
+                    </div>
                   </div>
                 ) : waQrCode ? (
                   <div className="wa-qrcode-area">

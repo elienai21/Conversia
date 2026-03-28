@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/encryption.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { logger } from "../lib/logger.js";
+import { config } from "../config.js";
 
 function normalizeUrl(url: string): string {
   let u = url.trim().replace(/\/+$/, '');
@@ -10,6 +11,40 @@ function normalizeUrl(url: string): string {
     u = `https://${u}`;
   }
   return u;
+}
+
+/**
+ * Configure the Evolution API webhook for an instance.
+ * Enables MESSAGES_UPSERT + MESSAGES_UPDATE and turns on send_messages_from_me
+ * so messages sent from the phone appear in Conversia.
+ */
+async function configureEvolutionWebhook(
+  serverUrl: string,
+  instanceName: string,
+  apikey: string,
+  webhookUrl: string,
+): Promise<void> {
+  const url = `${serverUrl}/webhook/set/${instanceName}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey },
+    body: JSON.stringify({
+      enabled: true,
+      url: webhookUrl,
+      events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "QRCODE_UPDATED", "CONNECTION_UPDATE"],
+      webhook_by_events: false,
+      webhook_base64: false,
+      // Critical: forward messages sent from the business's phone so agents
+      // can see outbound messages they typed in WhatsApp directly.
+      send_messages_from_me: true,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    logger.warn(`[Evolution] configureWebhook non-OK (${res.status}): ${body}`);
+  } else {
+    logger.info(`[Evolution] Webhook configured: url=${webhookUrl}, send_messages_from_me=true`);
+  }
 }
 
 // Endpoint to manage Integration with Evolution API from the Frontend Settings Page
@@ -118,19 +153,35 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
         headers: { apikey: instanceToken },
       });
 
+      // Derive webhook URL from BACKEND_URL env (if configured)
+      const backendWebhookUrl = config.BACKEND_URL
+        ? `${config.BACKEND_URL.replace(/\/$/, "")}/api/v1/webhook/evolution`
+        : null;
+
       if (connectRes.ok) {
         const data = await connectRes.json() as { base64?: string, instance?: { state: string } };
         // If it's already connected, base64 might be empty and state will be "open"
         if (data?.instance?.state === "open") {
-           // Already connected
+           // Already connected — also ensure webhook is properly configured
            await prisma.tenantSettings.update({
              where: { tenantId: user.tenantId },
              data: { whatsappConnected: true },
            });
+           if (backendWebhookUrl) {
+             configureEvolutionWebhook(serverUrl, instanceName, instanceToken, backendWebhookUrl).catch((err) =>
+               logger.warn({ err }, "[Evolution] Failed to configure webhook on reconnect"),
+             );
+           }
            return reply.send({ connected: true });
         }
-        
+
         if (data.base64) {
+          // QR code issued — also configure webhook so it's ready when they scan
+          if (backendWebhookUrl) {
+            configureEvolutionWebhook(serverUrl, instanceName, instanceToken, backendWebhookUrl).catch((err) =>
+              logger.warn({ err }, "[Evolution] Failed to configure webhook on QR issue"),
+            );
+          }
           return reply.send({ connected: false, qrCode: data.base64 });
         }
       }
@@ -141,7 +192,7 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
         const createUrl = `${serverUrl}/instance/create`;
         const createRes = await fetch(createUrl, {
           method: "POST",
-          headers: { 
+          headers: {
             "Content-Type": "application/json",
             apikey: globalApiKey || instanceToken,
           },
@@ -159,9 +210,14 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
         }
 
         const createData = await createRes.json() as { qrcode?: { base64: string }, hash?: { apikey: string } };
-        
-        // If a specific apikey for this instance is generated, we can optionally save it.
-        // For simplicity, we just return the QR
+
+        // Configure webhook for the newly created instance
+        if (backendWebhookUrl) {
+          configureEvolutionWebhook(serverUrl, instanceName, instanceToken, backendWebhookUrl).catch((err) =>
+            logger.warn({ err }, "[Evolution] Failed to configure webhook on instance create"),
+          );
+        }
+
         return reply.send({ connected: false, qrCode: createData.qrcode?.base64 });
       }
 
@@ -211,7 +267,54 @@ export async function evolutionRoutes(app: FastifyInstance): Promise<void> {
     return reply.send({ success: true });
   });
 
-  // 4. Get media content from a message (proxy to Evolution API)
+  // 4. Reconfigure Evolution webhook (send_messages_from_me + events)
+  // Call this once to fix missing outbound messages sync, or whenever the webhook URL changes.
+  app.post<{ Body?: { webhookUrl?: string } }>("/webhook-config", async (request, reply) => {
+    const user = request.user;
+    const settings = await prisma.tenantSettings.findUnique({
+      where: { tenantId: user.tenantId },
+    });
+
+    if (!settings || !settings.evolutionInstanceName) {
+      return reply.status(400).send({ error: "Evolution instance not configured" });
+    }
+
+    const instanceName = settings.evolutionInstanceName;
+    const rawUrl = settings.evolutionServerUrl || process.env.EVOLUTION_API_URL;
+    const rawToken = settings.evolutionInstanceToken;
+    const apikey = rawToken ? decrypt(rawToken) : process.env.EVOLUTION_API_KEY;
+
+    if (!rawUrl || !apikey) {
+      return reply.status(400).send({ error: "Evolution API URL or API key not configured" });
+    }
+
+    // Accept explicit webhook URL in body, otherwise derive from BACKEND_URL, else error
+    const explicitUrl = (request.body as any)?.webhookUrl as string | undefined;
+    const webhookUrl =
+      explicitUrl?.trim() ||
+      (config.BACKEND_URL
+        ? `${config.BACKEND_URL.replace(/\/$/, "")}/api/v1/webhook/evolution`
+        : null);
+
+    if (!webhookUrl) {
+      return reply.status(400).send({
+        error:
+          "Cannot determine webhook URL. Set BACKEND_URL env var or pass webhookUrl in the request body.",
+      });
+    }
+
+    const serverUrl = normalizeUrl(rawUrl);
+
+    try {
+      await configureEvolutionWebhook(serverUrl, instanceName, apikey, webhookUrl);
+      return reply.send({ success: true, webhookUrl });
+    } catch (err) {
+      logger.error({ err }, "[Evolution] webhook-config error");
+      return reply.status(500).send({ error: "Failed to configure webhook" });
+    }
+  });
+
+  // 5. Get media content from a message (proxy to Evolution API)
   app.get<{ Params: { messageId: string } }>(
     "/media/:messageId",
     async (request, reply) => {
