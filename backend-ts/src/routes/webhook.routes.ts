@@ -397,9 +397,12 @@ async function processIncomingMessage(params: {
   }
 
   // ---> NEW LOGIC: Intelligent Review Funnel & Emergency Routing
+  // Only trigger when the customer sends an EXPLICIT numeric rating (1–5).
+  // Generic words like "ótimo", "bom", "excelente" must NOT trigger this —
+  // they appear constantly in normal conversation and cause false positives.
   if (intent === "avaliacao" && customer?.phone) {
-    const isNegative = text.match(/\b(1|2|3)\b/) || text.toLowerCase().includes("ruim") || text.toLowerCase().includes("péssim") || text.toLowerCase().includes("pessim");
-    const isPositive = text.match(/\b(4|5)\b/) || text.toLowerCase().includes("bom") || text.toLowerCase().includes("ótimo") || text.toLowerCase().includes("otimo") || text.toLowerCase().includes("excelente");
+    const isNegative = !!text.match(/\b[1-3]\b/) || text.toLowerCase().includes("péssim") || text.toLowerCase().includes("pessim");
+    const isPositive = !!text.match(/\b[4-5]\b/);
     
     if (isNegative) {
       const apologyMsg = "Poxa, sinto muito que sua experiência não foi perfeita. Já acionei nosso gerente e ele entrará em contato em instantes para entender o que houve e como podemos melhorar.";
