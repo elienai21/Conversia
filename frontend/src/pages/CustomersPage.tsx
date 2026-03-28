@@ -88,6 +88,9 @@ export function CustomersPage() {
   const [msgCustomer, setMsgCustomer] = useState<CustomerItem | null>(null);
   const [editCustomer, setEditCustomer] = useState<CustomerItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"recent" | "alpha-asc" | "alpha-desc">("recent");
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [channelFilter, setChannelFilter] = useState<string>("");
 
   const handleDeleteCustomer = async (customer: CustomerItem) => {
     const confirmed = window.confirm(
@@ -148,14 +151,31 @@ export function CustomersPage() {
     }
   };
 
-  const filtered = customers.filter((c) => {
-    if (filter !== "all" && c.status !== filter) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const name = c.name?.toLowerCase() || "";
-    const phone = c.phone.toLowerCase();
-    return name.includes(q) || phone.includes(q);
-  });
+  const filtered = customers
+    .filter((c) => {
+      if (filter !== "all" && c.status !== filter) return false;
+      if (roleFilter && c.role !== roleFilter) return false;
+      if (channelFilter && c.last_channel !== channelFilter) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const name = c.name?.toLowerCase() || "";
+      const phone = c.phone.toLowerCase();
+      return name.includes(q) || phone.includes(q);
+    })
+    .sort((a, b) => {
+      if (sortOrder === "alpha-asc") {
+        const na = (a.name || a.phone).toLowerCase();
+        const nb = (b.name || b.phone).toLowerCase();
+        return na.localeCompare(nb);
+      }
+      if (sortOrder === "alpha-desc") {
+        const na = (a.name || a.phone).toLowerCase();
+        const nb = (b.name || b.phone).toLowerCase();
+        return nb.localeCompare(na);
+      }
+      // "recent" — sort by last_contact descending
+      return new Date(b.last_contact).getTime() - new Date(a.last_contact).getTime();
+    });
 
   if (isLoading) {
     return (
@@ -200,6 +220,49 @@ export function CustomersPage() {
             {f.label}
           </button>
         ))}
+      </div>
+
+      <div className="customers-filter-bar">
+        <div className="customers-filter-group">
+          <label>Ordenar:</label>
+          <select
+            className="customers-filter-select"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "recent" | "alpha-asc" | "alpha-desc")}
+          >
+            <option value="recent">Mais recentes</option>
+            <option value="alpha-asc">A → Z</option>
+            <option value="alpha-desc">Z → A</option>
+          </select>
+        </div>
+
+        <div className="customers-filter-group">
+          <label>Tipo:</label>
+          <select
+            className="customers-filter-select"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="">Todos os tipos</option>
+            <option value="guest">Hóspede</option>
+            <option value="owner">Proprietário</option>
+            <option value="staff">Funcionário</option>
+            <option value="lead">Lead</option>
+          </select>
+        </div>
+
+        <div className="customers-filter-group">
+          <label>Plataforma:</label>
+          <select
+            className="customers-filter-select"
+            value={channelFilter}
+            onChange={(e) => setChannelFilter(e.target.value)}
+          >
+            <option value="">Todas</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="instagram">Instagram</option>
+          </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (

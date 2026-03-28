@@ -31,7 +31,7 @@ async function configureEvolutionWebhook(
     body: JSON.stringify({
       enabled: true,
       url: webhookUrl,
-      events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "QRCODE_UPDATED", "CONNECTION_UPDATE"],
+      events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_SET", "QRCODE_UPDATED", "CONNECTION_UPDATE"],
       webhook_by_events: false,
       webhook_base64: false,
       // Critical: forward messages sent from the business's phone so agents

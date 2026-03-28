@@ -110,6 +110,28 @@ async function saveOutboundMessage(params: {
     throw err;
   }
 
+  // Save attachments (e.g. audio/media sent from the phone)
+  const outboundAttachments: Array<{ type: string; url: string; mimeType?: string | null; fileName?: string | null; fileSizeBytes?: number | null }> = [];
+  if (incoming.attachments && incoming.attachments.length > 0) {
+    for (const att of incoming.attachments) {
+      if (att.sourceUrl) {
+        try {
+          await saveAttachment({
+            messageId: message.id,
+            type: att.type,
+            sourceUrl: att.sourceUrl,
+            mimeType: att.mimeType ?? undefined,
+            fileName: att.fileName ?? undefined,
+            fileSizeBytes: att.fileSizeBytes ?? undefined,
+          });
+          outboundAttachments.push({ type: att.type, url: att.sourceUrl, mimeType: att.mimeType ?? null, fileName: att.fileName ?? null, fileSizeBytes: att.fileSizeBytes ?? null });
+        } catch {
+          // ignore attachment save errors
+        }
+      }
+    }
+  }
+
   SocketService.emitToConversation(conversation.id, "message.new", {
     id: message.id,
     conversation_id: message.conversationId,
@@ -117,7 +139,7 @@ async function saveOutboundMessage(params: {
     original_text: message.originalText,
     detected_language: message.detectedLanguage,
     created_at: message.createdAt,
-    attachments: [],
+    attachments: outboundAttachments,
   });
 
   if (isNew) {
@@ -695,6 +717,16 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
         }
       }
       return reply.send({ status: "processed" });
+    }
+
+    // Treat messages.set (initial sync) the same as messages.upsert
+    if (body.event === "messages.set") {
+      const setData = body.data as Record<string, unknown> | undefined;
+      if (setData?.messages && Array.isArray(setData.messages)) {
+        // Reconstruct as a MESSAGES_UPSERT-compatible body and fall through
+        body.event = "messages.upsert";
+        body.data = { messages: setData.messages };
+      }
     }
 
     // Step 1: Parse incoming message (factory auto-detects Evolution)

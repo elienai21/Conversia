@@ -263,4 +263,25 @@ export async function serviceOrderRoutes(app: FastifyInstance): Promise<void> {
       return reply.send(updated);
     },
   );
+
+  // DELETE /:id — delete a service order
+  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+    const { prisma } = request.server.deps;
+    const tenantId = request.user.tenantId;
+    const { id } = request.params;
+
+    const existing = await prisma.serviceOrder.findUnique({
+      where: { id },
+      select: { tenantId: true, sequentialNumber: true },
+    });
+
+    if (!existing || existing.tenantId !== tenantId) {
+      return reply.status(404).send({ detail: "Service order not found" });
+    }
+
+    await prisma.serviceOrder.delete({ where: { id } });
+    logger.info(`[ServiceOrder] #${existing.sequentialNumber} deleted`);
+
+    return reply.send({ ok: true });
+  });
 }

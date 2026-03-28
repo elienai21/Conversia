@@ -1,7 +1,7 @@
 // src/pages/ServiceOrdersPage.tsx
 import { useState, useEffect, useCallback } from "react";
 import { ApiService } from "@/services/api";
-import { ClipboardList, MapPin, User, Plus, GripVertical, Hash } from "lucide-react";
+import { ClipboardList, MapPin, User, Plus, GripVertical, Hash, Trash2 } from "lucide-react";
 import { ServiceOrderModal } from "@/components/ServiceOrderModal";
 import "./ServiceOrdersPage.css";
 
@@ -80,6 +80,7 @@ export function ServiceOrdersPage() {
   const [loading, setLoading]     = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -91,6 +92,19 @@ export function ServiceOrdersPage() {
       setLoading(false);
     }
   }, []);
+
+  const handleDelete = async (id: string, num: number) => {
+    if (!window.confirm(`Excluir O.S. #${num}? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(id);
+    try {
+      await ApiService.delete(`/service-orders/${id}`);
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+    } catch {
+      alert("Erro ao excluir a O.S.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -182,6 +196,14 @@ export function ServiceOrdersPage() {
                                 <span title={order.impactOnStay}>{IMPACT_BADGE[order.impactOnStay]}</span>
                               )}
                             </div>
+                            <button
+                              className="os-delete-btn"
+                              title="Excluir O.S."
+                              disabled={deletingId === order.id}
+                              onClick={(e) => { e.stopPropagation(); handleDelete(order.id, order.sequentialNumber); }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
                             <GripVertical size={14} className="os-card-grip" />
                           </div>
 
