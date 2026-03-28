@@ -1,5 +1,4 @@
 import { config } from "./config.js";
-import { prisma } from "./lib/prisma.js";
 import { redis } from "./lib/redis.js";
 import { copilotWorker, taskWorker } from "./lib/queue.js";
 import { startCronJobs } from "./lib/cron.js";
@@ -11,62 +10,10 @@ const app = await buildApp();
 // Start
 async function start(): Promise<void> {
   try {
-    await prisma.$connect();
-    app.log.info("Database connected");
-
-    // Dedup cleanup: remove duplicate messages sharing the same external_id.
-    // Must delete dependents first (ai_suggestions, translations, attachments)
-    // because those FK constraints use RESTRICT (default in Prisma).
-    // This unblocks prisma db push from adding the @unique constraint.
-    try {
-      // 1. Find IDs of duplicate messages to delete (keep oldest per external_id)
-      const dupes = await prisma.$queryRaw<{ id: string }[]>`
-        SELECT id FROM (
-          SELECT id,
-                 ROW_NUMBER() OVER (PARTITION BY external_id ORDER BY created_at ASC) AS rn
-          FROM messages
-          WHERE external_id IS NOT NULL
-        ) t
-        WHERE t.rn > 1
-      `;
-
-      if (dupes.length > 0) {
-        const ids = dupes.map((r) => r.id);
-        app.log.info(`[Startup] Found ${ids.length} duplicate message(s) — cleaning up dependents first`);
-
-        // 2. Delete dependents in the correct cascade order
-        await prisma.aISuggestion.deleteMany({ where: { messageId: { in: ids } } });
-        await prisma.messageTranslation.deleteMany({ where: { messageId: { in: ids } } });
-        await prisma.messageAttachment.deleteMany({ where: { messageId: { in: ids } } });
-        await prisma.message.deleteMany({ where: { id: { in: ids } } });
-
-        app.log.info(`[Startup] Successfully removed ${ids.length} duplicate message(s)`);
-      }
-    } catch (dedupErr) {
-      app.log.warn({ dedupErr }, "[Startup] Could not run external_id dedup cleanup (non-fatal)");
-    }
-
-    // One-time role migration: backfill role from tag for existing customers.
-    // The new filtering system uses `role` (guest/owner/staff/lead) instead of `tag`.
-    // Without this, existing STAFF/GROUP_STAFF contacts would vanish from Inbox Equipe.
-    try {
-      const [staffFixed, groupFixed] = await Promise.all([
-        prisma.customer.updateMany({
-          where: { tag: "STAFF", role: "guest" },
-          data: { role: "staff" },
-        }),
-        prisma.customer.updateMany({
-          where: { tag: "GROUP_STAFF", role: "guest" },
-          data: { role: "staff" },
-        }),
-      ]);
-      const total = staffFixed.count + groupFixed.count;
-      if (total > 0) {
-        app.log.info(`[Startup] Backfilled role="staff" for ${total} customer(s) with tag STAFF/GROUP_STAFF`);
-      }
-    } catch (roleErr) {
-      app.log.warn({ roleErr }, "[Startup] Could not run role backfill migration (non-fatal)");
-    }
+    // Prisma connects lazily on first query — no explicit $connect() needed.
+    // Calling $connect() here blocks startup when the DB has too many connections
+    // (e.g. during rolling deploys), preventing app.listen() from ever being
+    // called and causing Railway healthcheck failures.
 
     // Redis is optional for local dev — don't block the server if unavailable
     try {
@@ -99,6 +46,7 @@ async function shutdown(): Promise<void> {
   await copilotWorker.close();
   await taskWorker.close();
   await app.close();
+  const { prisma } = await import("./lib/prisma.js");
   await prisma.$disconnect();
   redis.disconnect();
 }
