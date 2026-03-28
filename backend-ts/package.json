@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
-    "start": "prisma db push --skip-generate; node dist/server.js",
+    "start": "node dist/server.js",
+    "db:deploy": "prisma db push --skip-generate",
     "test": "tsx --test tests/**/*.test.ts",
     "typecheck": "prisma generate && tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
