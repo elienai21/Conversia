@@ -356,7 +356,9 @@ async function processIncomingMessage(params: {
   // ---> Roteamento Inteligente (Primeira Qualificação)
   if (isNewConversation && customer?.role === "lead") {
     const leadSettings = await prisma.tenantSettings.findUnique({ where: { tenantId: tenant.id } });
-    const isAutoEnabled = leadSettings?.autoResponseMode !== "manual";
+    // Treat null/undefined the same as "manual" — only send welcome when explicitly set to auto/scheduled
+    const autoMode = leadSettings?.autoResponseMode || "manual";
+    const isAutoEnabled = autoMode !== "manual";
 
     if (isAutoEnabled) {
       const welcomeMsg = "Olá! Sou a assistente virtual. Como posso te ajudar hoje?";
