@@ -310,27 +310,53 @@ npm run dev            # Vite dev server on port 5173
 
 ```env
 # Database
-DATABASE_URL=postgresql://conversia:conversia@localhost:5432/conversia
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/conversia
+# DIRECT_URL = same as DATABASE_URL locally; in Railway with PgBouncer, set to the
+# direct (non-pooled) connection string. Required by Prisma at startup.
+DIRECT_URL=postgresql://postgres:postgres@localhost:5432/conversia
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:6379/0
 
-# Auth
-JWT_SECRET=your-super-secret-jwt-key
+# Auth — MUST be changed before production (server blocks startup if default)
+SECRET_KEY=change-me-in-production
 
-# Encryption (API keys stored encrypted)
-ENCRYPTION_KEY=32-char-hex-key
+# Encryption — MUST be changed before production; changing after storing API keys
+# makes all encrypted values permanently unreadable. Never rotate without migration.
+ENCRYPTION_SALT=your-unique-salt-here
 
 # AI
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-4.1-mini
 
 # Translation
 DEEPL_API_KEY=...
 
+# Evolution API webhook validation (strongly recommended in production)
+EVOLUTION_WEBHOOK_SECRET=
+
 # Server
 PORT=8000
 NODE_ENV=development
+
+# Optional — Supabase Storage for media uploads
+SUPABASE_URL=
+SUPABASE_KEY=
+
+# Optional — Stripe billing
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_STARTER=
+STRIPE_PRICE_PROFESSIONAL=
+STRIPE_PRICE_SCALE=
+STRIPE_PRICE_ENTERPRISE=
+
+# Optional — Gemini fallback (when OpenAI key is unavailable)
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
+
+# Optional — backend public URL for Evolution API webhook auto-config
+BACKEND_URL=https://your-railway-app.railway.app
 ```
 
 ### Frontend (`frontend/.env`)

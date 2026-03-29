@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend-ts
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend-ts/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          # Prisma generate does not need a real DB — dummy URL avoids env errors
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/conversia
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/conversia
+
+      - name: Typecheck
+        run: npm run typecheck
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/conversia
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/conversia
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/conversia
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/conversia
+
+  frontend:
+    name: Frontend — typecheck & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck & build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:8000

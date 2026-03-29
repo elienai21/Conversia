@@ -6,6 +6,7 @@ import { authMiddleware, requireAdmin } from "../middleware/auth.middleware.js";
 import { updateTenantSchema, updateIntegrationsSchema, updateAISettingsSchema } from "../schemas/tenant.schema.js";
 import { getAiModeStatus } from "../services/business-hours.service.js";
 import { checkAiTokenLimit } from "../services/ai-usage.service.js";
+import { getPlan } from "../lib/plans.js";
 
 export async function tenantRoutes(app: FastifyInstance): Promise<void> {
   app.addHook("onRequest", authMiddleware);
@@ -464,6 +465,21 @@ export async function tenantRoutes(app: FastifyInstance): Promise<void> {
 
     if (!body.email || !body.full_name || !body.password) {
       return reply.status(422).send({ detail: "email, full_name, and password are required" });
+    }
+
+    // Enforce plan user limit
+    const tenant = await prisma.tenant.findUniqueOrThrow({
+      where: { id: request.user.tenantId },
+      select: { plan: true },
+    });
+    const plan = getPlan(tenant.plan);
+    const currentUserCount = await prisma.user.count({
+      where: { tenantId: request.user.tenantId, isActive: true },
+    });
+    if (currentUserCount >= plan.maxUsers) {
+      return reply.status(403).send({
+        detail: `Limite de usuários do plano ${plan.label} atingido (${plan.maxUsers}). Faça upgrade para adicionar mais usuários.`,
+      });
     }
 
     const existing = await prisma.user.findFirst({

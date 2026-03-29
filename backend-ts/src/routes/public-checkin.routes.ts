@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
+import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { prisma } from "../lib/prisma.js";
 import { logger } from "../lib/logger.js";
 import { uploadMediaToStorage } from "../lib/storage.js";
 import { CrmAdapterFactory } from "../adapters/crm/crm.factory.js";
@@ -105,6 +105,7 @@ async function writeBackToCrm(
  * each with a distinct Winker portal (id_portal).
  */
 async function syncToWinker(
+  prisma: PrismaClient,
   taskId: string,
   tenantId: string,
   listingId: string | null,
@@ -174,6 +175,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
   // ─── GET /public/checkin/:token ──────────────────────────────────────────
   // Returns basic reservation info so the guest sees their own data.
   app.get<{ Params: { token: string } }>("/:token", async (request, reply) => {
+    const { prisma } = request.server.deps;
     const { token } = request.params;
 
     const task = await prisma.taskQueue.findUnique({
@@ -231,6 +233,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
   // ─── POST /public/checkin/:token ─────────────────────────────────────────
   // Guest submits the form (name, document, optional photos).
   app.post<{ Params: { token: string } }>("/:token", async (request, reply) => {
+    const { prisma } = request.server.deps;
     const { token } = request.params;
 
     const task = await prisma.taskQueue.findUnique({
@@ -322,7 +325,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
     );
 
     // Fire-and-forget: register guest in Winker gatekeeper (non-blocking)
-    syncToWinker(task.id, task.tenantId, task.listingId, parsed.data).catch((err) =>
+    syncToWinker(prisma, task.id, task.tenantId, task.listingId, parsed.data).catch((err) =>
       logger.warn({ err }, `[PublicCheckin] Winker sync falhou para task ${task.id}`)
     );
 
@@ -333,6 +336,7 @@ export async function publicCheckinRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { token: string }; Body: { service: string } }>(
     "/:token/upsell",
     async (request, reply) => {
+      const { prisma } = request.server.deps;
       const { token } = request.params;
       const { service } = request.body;
 
