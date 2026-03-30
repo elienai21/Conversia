@@ -1111,11 +1111,15 @@
   .chat-input-area {
     padding: var(--spacing-3);
     padding-bottom: calc(var(--spacing-3) + env(safe-area-inset-bottom, 0px));
+    flex-shrink: 0;
   }
 
-  .chat-input-row input {
-    padding: 12px 14px;
-    font-size: 1rem;
+  .chat-input-row input,
+  .chat-input-row textarea {
+    padding: 10px 14px;
+    font-size: 1rem; /* prevents iOS auto-zoom */
+    min-height: 42px;
+    max-height: 140px;
   }
 
   .send-btn {

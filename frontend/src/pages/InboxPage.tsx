@@ -402,6 +402,7 @@ export function InboxPage() {
   const prevConversationRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoOpenedRef = useRef<string | null>(null);
 
   const fetchConversations = useCallback(() => {
@@ -461,6 +462,14 @@ export function InboxPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+  }, [replyText]);
 
   // Close context menu on click anywhere
   useEffect(() => {
@@ -1410,17 +1419,20 @@ export function InboxPage() {
               )}
 
               <textarea
+                ref={textareaRef}
                 placeholder='Type a message... (Shift+Enter for new line, "/" for quick replies)'
                 value={replyText}
                 onChange={e => { setReplyText(e.target.value); setUsedSuggestionId(null); }}
                 onKeyDown={handleKeyDown}
+                onFocus={() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })}
                 disabled={isSending}
-                rows={Math.max(1, Math.min(5, replyText.split("\n").length))}
-                style={{ 
-                  resize: "none", 
-                  paddingTop: "12px", 
+                rows={1}
+                style={{
+                  resize: "none",
+                  paddingTop: "12px",
                   paddingBottom: "12px",
-                  lineHeight: "1.4"
+                  lineHeight: "1.4",
+                  overflowY: "auto",
                 }}
               />
               {replyText.trim() && (

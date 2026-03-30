@@ -11,15 +11,45 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-function isIOS() {
+export function isIOS() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-function isInStandaloneMode() {
+export function isInStandaloneMode() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     ("standalone" in window.navigator && (window.navigator as { standalone?: boolean }).standalone === true)
   );
+}
+
+/** Hook that exposes PWA install capability and trigger */
+export function useInstallPrompt() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    if (isInStandaloneMode()) return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const install = async () => {
+    if (!deferredPrompt) return false;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setDeferredPrompt(null);
+    return outcome === "accepted";
+  };
+
+  return {
+    /** True when install is possible (Android has deferred prompt, or iOS Safari) */
+    canInstall: !isInStandaloneMode() && (!!deferredPrompt || isIOS()),
+    isIOS: isIOS(),
+    install,
+  };
 }
 
 export function InstallPrompt() {

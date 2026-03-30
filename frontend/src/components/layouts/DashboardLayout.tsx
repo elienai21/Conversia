@@ -1,14 +1,14 @@
 // src/components/layouts/DashboardLayout.tsx
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, NavLink } from "react-router-dom";
-import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase, CreditCard, Megaphone, ShieldCheck, Building2 } from "lucide-react";
+import { MessageSquare, Users, Settings, LogOut, LayoutDashboard, Sun, Moon, BarChart3, HelpCircle, UserPlus, Target, ShoppingBag, HardHat, ClipboardList, Briefcase, CreditCard, Megaphone, ShieldCheck, Building2, Download, Share } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { useTranslation } from "react-i18next";
 import { ApiService } from "@/services/api";
 import { NewCustomerModal } from "@/components/NewCustomerModal";
-import { InstallPrompt } from "@/components/InstallPrompt";
+import { InstallPrompt, useInstallPrompt } from "@/components/InstallPrompt";
 import { OnboardingWizard } from "@/components/OnboardingWizard";
 import { VerificationBanner } from "@/components/VerificationBanner";
 import { AiModeToggle } from "@/components/AiModeToggle";
@@ -25,6 +25,8 @@ export function DashboardLayout() {
   const [opsCount, setOpsCount] = useState(0);
   const [ownersCount, setOwnersCount] = useState(0);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [showIOSTip, setShowIOSTip] = useState(false);
+  const { canInstall, isIOS: isIOSDevice, install } = useInstallPrompt();
 
   const fetchOpenCount = useCallback(async () => {
     try {
@@ -43,6 +45,18 @@ export function DashboardLayout() {
   useEffect(() => {
     fetchOpenCount();
   }, [fetchOpenCount]);
+
+  // Keep --vvh CSS variable in sync with visual viewport (handles mobile keyboard)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    return () => vv.removeEventListener("resize", update);
+  }, []);
 
   // Refresh count on real-time events
   useEffect(() => {
@@ -64,6 +78,15 @@ export function DashboardLayout() {
       <div className="mobile-header">
         <h2 className="brand-logo">Conversia</h2>
         <div className="mobile-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          {canInstall && (
+            <button
+              className="theme-toggle-btn btn-icon"
+              onClick={() => isIOSDevice ? setShowIOSTip(v => !v) : install()}
+              title="Instalar app"
+            >
+              <Download size={18} />
+            </button>
+          )}
           <button className="theme-toggle-btn btn-icon" onClick={toggleTheme} title="Toggle Theme">
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -75,6 +98,18 @@ export function DashboardLayout() {
           </button>
         </div>
       </div>
+
+      {/* iOS install tip tooltip */}
+      {showIOSTip && (
+        <div className="ios-install-tip" role="tooltip">
+          <Share size={14} style={{ flexShrink: 0 }} />
+          <span>
+            Toque em <strong>Compartilhar</strong> e depois{" "}
+            <strong>"Adicionar à Tela de Início"</strong>
+          </span>
+          <button className="ios-install-tip-close" onClick={() => setShowIOSTip(false)} aria-label="Fechar">×</button>
+        </div>
+      )}
 
       {/* Sidebar (desktop) / Bottom Tab Bar (mobile) */}
       <aside className="dashboard-sidebar">

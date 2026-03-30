@@ -414,11 +414,60 @@
     gap: var(--spacing-3);
   }
 
-  /* Main content: between top header and bottom tab bar */
+  /* Main content: between top header and bottom tab bar.
+     --vvh tracks visual viewport so it shrinks when the keyboard appears. */
   .dashboard-main {
     padding: 0;
-    /* 56px top header + 58px bottom tab bar + safe-area */
-    height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom, 0px));
+    height: calc(var(--vvh, 100dvh) - 56px - 58px - env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
+  }
+}
+
+/* iOS install tip tooltip (shown below mobile header) */
+.ios-install-tip {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .ios-install-tip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top, 0px) + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 60;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--brand-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    animation: installSlideDown 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ios-install-tip span {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .ios-install-tip-close {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @keyframes installSlideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 }
